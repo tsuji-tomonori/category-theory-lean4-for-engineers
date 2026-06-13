@@ -11,6 +11,8 @@
 \geometry{margin=25mm}
 \usepackage{setspace}
 \setstretch{1.12}
+\usepackage{fancyhdr}
+\setlength{\footskip}{12pt}
 \usepackage{enumitem}
 \setlist{nosep,leftmargin=2em}
 \usepackage{booktabs,longtable,array}
@@ -52,6 +54,22 @@
 % Hyperlinks
 \usepackage[hidelinks]{hyperref}
 \usepackage[nameinlink,noabbrev]{cleveref}
+
+% Page headers
+\renewcommand{\chaptermark}[1]{\markboth{第\thechapter 章\quad #1}{}}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\nouppercase{\leftmark}}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+\fancypagestyle{plain}{%
+  \fancyhf{}%
+  \fancyhead[L]{\nouppercase{\leftmark}}%
+  \fancyhead[R]{\thepage}%
+  \renewcommand{\headrulewidth}{0.4pt}%
+  \renewcommand{\footrulewidth}{0pt}%
+}
 
 % Japanese captions
 \renewcommand{\figurename}{図}
