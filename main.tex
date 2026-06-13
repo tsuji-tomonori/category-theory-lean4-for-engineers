@@ -15,6 +15,19 @@
 
 \mainmatter
 
+\renewcommand{\thepart}{\arabic{part}}
+\setcounter{part}{-1}
+\clearpage
+\refstepcounter{part}
+\addcontentsline{toc}{part}{第\thepart 部\hspace{1em}地図：なぜ圏論と Lean を一緒に学ぶのか}
+\begin{center}
+\makebox[\textwidth][c]{\large\bfseries 第\thepart 部\quad 地図：なぜ圏論と Lean を一緒に学ぶのか}
+\end{center}
+\vspace{2em}
+\label{part:map}
+
+\input{parts/part00_preface}
+
 \input{chapters/ch00_map}
 % \input{chapters/ch01_types_functions}
 % \input{chapters/ch02_props_specs}

@@ -1,7 +1,7 @@
 .PHONY: all clean
 
 all:
-	latexmk -lualatex -interaction=nonstopmode main.tex
+	latexmk -lualatex -shell-escape -interaction=nonstopmode main.tex
 
 clean:
 	latexmk -C

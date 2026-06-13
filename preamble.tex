@@ -1,4 +1,5 @@
 % Encoding / Japanese
+\usepackage{cmap}
 \usepackage{luatexja}
 \usepackage{luatexja-fontspec}
 
@@ -22,33 +23,31 @@
 
 % Boxes
 \usepackage[most]{tcolorbox}
-\tcbuselibrary{breakable,skins,listings}
+\tcbuselibrary{breakable,skins}
 
 % Code
-\usepackage{listings}
-\lstdefinelanguage{Lean}{
-  morekeywords={def,theorem,example,by,exact,fun,match,with,where,structure,inductive,namespace,end,variable,variables,import,open,if,then,else,let,in,Type,Prop,True,False,And,Or,Not,Nat,Bool,String,List,Option,Some,None,Sum,Except},
-  sensitive=true,
-  morecomment=[l]{--},
-  morestring=[b]"
+\usepackage{accsupp}
+\usepackage[cache=false]{minted}
+\usemintedstyle{friendly}
+\newcommand{\copyablespace}{%
+  \BeginAccSupp{method=escape,ActualText={\space}}%
+  \phantom{\textvisiblespace}%
+  \EndAccSupp{}%
 }
-\lstdefinestyle{leanstyle}{
-  basicstyle=\ttfamily\small,
-  keywordstyle=\bfseries,
-  commentstyle=\itshape\color{gray!70!black},
-  stringstyle=\color{gray!70!black},
-  columns=fullflexible,
+\setminted[lean4]{
+  fontsize=\small,
   breaklines=true,
+  breaksymbolleft={},
   frame=single,
   framerule=0.3pt,
+  framesep=0.6em,
   rulecolor=\color{gray!40},
-  numbers=left,
-  numberstyle=\tiny\color{gray!70},
-  xleftmargin=1.5em,
-  framexleftmargin=1.2em,
-  captionpos=b
+  autogobble=false,
+  obeytabs=true,
+  tabsize=2,
+  showspaces=true,
+  space=\copyablespace
 }
-\lstset{style=leanstyle}
 
 % Hyperlinks
 \usepackage[hidelinks]{hyperref}
@@ -57,4 +56,4 @@
 % Japanese captions
 \renewcommand{\figurename}{図}
 \renewcommand{\tablename}{表}
-\renewcommand{\lstlistingname}{コード}
+\floatname{listing}{コード}
