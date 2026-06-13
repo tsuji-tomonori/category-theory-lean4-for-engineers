@@ -1,0 +1,421 @@
+% !TEX root = ../main.tex
+\chapter{関数外延性：関数が同じとは何か}
+\label{chap:function-extensionality}
+
+\begin{chapterabstract}
+本章では、関数の等しさを扱う。ソフトウェアでは、関数や wrapper や adapter を別の実装に置き換えたい場面が多い。そのとき本当に確認したいのは、名前や内部の書き方が同じかどうかではなく、外から観測できる振る舞いが同じかどうかである。Lean では、この考え方を「すべての入力に対して同じ出力を返す」という命題として書き、\texttt{funext} を使って関数そのものの等式へ持ち上げる。本章では、関数外延性を API client wrapper の置き換え安全性として読み替え、実務で使える小さな証明パターンとして整理する。
+\end{chapterabstract}
+
+\begin{learninggoals}
+\item 関数の等しさを「実装の一致」ではなく「全入力での出力一致」として説明できる。
+\item Lean で点ごとの等式 \(\forall x, f\ x = g\ x\) と関数そのものの等式 \(f = g\) の違いを読める。
+\item \texttt{funext} を使って、wrapper や adapter の振る舞い保存を小さく証明できる。
+\item 関数外延性で証明できることと、性能・ログ・外部副作用など証明モデル外に残ることを区別できる。
+\end{learninggoals}
+
+\section{この章を読む理由}
+
+リファクタリングでは、同じ処理を別の書き方に変えることがある。たとえば、古い API client を新しい wrapper 経由で呼び出すようにする、ロギング用の wrapper を追加する、テストダブルを本番実装の代わりに差し込む、といった変更である。
+
+このとき、ソースコードの文字列は変わる。関数名も変わるかもしれない。内部で使う補助関数も変わるかもしれない。しかし、呼び出し側にとって重要なのは、多くの場合「同じ入力を渡したら同じレスポンスが返るか」である。
+
+\begin{intuitionbox}
+関数を箱として見る。箱のラベルや中の配線が違っていても、すべての入力に対して出てくる値が同じなら、外から見た箱の振る舞いは同じである。この「外から見た振る舞いで関数を比べる」考え方が、関数外延性である。
+\end{intuitionbox}
+
+\FigurePlaceholder{fig-ch15-overview.png}{0.90}{関数外延性の概念地図：実装の違いではなく全入力での振る舞い一致を見る}{fig:ch15-overview}
+
+本章は、前章までの道具を次のようにつなぐ。
+
+\begin{itemize}
+\item 第12章の等式推論では、式や計算結果の一致を扱った。
+\item 第13章の場合分けでは、入力の形ごとに証明を分けた。
+\item 第14章の帰納法では、任意の長さのリストや再帰構造を扱った。
+\item 本章では、任意の入力に対する一致を使って、関数そのものの一致を扱う。
+\end{itemize}
+
+つまり本章の主役は、「ある入力では同じだった」ではなく、「すべての入力で同じだったら、関数として同じとみなしてよい」という考え方である。
+
+\section{ソフトウェア上の問題：実装は違うが振る舞いは同じか}
+
+次のような変更を考える。
+
+\begin{itemize}
+\item API client の内部実装を整理した。
+\item wrapper を追加したが、レスポンス値は変えないつもりである。
+\item 旧関数 \texttt{oldClient} を新関数 \texttt{newClient} に置き換えたい。
+\item テストダブルが、本番実装と同じ抽象仕様を満たしているか確認したい。
+\end{itemize}
+
+どの場面でも、確認したい性質は似ている。
+
+\begin{quote}
+任意のリクエスト \texttt{r} について、\texttt{oldClient r} と \texttt{newClient r} が同じレスポンスを返す。
+\end{quote}
+
+これは、具体的な一件のテストではない。すべての入力についての主張である。
+
+\begin{softwarebox}
+関数外延性は、adapter や wrapper の「置き換え可能性」を表すための道具として読める。実装の構造ではなく、公開された入力と出力の関係を比較する。これにより、コードレビューで「この wrapper は意味を変えない」と言っている箇所を、Lean 上の小さな定理として切り出せる。
+\end{softwarebox}
+
+ただし、注意すべき点もある。Lean 上の関数が純粋な関数としてモデル化されているなら、同じ入力に対して同じ値を返すことは強い意味を持つ。一方、実システムの関数がログ出力、メトリクス送信、時刻参照、乱数、ネットワーク呼び出し、キャッシュ更新などを含む場合、何を「同じ振る舞い」と見るかを先に決める必要がある。
+
+\section{関数外延性の定義}
+
+関数 \(f\) と \(g\) が同じであることを、次のように考える。
+
+\begin{definitionbox}
+型 \(\alpha\) から型 \(\beta\) への二つの関数 \(f, g : \alpha \to \beta\) について、すべての入力 \(x : \alpha\) で \(f(x) = g(x)\) が成り立つとき、\(f\) と \(g\) は外延的に等しいという。Lean では、点ごとの一致を
+\[
+  \forall x : \alpha,\ f\ x = g\ x
+\]
+として表し、関数そのものの等式を
+\[
+  f = g
+\]
+として表す。
+\end{definitionbox}
+
+ここで「外延的」という言葉は、外から観測できる入出力関係に注目する、という意味で読めばよい。関数の定義本文が同じかどうか、同じ補助関数を使っているかどうか、同じアルゴリズムかどうかは、外延的等しさの直接の条件ではない。
+
+\begin{warningbox}
+関数外延性は「計算コストも同じ」「ログも同じ」「内部状態の変化も同じ」という意味ではない。本章で扱う等しさは、Lean のモデル上で明示した入力と出力の等しさである。性能や外部副作用まで仕様に含めたい場合は、それらを戻り値や状態としてモデル化する必要がある。
+\end{warningbox}
+
+\section{Lean 4 で点ごとの一致を書く}
+
+まず、関数がすべての入力で同じ結果を返す、という性質を Lean で書く。
+
+\begin{leanbox}
+Lean では \texttt{∀ x, f x = g x} が「任意の入力 \texttt{x} について、\texttt{f x} と \texttt{g x} が等しい」という命題になる。これだけでも多くの仕様には十分使える。しかし、\texttt{rw} などで関数そのものを置き換えたい場合は、\texttt{f = g} という形が必要になることがある。その橋渡しに使うのが \texttt{funext} である。
+\end{leanbox}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+namespace Ch15
+
+-- 点ごとの一致を、名前を付けて読みやすくする。
+def pointwiseEq {α β : Type} (f g : α → β) : Prop :=
+  ∀ x : α, f x = g x
+
+-- すべての入力で同じなら、関数そのものも等しい。
+theorem funext_from_pointwise
+    {α β : Type} {f g : α → β}
+    (h : pointwiseEq f g) : f = g := by
+  funext x
+  exact h x
+
+end Ch15
+\end{minted}
+\caption{点ごとの一致から関数の等式へ}
+\label{lst:ch15-pointwise-funext}
+\end{listing}
+
+この証明の読み方は、次の通りである。
+
+\begin{enumerate}
+\item 証明したいゴールは \texttt{f = g} である。
+\item \texttt{funext x} により、「任意の \texttt{x} について \texttt{f x = g x} を示せばよい」という形に変わる。
+\item 仮定 \texttt{h} は、まさに任意の \texttt{x} に対する一致を与える。
+\item したがって \texttt{exact h x} で証明が終わる。
+\end{enumerate}
+
+\FigurePlaceholder{fig-ch15-funext-proof.png}{0.88}{\texttt{funext} による証明の形：関数等式を任意入力での等式へ分解する}{fig:ch15-funext-proof}
+
+\section{実装が違っても、同じ関数になる例}
+
+最初に、非常に小さい例を見る。次の二つの関数は、書き方は違うが、どちらも自然数に 1 を足す。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+namespace Ch15
+
+def oldPlusOne (n : Nat) : Nat :=
+  (fun x => x + 1) n
+
+def newPlusOne (n : Nat) : Nat :=
+  n + 1
+
+-- 関数そのものが等しいことを示す。
+theorem oldPlusOne_eq_newPlusOne :
+    oldPlusOne = newPlusOne := by
+  funext n
+  rfl
+
+end Ch15
+\end{minted}
+\caption{書き方が違う関数の等しさ}
+\label{lst:ch15-old-new-plus-one}
+\end{listing}
+
+\texttt{rfl} は、定義を展開すると同じ形になる場合に使える。ここでは、任意の \texttt{n} を取ると、\texttt{oldPlusOne n} も \texttt{newPlusOne n} も定義展開により \texttt{n + 1} になる。
+
+重要なのは、最初から \texttt{oldPlusOne = newPlusOne} を直接 \texttt{rfl} で示しているわけではない、という点である。\texttt{funext n} によって任意の入力 \texttt{n} に対する等式へ分解し、その入力に対して定義展開した結果が同じであることを示している。
+
+\section{no-op wrapper を証明する}
+
+次に、wrapper の例を見る。ここでの wrapper は、本来であればログ、メトリクス、ヘッダ追加などを担当する層を表す。ただし本章では、まず戻り値を変えない wrapper だけをモデル化する。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+namespace Ch15
+
+-- 入力をそのまま元の関数に渡すだけの wrapper。
+def noopWrapper {α β : Type} (f : α → β) : α → β :=
+  fun x => f x
+
+-- wrapper を通しても、関数としては同じ。
+theorem noopWrapper_eq {α β : Type} (f : α → β) :
+    noopWrapper f = f := by
+  funext x
+  rfl
+
+end Ch15
+\end{minted}
+\caption{何もしない wrapper は元の関数と等しい}
+\label{lst:ch15-noop-wrapper}
+\end{listing}
+
+この定理は、実務では次の形に読み替えられる。
+
+\begin{softwarebox}
+ある wrapper が、モデル化した範囲では入力をそのまま下位関数に渡し、戻り値を変更しないなら、その wrapper は戻り値に関して元の関数と同じである。Lean の証明では、任意の入力 \texttt{x} について wrapper 経由の結果と直接呼び出しの結果が同じであることを示す。
+\end{softwarebox}
+
+もちろん、現実の wrapper がログを書いているなら、「ログも観測対象に含めるか」を決めなければならない。戻り値だけを仕様化するなら、この証明は戻り値の保存だけを保証する。ログ出力まで同じであることは保証しない。
+
+\section{関数そのものの等式と点ごとの等式を使い分ける}
+
+Lean では、次の二つは似ているが、使える場面が少し違う。
+
+\begin{itemize}
+\item 点ごとの等式：\texttt{∀ x, f x = g x}
+\item 関数そのものの等式：\texttt{f = g}
+\end{itemize}
+
+点ごとの等式は、ある入力を指定して結果を比較したいときに使いやすい。一方、関数そのものの等式は、\texttt{rw} で関数をまとめて置き換えたいときに使いやすい。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+namespace Ch15
+
+theorem apply_pointwise
+    {α β : Type} {f g : α → β}
+    (h : ∀ x : α, f x = g x) (x : α) :
+    f x = g x := by
+  exact h x
+
+theorem function_eq_to_pointwise
+    {α β : Type} {f g : α → β}
+    (h : f = g) :
+    ∀ x : α, f x = g x := by
+  intro x
+  rw [h]
+
+end Ch15
+\end{minted}
+\caption{点ごとの等式と関数等式の行き来}
+\label{lst:ch15-pointwise-vs-function}
+\end{listing}
+
+この二つを使い分けると、証明が読みやすくなる。まず点ごとの仕様として「任意の入力で結果が同じ」と書き、必要になったら \texttt{funext} で関数等式にする、という流れが基本である。
+
+\section{ミニケース：新旧 API client wrapper が同じ振る舞いをすること}
+
+ここから、少し実務に近いモデルを作る。API client はリクエストを受け取り、レスポンスを返す関数として表す。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+namespace Ch15
+
+structure Request where
+  userId : Nat
+  amount : Nat
+deriving Repr
+
+structure Response where
+  status : Nat
+  value : Nat
+deriving Repr
+
+-- 旧 client。金額に 1 を足して返すだけの単純モデル。
+def clientV1 (r : Request) : Response :=
+  { status := 200, value := r.amount + 1 }
+
+-- 新 client。補助的な let を使うが、返す値は同じ。
+def clientV2 (r : Request) : Response :=
+  let calculated := r.amount + 1
+  { status := 200, value := calculated }
+
+#eval clientV1 { userId := 1, amount := 100 }
+
+end Ch15
+\end{minted}
+\caption{API client の小さなモデル}
+\label{lst:ch15-api-model}
+\end{listing}
+
+この例では、\texttt{clientV1} と \texttt{clientV2} の内部実装は少し違う。しかし、任意のリクエストに対して返すレスポンスは同じである。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+namespace Ch15
+
+-- すべての Request で同じ Response を返すので、
+-- 関数としても等しい。
+theorem clientV1_eq_clientV2 :
+    clientV1 = clientV2 := by
+  funext r
+  rfl
+
+end Ch15
+\end{minted}
+\caption{新旧 API client の振る舞い一致}
+\label{lst:ch15-api-client-eq}
+\end{listing}
+
+この定理が言っていることは、次の一文に近い。
+
+\begin{quote}
+任意の \texttt{Request} について、\texttt{clientV1} と \texttt{clientV2} は同じ \texttt{Response} を返す。
+\end{quote}
+
+つまり、Lean 上でモデル化した範囲では、\texttt{clientV1} から \texttt{clientV2} への置き換えは戻り値の意味を変えない。
+
+\FigurePlaceholder{fig-ch15-api-wrapper.png}{0.92}{新旧 API client wrapper の同値性：任意のリクエストでレスポンスが一致する}{fig:ch15-api-wrapper}
+
+\section{wrapper の順序を変えても戻り値が変わらない例}
+
+次に、二つの wrapper を考える。ここでは \texttt{addDefaultHeader} と \texttt{recordMetrics} という名前を付けるが、簡単化のため、どちらも戻り値を変えない wrapper としてモデル化する。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+namespace Ch15
+
+def addDefaultHeader
+    (client : Request → Response) : Request → Response :=
+  fun r => client r
+
+def recordMetrics
+    (client : Request → Response) : Request → Response :=
+  fun r => client r
+
+theorem wrapper_order_eq (client : Request → Response) :
+    addDefaultHeader (recordMetrics client)
+      = recordMetrics (addDefaultHeader client) := by
+  funext r
+  rfl
+
+end Ch15
+\end{minted}
+\caption{戻り値を変えない wrapper の順序交換}
+\label{lst:ch15-wrapper-order}
+\end{listing}
+
+この証明は短いが、読み替えは重要である。モデル化した範囲、つまり「戻り値だけ」を見る限り、二つの wrapper の順序を入れ替えても結果は変わらない。
+
+\begin{warningbox}
+この定理は、実システムでヘッダ追加とメトリクス記録の順序を常に入れ替えてよい、という意味ではない。ヘッダの有無をメトリクスが読む、ログのタイムスタンプが変わる、例外処理の順序が変わる、といった観測を仕様に含めるなら、モデルを拡張する必要がある。本章の定理は、戻り値に関して順序を入れ替えてよい、という限定された主張である。
+\end{warningbox}
+
+\section{場合分けを含む関数外延性}
+
+関数の中に \texttt{Option} や \texttt{Sum} の場合分けがあるときも、基本は同じである。任意の入力を取り、その入力に対する結果の等式を示す。ただし、結果が分岐を含む場合は、前章までに学んだ \texttt{cases} が必要になることがある。
+
+次の \texttt{clientWithFallback} は、\texttt{Option Response} を返す client を受け取り、\texttt{some} ならそのまま返し、\texttt{none} なら \texttt{none} を返す。つまり、戻り値だけを見ると何も変えていない。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+namespace Ch15
+
+def clientWithFallback
+    (client : Request → Option Response) : Request → Option Response :=
+  fun r =>
+    match client r with
+    | some res => some res
+    | none => none
+
+theorem clientWithFallback_eq
+    (client : Request → Option Response) :
+    clientWithFallback client = client := by
+  funext r
+  cases client r <;> rfl
+
+end Ch15
+\end{minted}
+\caption{場合分けを含む wrapper の等しさ}
+\label{lst:ch15-option-wrapper}
+\end{listing}
+
+この証明では、\texttt{funext r} によって任意のリクエスト \texttt{r} に対する等式へ移る。その後、\texttt{client r} が \texttt{some res} なのか \texttt{none} なのかで場合分けする。どちらの場合も、定義を展開すれば左右は同じ形になる。
+
+このように、関数外延性は単独で使うだけでなく、\texttt{cases} や \texttt{simp} と組み合わせて使うことが多い。
+
+\section{テストと関数外延性の違い}
+
+通常のテストでは、いくつかの入力を選んで結果を比較する。
+
+\begin{itemize}
+\item \texttt{amount = 0} の場合
+\item \texttt{amount = 100} の場合
+\item \texttt{amount = 9999} の場合
+\end{itemize}
+
+これは実務上とても重要である。境界値、実データに近いケース、外部システムとの連携は、テストで確認する価値が高い。
+
+一方、関数外延性を使った証明では、入力を一つずつ列挙しない。任意の入力 \texttt{r} を取って、その入力について左右が同じであることを示す。したがって、モデル化した範囲では、すべての入力に対する主張になる。
+
+\begin{softwarebox}
+テストは代表例を確認する。関数外延性による証明は、モデル上の全入力を確認する。どちらか一方だけで十分とは限らない。外部API、認証、ネットワーク、監視、性能などはテストや運用監視が向くことが多い。一方、純粋な変換関数、wrapper の戻り値保存、リファクタリング前後の意味保存は Lean の小さな証明に向いている。
+\end{softwarebox}
+
+\section{実務で使うときの設計手順}
+
+関数外延性を実務に持ち込むときは、いきなり大きな実装全体を Lean に移そうとしない。次の順で小さく切り出すとよい。
+
+\begin{enumerate}
+\item 比較したい二つの関数を決める。
+\item 入力型と出力型を小さなモデルとして定義する。
+\item 何を観測対象にするか決める。戻り値だけか、ログや状態も含めるか。
+\item 点ごとの仕様 \texttt{∀ x, old x = new x} を書く。
+\item 必要なら \texttt{funext} で \texttt{old = new} にする。
+\item 証明した範囲と証明していない範囲を設計文書に明記する。
+\end{enumerate}
+
+この手順は、API client だけでなく、正規化関数、DTO converter、権限判定関数、価格計算関数、feature flag の wrapper などにも応用できる。
+
+\section{よくある誤解}
+
+\begin{warningbox}
+\textbf{誤解1：関数外延性は実装が同じことを示す。} そうではない。示しているのは、モデル化された入力と出力の対応が同じであることだけである。
+
+\medskip
+\textbf{誤解2：いくつかのテストが通れば関数外延性が成り立つ。} そうではない。テストは有限個の入力を調べる。関数外延性の証明は、任意の入力についての証明である。
+
+\medskip
+\textbf{誤解3：\texttt{funext} を使えばどんな関数等式でも自動で証明できる。} そうではない。\texttt{funext} は関数等式を点ごとの等式に分解するだけである。その後、各入力について結果が等しいことは別途示す必要がある。
+
+\medskip
+\textbf{誤解4：戻り値が同じなら実務上完全に同じである。} そうとは限らない。ログ、メトリクス、実行時間、キャッシュ、外部副作用、エラーの出方などが重要なら、それらも仕様に含める必要がある。
+\end{warningbox}
+
+\section{本章ではここまで}
+
+本章では、関数外延性を「すべての入力で同じ出力を返すなら、関数として同じと見てよい」という道具として扱った。これは圏論的には射の等しさに関わる基本的な見方であり、Lean では \texttt{funext} という具体的な証明手順として現れる。
+
+本章で扱ったのは、主に純粋な関数の戻り値の等しさである。より現実的な wrapper では、ログや状態やエラー処理をどうモデル化するかが問題になる。その場合も基本方針は同じである。観測したいものを型に入れ、任意の入力について結果が一致することを示す。
+
+後続の章では、完全な等しさだけでは扱いにくい場面に進む。第16章では、等しいとは言えないが「より詳しい」「より安全」「より抽象的」といった比較を、関係や前順序として扱う。
+
+\section{本章のまとめ}
+
+\begin{summarybox}
+\begin{itemize}
+\item 関数の等しさは、実装本文の一致ではなく、すべての入力に対する出力の一致として捉えられる。
+\item Lean では、点ごとの一致を \texttt{∀ x, f x = g x}、関数そのものの等式を \texttt{f = g} として表す。
+\item \texttt{funext} は、関数そのものの等式を、任意の入力での等式に分解する道具である。
+\item wrapper や adapter の置き換え安全性は、モデル化した範囲では関数外延性の証明として表せる。
+\item 証明できるのは、型と関数として明示した観測対象についてだけである。ログ、性能、外部副作用などを含めたい場合は、それらもモデルに入れる必要がある。
+\end{itemize}
+\end{summarybox}

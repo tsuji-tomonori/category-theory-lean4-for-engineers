@@ -1,0 +1,412 @@
+% !TEX root = ../main.tex
+\chapter{ケーススタディ：料金計算の仕様証明}
+\label{chap:ch20_price_spec}
+
+\begin{chapterabstract}
+本章では、料金計算を題材に、仕様を Lean 4 で検査可能な形へ落とし込む方法を扱う。税、割引、手数料、丸めは、どれも日常的な業務ロジックである。しかし、それらをどの順序で適用するかによって、結果は簡単に変わる。本章では、金額を自然数で表す小さなモデルを作り、順序を入れ替えてよい処理と、入れ替えてはいけない処理を区別する。さらに、等式で証明する性質、不等式で証明する性質、Lean だけではなく仕様書側で明示すべき性質を整理する。
+\end{chapterabstract}
+
+\begin{learninggoals}
+\item 料金計算仕様を、金額、操作、順序、丸め、証明対象に分解できる。
+\item 税・割引・手数料のうち、順序を入れ替えてよい処理といけない処理を区別できる。
+\item Lean 4 で、価格計算の等価性、反例、不等式による安全性を表せる。
+\item リファクタリング時に「証明できた範囲」と「仕様として残す範囲」を説明できる。
+\end{learninggoals}
+
+\section{この章を読む理由}
+
+料金計算は、見た目より壊れやすい。税込金額を計算する。割引を適用する。送料や決済手数料を足す。キャンペーン上限を適用する。最後に丸める。これらは、単体では難しい処理に見えない。しかし、処理を組み合わせると、順序の違いがそのまま金額の違いになる。
+
+たとえば、次の二つは同じだろうか。
+
+\begin{itemize}
+\item 商品価格から割引し、その後に手数料を足す。
+\item 商品価格に手数料を足し、その後に割引する。
+\end{itemize}
+
+多くの場合、この二つは同じではない。手数料を割引対象に含めるのか、含めないのかという業務仕様の違いになるからである。一方で、すでに割引後の金額に「固定額の税」と「固定額の手数料」を足すだけなら、足す順番を変えても合計は変わらない。
+
+\begin{intuitionbox}
+料金計算の仕様証明では、「計算結果が合っているか」だけを見るのではない。まず、どの操作が金額を変えるのか、どの操作は順序を入れ替えてもよいのか、どの操作は丸めを含むため注意が必要なのかを分けて考える。
+\end{intuitionbox}
+
+\FigurePlaceholder{fig-ch20-price-pipeline.png}{0.90}{料金計算を、割引・手数料・税・丸めの処理パイプラインとして見る}{fig:ch20-price-pipeline}
+
+本章の狙いは、実際の課金システムを完全に検証することではない。税法、通貨単位、決済代行会社の仕様、会計上の丸め規則、キャンペーン適用条件などは、現実には大きな問題である。ここでは、設計レビューに持ち込める小さな核を作る。つまり、「このリファクタリングでは計算結果が変わらない」「この順序変更は一般には安全でない」「丸めの位置は仕様として固定する必要がある」といった主張を、Lean で読める形にする。
+
+\section{ソフトウェア上の問題}
+
+EC、SaaS、サブスクリプション、予約システム、請求書発行などでは、料金計算の実装が少しずつ成長する。最初は単純な合計金額だけだったとしても、後から次のような仕様が追加される。
+
+\begin{itemize}
+\item クーポン割引を適用する。
+\item 決済手数料や送料を加える。
+\item 消費税やサービス税を計算する。
+\item 端数を切り捨てる、切り上げる、四捨五入する。
+\item 割引上限、最低請求額、無料条件を入れる。
+\end{itemize}
+
+このような処理は、コード上では関数の合成として現れる。たとえば、\texttt{discount}、\texttt{addFee}、\texttt{addTax}、\texttt{round} を順に適用するパイプラインである。
+
+\begin{softwarebox}
+料金計算の安全性は、個々の関数が正しいだけでは決まらない。関数をどの順序で合成するか、リファクタリングでその順序が変わっていないか、丸めをどこで行うかが重要になる。
+\end{softwarebox}
+
+この章では、まず金額を「最小通貨単位の自然数」として表す。日本円なら円、米ドルならセントのように、整数で扱える単位まで落とすイメージである。小数や実数ではなく自然数から始めるのは、Lean で最小モデルを作りやすくするためである。
+
+\begin{warningbox}
+本章のモデルは、実務の金額型そのものではない。自然数の引き算は 0 で止まるため、過大な割引を適用しても負の金額にはならない。この振る舞いを採用するか、エラーにするか、符号付き整数を使うかは、実システムの仕様として別に決める必要がある。
+\end{warningbox}
+
+\section{料金仕様を証明しやすい形に分解する}
+
+自然言語の仕様をそのまま Lean に入れることはできない。まず、仕様を小さな部品に分ける。
+
+\begin{definitionbox}
+本章では、料金計算仕様を次の五つに分ける。
+\begin{enumerate}
+\item \textbf{金額の表現}: 金額をどの型で表すか。
+\item \textbf{操作}: 割引、手数料、税、丸めをどの関数として表すか。
+\item \textbf{順序}: 操作をどの順に合成するか。
+\item \textbf{証明対象}: 等式、不等式、反例のどれとして主張するか。
+\item \textbf{証明しない範囲}: 外部仕様、法的ルール、小数丸めなどをどこまでモデル化しないか。
+\end{enumerate}
+\end{definitionbox}
+
+この分解は、仕様レビューでも有効である。次の表は、本章で使う対応関係である。
+
+\begin{table}[htbp]
+\centering
+\caption{料金計算仕様を Lean の要素へ分解する}
+\label{tab:ch20-spec-decomposition}
+\begin{tabular}{lll}
+\toprule
+自然言語の仕様 & Lean での表現 & 証明したい性質 \\
+\midrule
+金額 & \texttt{Money := Nat} & 金額を自然数として扱う \\
+固定手数料 & \texttt{addFee} & 金額を減らさない \\
+固定額の税 & \texttt{addFixedTax} & 手数料と順序交換できる \\
+割引 & \texttt{applyDiscount} & 金額を増やさない \\
+率による税 & \texttt{taxOnly} & 丸め位置に注意する \\
+計算パイプライン & \texttt{totalV1}, \texttt{totalV2} & リファクタリング前後の一致 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+ここで大事なのは、すべてを一度に証明しようとしないことである。まず、固定額の税や手数料のように、足し算だけで説明できる部分を扱う。次に、割引のように順序の影響が出る部分を見る。最後に、率と丸めのように、仕様の境界を明示しなければならない部分を扱う。
+
+\section{Lean 4 で最小モデルを作る}
+
+まず、金額と基本操作を定義する。ここでは \texttt{Money} を \texttt{Nat} の別名にする。\texttt{Nat} は自然数なので、0 以上の整数だけを表す。
+
+\begin{leanbox}
+このモデルでは、割引、手数料、固定税、率による税をすべて \texttt{Money -> Money} 型の処理として見る。圏論の言葉で言えば、金額型 \texttt{Money} から \texttt{Money} への射であり、それらを合成して料金計算パイプラインを作る。
+\end{leanbox}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+import Std
+
+namespace Chapter20
+
+abbrev Money := Nat
+
+def applyDiscount (discount amount : Money) : Money :=
+  amount - discount
+
+def addFee (fee amount : Money) : Money :=
+  amount + fee
+
+def addFixedTax (tax amount : Money) : Money :=
+  amount + tax
+
+def taxOnly (rateNum rateDen amount : Money) : Money :=
+  (amount * rateNum) / rateDen
+
+def addRateTax (rateNum rateDen amount : Money) :=
+  amount + taxOnly rateNum rateDen amount
+\end{minted}
+\caption{金額と基本操作の最小モデル}
+\label{lst:ch20-money-model}
+\end{listing}
+
+\texttt{applyDiscount} は、金額から割引額を引く。Lean の \texttt{Nat} では、\texttt{500 - 1000} は負の数ではなく \texttt{0} になる。これは「割引後の金額は 0 未満にならない」という仕様に近いが、現実のシステムでは、過大割引をエラーにする設計もある。
+
+\texttt{taxOnly} は、\texttt{amount * rateNum / rateDen} によって税額を計算する。たとえば \texttt{rateNum = 1}、\texttt{rateDen = 10} なら、10\% 相当の税額である。ただし、\texttt{/} は自然数の整数除算なので、端数は切り捨てられる。つまり、この関数にはすでに丸めが含まれている。
+
+\section{丸め、税、割引、手数料をどう並べるか}
+
+料金計算で最初に決めるべきことは、どの金額を対象に、どの操作を適用するかである。たとえば、手数料に割引を適用するのか。税込後に割引するのか、割引後に税を計算するのか。明細ごとに丸めるのか、合計後に丸めるのか。
+
+\begin{softwarebox}
+料金計算仕様では、「税を計算する」「割引する」だけでは不十分である。「どの金額に対して」「どの順序で」「どこで丸めるか」を書く必要がある。
+\end{softwarebox}
+
+この章では、まず次の標準順序を使う。
+
+\begin{enumerate}
+\item 商品基準額 \texttt{base} から割引 \texttt{discount} を引く。
+\item 割引後の金額に固定手数料 \texttt{fee} を足す。
+\item 最後に固定額の税 \texttt{tax} を足す。
+\end{enumerate}
+
+ここで「固定額の税」という単純化をしている点に注意する。現実の税は多くの場合、率で計算され、端数処理がある。その部分は後の節で明示的に扱う。
+
+\section{順序を入れ替えてよい処理}
+
+まず、入れ替えてよい例から見る。固定税と固定手数料は、どちらも単に金額を足す処理である。そのため、同じ金額に対して両方を足すなら、順序を変えても結果は同じになる。
+
+\begin{intuitionbox}
+1000 円に 100 円の手数料と 80 円の税を足すとき、手数料を先に足しても、税を先に足しても、最終的な合計は 1180 円である。これは足し算の順序を変えても合計が変わらないという性質である。
+\end{intuitionbox}
+
+Lean では、この性質を次のように書ける。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+theorem fee_tax_commute (amount fee tax : Money) :
+    addFee fee (addFixedTax tax amount)
+      = addFixedTax tax (addFee fee amount) := by
+  unfold addFee addFixedTax
+  exact Nat.add_right_comm amount tax fee
+\end{minted}
+\caption{固定税と固定手数料の順序交換}
+\label{lst:ch20-fee-tax-commute}
+\end{listing}
+
+この定理は、\texttt{amount}、\texttt{fee}、\texttt{tax} のすべての自然数について成り立つ。テストならいくつかの例を試すだけだが、Lean の定理として書くと、モデル化した範囲の全入力について主張していることになる。
+
+\FigurePlaceholder{fig-ch20-commuting-operations.png}{0.90}{固定手数料と固定税は可換だが、割引と手数料は一般には可換でない}{fig:ch20-commuting-operations}
+
+この図では、左側が「順序を入れ替えてもよい」例である。右側は、次の節で見るように、同じ形に見えても可換にならない例である。
+
+\section{順序を入れ替えてはいけない処理}
+
+次に、順序を入れ替えてはいけない例を見る。割引と手数料は、一般には可換ではない。
+
+たとえば、商品価格が 500 円、割引が 1000 円、手数料が 100 円だとする。先に割引すると、Lean の自然数モデルでは 0 円になり、その後で手数料を足して 100 円になる。先に手数料を足すと 600 円になり、そこから 1000 円を引くので 0 円になる。結果は 100 円と 0 円で一致しない。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def discountThenFee (amount discount fee : Money) : Money :=
+  addFee fee (applyDiscount discount amount)
+
+def feeThenDiscount (amount discount fee : Money) : Money :=
+  applyDiscount discount (addFee fee amount)
+
+theorem discount_fee_order_counterexample :
+    discountThenFee 500 1000 100
+      ≠ feeThenDiscount 500 1000 100 := by
+  decide
+\end{minted}
+\caption{割引と手数料が可換でないことを示す反例}
+\label{lst:ch20-discount-fee-counterexample}
+\end{listing}
+
+ここでは、\texttt{by decide} によって、具体的な自然数計算を Lean に確認させている。これは「割引と手数料は常に入れ替えられない」という定理ではなく、「入れ替えられるという一般定理は成り立たない」ことを示す反例である。
+
+\begin{warningbox}
+反例は、仕様レビューで非常に役に立つ。「この順序変更は安全ですか」と聞かれたとき、一つでも結果が変わる入力があれば、一般的なリファクタリングとしては安全ではない。業務上その順序変更を採用するなら、それはリファクタリングではなく仕様変更として扱うべきである。
+\end{warningbox}
+
+\section{等式で証明できる性質}
+
+次に、リファクタリング安全性を等式で証明する。標準実装を \texttt{totalV1}、リファクタリング後の実装を \texttt{totalV2} とする。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def totalV1 (base discount fee tax : Money) : Money :=
+  addFixedTax tax
+    (addFee fee (applyDiscount discount base))
+
+def totalV2 (base discount fee tax : Money) : Money :=
+  addFee fee
+    (addFixedTax tax (applyDiscount discount base))
+\end{minted}
+\caption{標準実装とリファクタリング後の実装}
+\label{lst:ch20-total-v1-v2}
+\end{listing}
+
+\texttt{totalV1} は、割引、手数料、固定税の順に処理する。\texttt{totalV2} は、割引後に固定税を足し、その後に手数料を足す。つまり、割引の位置は変えていない。割引後の金額に、固定税と固定手数料を足す順序だけを入れ替えている。
+
+この変更は安全である。理由は、割引後の金額を \texttt{x} と見れば、\texttt{(x + fee) + tax} と \texttt{(x + tax) + fee} が等しいからである。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+theorem total_refactor_safe
+    (base discount fee tax : Money) :
+    totalV1 base discount fee tax
+      = totalV2 base discount fee tax := by
+  unfold totalV1 totalV2 addFixedTax addFee applyDiscount
+  exact Nat.add_right_comm (base - discount) fee tax
+\end{minted}
+\caption{価格計算のリファクタリング安全性}
+\label{lst:ch20-total-refactor-safe}
+\end{listing}
+
+この定理は、\texttt{base}、\texttt{discount}、\texttt{fee}、\texttt{tax} のすべての自然数について成り立つ。テストデータを 10 個用意するのではなく、モデル化した全入力に対して、リファクタリング前後の結果が同じであることを確認している。
+
+同じ証明を、\texttt{calc} を使ってレビューしやすい形で書くこともできる。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+theorem total_refactor_safe_calc
+    (base discount fee tax : Money) :
+    totalV1 base discount fee tax
+      = totalV2 base discount fee tax := by
+  unfold totalV1 totalV2 addFixedTax addFee applyDiscount
+  calc
+    (base - discount + fee) + tax
+        = (base - discount + tax) + fee := by
+            exact Nat.add_right_comm (base - discount) fee tax
+\end{minted}
+\caption{calc によるレビュー可能な等式変形}
+\label{lst:ch20-total-refactor-calc}
+\end{listing}
+
+\texttt{calc} は、式変形のログとして読める。料金計算のようにレビューで説明が必要なコードでは、この形の証明が読みやすい場合がある。
+
+\section{不等式で証明すべき性質}
+
+料金計算では、すべてが等式になるわけではない。割引は、金額を同じか小さくする操作である。手数料は、金額を同じか大きくする操作である。このような性質は、等式ではなく不等式で表す。
+
+\begin{definitionbox}
+等式は「結果が同じである」ことを表す。不等式は「結果がある範囲に収まる」ことを表す。料金計算では、リファクタリング安全性は等式で表し、割引後の金額が元の金額を超えないことや、手数料加算後の金額が元の金額を下回らないことは不等式で表す。
+\end{definitionbox}
+
+Lean では次のように書ける。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+theorem discount_never_increases
+    (amount discount : Money) :
+    applyDiscount discount amount ≤ amount := by
+  unfold applyDiscount
+  exact Nat.sub_le amount discount
+
+theorem addFee_never_decreases
+    (amount fee : Money) :
+    amount ≤ addFee fee amount := by
+  unfold addFee
+  exact Nat.le_add_right amount fee
+\end{minted}
+\caption{割引と手数料の単調な性質}
+\label{lst:ch20-inequalities}
+\end{listing}
+
+さらに、標準順序の合計は、割引直後の金額以上であることも証明できる。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+theorem total_ge_discounted
+    (base discount fee tax : Money) :
+    applyDiscount discount base
+      ≤ totalV1 base discount fee tax := by
+  unfold totalV1 addFixedTax addFee
+  exact Nat.le_trans
+    (Nat.le_add_right (applyDiscount discount base) fee)
+    (Nat.le_add_right
+      (applyDiscount discount base + fee) tax)
+\end{minted}
+\caption{標準順序の合計は割引直後の金額以上である}
+\label{lst:ch20-total-ge-discounted}
+\end{listing}
+
+この種の不等式は、料金仕様でよく使う。たとえば、「割引適用後の金額は元の金額を超えない」「手数料を足した後の金額は減らない」「最低請求額を適用した後の金額は最低額以上である」といった性質である。
+
+\section{丸めは仕様境界として扱う}
+
+最後に、丸めを扱う。丸めは、料金計算で特に危険な部分である。なぜなら、丸めは足し算や掛け算と同じようには振る舞わないからである。
+
+たとえば、10\% の税を考える。9 円の明細が二つあるとする。明細ごとに税を計算して切り捨てるなら、各明細の税は 0 円で、合計税額も 0 円になる。一方、先に 18 円へ合算してから税を計算すると、税額は 1 円になる。
+
+これは、どちらかが数学的に間違っているという話ではない。仕様として「明細ごとに丸める」のか「合計後に丸める」のかを決める必要があるという話である。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def taxPerLine2 (a b : Money) : Money :=
+  taxOnly 1 10 a + taxOnly 1 10 b
+
+def taxOnSum2 (a b : Money) : Money :=
+  taxOnly 1 10 (a + b)
+
+#eval taxPerLine2 9 9
+#eval taxOnSum2 9 9
+
+theorem rounding_position_counterexample :
+    taxPerLine2 9 9 ≠ taxOnSum2 9 9 := by
+  decide
+\end{minted}
+\caption{丸め位置によって税額が変わる反例}
+\label{lst:ch20-rounding-counterexample}
+\end{listing}
+
+\FigurePlaceholder{fig-ch20-rounding-boundary.png}{0.90}{明細ごとの丸めと合計後の丸めでは結果が変わりうる}{fig:ch20-rounding-boundary}
+
+\begin{warningbox}
+丸めを含む処理では、「あとでまとめて計算しても同じはず」と考えてはいけない。丸めの位置は、実装の都合ではなく仕様の一部である。Lean では反例を小さく示すことで、この順序変更が安全なリファクタリングではないことを確認できる。
+\end{warningbox}
+
+\section{圏論的に見る：金額上の処理と可換性}
+
+本章の例は、圏論の大きな理論を必要としない。しかし、圏論の言葉で見ると整理しやすい。
+
+金額型 \texttt{Money} を対象と見る。割引、手数料、税、丸めは、\texttt{Money -> Money} の関数である。つまり、同じ対象から同じ対象への射である。このような射は合成できる。
+
+\begin{softwarebox}
+料金計算パイプラインは、\texttt{Money -> Money} の処理を合成したものである。リファクタリング安全性は、二つの合成結果が同じ関数になることとして表せる。順序を入れ替えてよいかどうかは、対応する図式が可換かどうかとして読める。
+\end{softwarebox}
+
+固定手数料と固定税は可換である。割引と手数料は一般には可換ではない。丸めと合算も一般には可換ではない。これらを区別するだけでも、設計レビューでの会話はかなり明確になる。
+
+\section{仕様レビューでの使い方}
+
+料金計算の Lean モデルを実務で使うときは、次の観点を明示するとよい。
+
+\begin{table}[htbp]
+\centering
+\caption{料金計算証明をレビューに持ち込むときの観点}
+\label{tab:ch20-review-points}
+\begin{tabular}{lll}
+\toprule
+観点 & Lean で表すもの & レビューで確認すること \\
+\midrule
+順序 & 関数合成 & 仕様変更かリファクタリングか \\
+等価性 & 等式定理 & 全入力で結果が変わらないか \\
+範囲保証 & 不等式定理 & 金額が期待範囲に収まるか \\
+反例 & \texttt{≠} の定理 & 入れ替え不可であること \\
+丸め & 具体例と反例 & 丸め位置が仕様に明記されているか \\
+境界 & 注意書き & 実装・外部仕様との差分 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Lean で証明したからといって、本番コード全体が正しいとは限らない。証明したのは、あくまで本章の小さなモデルである。実務では、次の境界を文書に残す必要がある。
+
+\begin{itemize}
+\item 実装の金額型と Lean の \texttt{Money} が対応しているか。
+\item 実装の丸め規則と Lean の整数除算が対応しているか。
+\item 税率、割引上限、無料条件などの外部仕様がどこに定義されているか。
+\item 本章の証明が、仕様変更ではなくリファクタリングの安全性を示しているのか。
+\end{itemize}
+
+\begin{warningbox}
+「Lean で料金計算を証明した」と言うときは、必ず「どのモデルで、どの性質を証明したか」を添える。特に、丸め、税法、通貨単位、外部API、DBに保存された値の整合性は、別途仕様・テスト・監査が必要になる。
+\end{warningbox}
+
+\section{本章のまとめ}
+
+\begin{summarybox}
+\begin{itemize}
+\item 料金計算は、税、割引、手数料、丸めの順序によって結果が変わる。
+\item 固定税と固定手数料のように、足し算だけで表せる処理は順序交換を等式で証明できる。
+\item 割引と手数料、丸めと合算は、一般には順序を入れ替えられない。反例を Lean で示せる。
+\item リファクタリング安全性は、変更前後の関数が同じ結果を返すという等式として書ける。
+\item 割引が金額を増やさない、手数料が金額を減らさない、といった性質は不等式で書く。
+\item Lean の証明は、仕様の核を検査する道具であり、税法や外部システムを含む本番全体の保証ではない。
+\end{itemize}
+\end{summarybox}
+
+\section{次章への接続}
+
+次章からは、仕様証明の考え方をマイグレーションへ広げる。料金計算では、処理順序と意味保存を確認した。マイグレーションでは、データ形式を変換したときに情報が保存されるか、戻せるか、どの条件なら安全かを扱う。ここで使った「証明できる性質を小さく切り出す」という考え方は、そのまま次の Part でも使う。

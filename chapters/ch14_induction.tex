@@ -1,0 +1,456 @@
+% !TEX root = ../main.tex
+\chapter{帰納法：リスト・木・再帰処理の仕様}
+\label{chap:induction}
+
+\begin{chapterabstract}
+本章では、帰納法を「任意の大きさのデータ構造に対する仕様確認」として読む。
+学校数学では、帰納法は自然数についての証明として登場することが多い。
+しかしソフトウェアでは、リスト、木、AST、メニュー構造、コメントスレッド、ディレクトリツリーのような再帰的データを扱うたびに、同じ考え方が現れる。
+
+本章の中心例は、データ移行である。
+1件のユーザーを移行する関数があるとき、その関数をリスト全体に適用しても件数が保存されることを証明する。
+さらに、木構造全体を変換してもノード数が保存されることを証明する。
+ここで使う道具が Lean の \texttt{induction} である。
+\end{chapterabstract}
+
+\begin{learninggoals}
+\item 帰納法を「空のケース」と「1つ追加するケース」による全件確認として説明できる。
+\item \texttt{List.map}、\texttt{List.length}、\texttt{List.append} に関する基本的な仕様を読める。
+\item Lean の \texttt{induction} が作る \texttt{nil} ケースと \texttt{cons} ケースを読める。
+\item リスト全体のマイグレーションで件数やID列が保存されることを証明できる。
+\item 木構造の変換でノード数が保存されることを構造帰納法として理解できる。
+\end{learninggoals}
+
+\section{帰納法を「全長さのリストに対する網羅的確認」として読む}
+
+実務では、「1件なら正しい」だけでは足りないことが多い。
+たとえば、ユーザー1件を新しいスキーマへ移す関数 \texttt{migrateUser} があるとする。
+1件の移行がIDを保存することは、比較的簡単に確認できる。
+しかし本番の移行対象は、1件ではなく、数千件、数百万件、あるいは件数が事前には分からないリストである。
+
+ここで確認したい仕様は、次のような主張である。
+
+\begin{softwarebox}
+任意の長さのユーザー一覧 \texttt{xs} について、\texttt{xs.map migrateUser} の件数は \texttt{xs} の件数と同じである。
+また、移行前のID列と移行後のID列は同じである。
+\end{softwarebox}
+
+この「任意の長さ」という言葉が重要である。
+テストでは、空リスト、1件、2件、大量データなどを用意できる。
+しかし、すべての長さを個別にテストすることはできない。
+帰納法は、この「すべての長さ」を有限個の証明パターンへ圧縮する道具である。
+
+\begin{intuitionbox}
+リストについての帰納法は、次の2つを確認する方法である。
+
+\begin{itemize}
+\item 空リストで成り立つ。
+\item あるリストで成り立つなら、その先頭に1要素を追加したリストでも成り立つ。
+\end{itemize}
+
+この2つを確認できれば、空、1件、2件、3件、\dots{} というすべての長さを覆える。
+\end{intuitionbox}
+
+リストは、Lean では大きく2つの形に分かれる。
+空リスト \texttt{[]} と、先頭要素 \texttt{x} に残りのリスト \texttt{xs} をつけた \texttt{x :: xs} である。
+この2つの形は、実装上のパターンマッチにもそのまま現れる。
+
+\begin{definitionbox}
+リストに対する帰納法では、\texttt{[]} の場合を基底ケース、\texttt{x :: xs} の場合を帰納ステップと呼ぶ。
+帰納ステップでは、残りのリスト \texttt{xs} について性質が成り立つ、という仮定を使える。
+この仮定を帰納法の仮定、または帰納仮定と呼ぶ。
+\end{definitionbox}
+
+\FigurePlaceholder{fig-ch14-list-induction.png}{0.90}{空リストと cons ケースから任意長のリストを覆う帰納法}{fig:ch14-list-induction}
+
+図\ref{fig:ch14-list-induction}では、空リストから始めて、先頭に1つずつ要素を追加していく様子を表している。
+帰納法の証明は、この階段を1段ずつ上がれることを示す。
+空の段に立てることと、どの段からも次の段へ進めることが分かれば、任意の段に到達できる。
+
+\section{\texttt{List.map}、\texttt{List.length}、\texttt{List.append}}
+
+本章で使うリスト操作は、\texttt{map}、\texttt{length}、\texttt{append} の3つである。
+これらはどれも日常的なコードに現れる。
+ただし、Lean では単なる便利関数ではなく、仕様を書いて証明する対象になる。
+
+\subsection{\texttt{map} は全要素への一括変換}
+
+\texttt{List.map f xs} は、リスト \texttt{xs} の各要素に関数 \texttt{f} を適用する。
+ソフトウェアの言葉では、1件の変換をバッチ全体へ持ち上げる操作である。
+
+\begin{softwarebox}
+1件の \texttt{UserV1} を \texttt{UserV2} へ変換する \texttt{migrateUser} があるとき、ユーザー一覧全体の移行は \texttt{xs.map migrateUser} として書ける。
+ここでは、移行対象が空でも、1件でも、任意件数でも同じ式で扱える。
+\end{softwarebox}
+
+\subsection{\texttt{length} は件数の仕様を表す}
+
+\texttt{List.length xs} は、リストの長さ、つまり件数を返す。
+実務のマイグレーションでは、件数保存は最初に確認したい性質の1つである。
+
+\begin{definitionbox}
+件数保存とは、変換前後でデータの個数が変わらないという性質である。
+リスト \texttt{xs} と変換関数 \texttt{f} について、
+\[
+  \texttt{(xs.map f).length = xs.length}
+\]
+が成り立つ、という形で表せる。
+\end{definitionbox}
+
+この式は、変換結果の中身が正しいことまでは主張していない。
+しかし、移行処理が要素を落としたり、重複して増やしたりしないことを確認するための重要な第一歩である。
+
+\subsection{\texttt{append} は分割処理の仕様に出てくる}
+
+\texttt{xs ++ ys} は、リスト \texttt{xs} の後ろに \texttt{ys} をつなぐ。
+バッチ処理では、データを分割して処理し、最後に結合することが多い。
+そのため、\texttt{append} と \texttt{length} の関係は実務的にも重要である。
+
+\begin{intuitionbox}
+リストを前半 \texttt{xs} と後半 \texttt{ys} に分けた場合、結合後の件数は「前半の件数 + 後半の件数」になる。
+これを Lean では、\texttt{(xs ++ ys).length = xs.length + ys.length} という等式として証明できる。
+\end{intuitionbox}
+
+この性質があると、分割バッチの結果を再結合したときに件数が期待通りになることを説明しやすくなる。
+もちろん、実システムではエラー、リトライ、重複排除、トランザクション境界も考える必要がある。
+本章では、その中の純粋なリスト変換部分だけを小さく切り出す。
+
+\section{\texttt{induction} の読み方}
+
+Lean の \texttt{induction} は、データ型の形に沿って証明ゴールを分解する。
+リストに対して使うと、空リストの場合と、先頭要素を持つ場合に分かれる。
+
+まず、1件の移行関数と、リスト全体への移行関数を定義する。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+namespace Ch14
+
+structure UserV1 where
+  id : Nat
+  name : String
+  deriving Repr, BEq
+
+structure UserV2 where
+  id : Nat
+  displayName : String
+  deriving Repr, BEq
+
+def migrateUser (u : UserV1) : UserV2 :=
+  { id := u.id, displayName := u.name }
+
+def migrateUsers (xs : List UserV1) : List UserV2 :=
+  xs.map migrateUser
+
+end Ch14
+\end{minted}
+\caption{1件の移行とリスト全体の移行}
+\label{lst:induction-user-migration}
+\end{listing}
+
+ここでは、\texttt{name} というフィールド名を \texttt{displayName} へ変えている。
+ただし、IDはそのまま残す。
+この例は単純だが、後のスキーマ移行の章で扱う大きな例の最小版である。
+
+\begin{leanbox}
+\texttt{structure} は、フィールドを持つレコード型を定義する。
+\texttt{migrateUser} は1件の変換であり、\texttt{migrateUsers} は \texttt{List.map} によってリスト全体へ持ち上げた変換である。
+\end{leanbox}
+
+次に、\texttt{List.map} が長さを保存することを証明する。
+この定理は、今後のバッチ移行で何度も使う道具になる。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+theorem map_preserves_length {α β : Type} (f : α → β) :
+    ∀ xs : List α, (xs.map f).length = xs.length := by
+  intro xs
+  induction xs with
+  | nil =>
+      rfl
+  | cons x xs ih =>
+      simp [List.map, ih]
+\end{minted}
+\caption{List.map は長さを保存する}
+\label{lst:induction-map-length}
+\end{listing}
+
+この証明を、日本語で読むと次のようになる。
+
+\begin{itemize}
+\item 任意のリスト \texttt{xs} を取る。
+\item \texttt{xs} について帰納法を使う。
+\item \texttt{xs = []} の場合、\texttt{[].map f} も空リストなので長さはどちらも0である。
+\item \texttt{xs = x :: xs} の場合、残りの \texttt{xs} について長さ保存が成り立つと仮定する。
+\item 先頭要素にも同じ変換を1回かけるだけなので、リスト全体の長さも保存される。
+\end{itemize}
+
+\texttt{nil} ケースは空リストである。
+\texttt{cons x xs ih} ケースでは、\texttt{x} が先頭要素、\texttt{xs} が残りのリスト、\texttt{ih} が「残りのリストでは定理が成り立つ」という帰納仮定である。
+
+\begin{warningbox}
+帰納法の仮定 \texttt{ih} は、「任意のリストで成り立つ」という魔法の仮定ではない。
+\texttt{cons} ケースの中で、残りのリスト \texttt{xs} について成り立つ、という限定された仮定である。
+この範囲を取り違えると、証明の意味を誤解しやすい。
+\end{warningbox}
+
+\section{サンプル：リスト移行で件数が保存されること}
+
+ここからは、実務に近い形でリスト移行の仕様を証明する。
+目標は、\texttt{migrateUsers xs} の件数が \texttt{xs} の件数と等しいことを示すことである。
+
+\subsection{証明方針}
+
+直接 \texttt{migrateUsers} を展開すると、これは \texttt{xs.map migrateUser} である。
+したがって、前節の \texttt{map\_preserves\_length} を使えばよい。
+
+\begin{leanbox}
+ここでの定理は、\texttt{map\_preserves\_length} という一般的な道具を、\texttt{migrateUser} という具体的な変換に適用している。
+これは、一般的なライブラリ的性質を、業務ドメインの仕様へ持ち込む典型例である。
+\end{leanbox}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+theorem migrateUsers_preserves_length (xs : List UserV1) :
+    (migrateUsers xs).length = xs.length := by
+  simpa [migrateUsers] using map_preserves_length migrateUser xs
+\end{minted}
+\caption{ユーザー一覧の移行は件数を保存する}
+\label{lst:induction-migrate-length}
+\end{listing}
+
+\texttt{simpa [migrateUsers]} は、\texttt{migrateUsers} の定義を展開し、既に証明した一般定理と同じ形に整理している。
+証明そのものは短い。
+短くできる理由は、\texttt{map\_preserves\_length} という汎用的な道具を先に作っているからである。
+
+\subsection{ID列が保存されること}
+
+件数保存だけでは、移行の正しさとしては弱い。
+たとえば、件数は同じでも、IDが別の値に書き換わっていたら困る。
+そこで、移行前後のID列が一致することも証明する。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def idsV1 (xs : List UserV1) : List Nat :=
+  xs.map (fun u => u.id)
+
+def idsV2 (xs : List UserV2) : List Nat :=
+  xs.map (fun u => u.id)
+
+theorem migrateUsers_preserves_ids (xs : List UserV1) :
+    idsV2 (migrateUsers xs) = idsV1 xs := by
+  induction xs with
+  | nil =>
+      rfl
+  | cons x xs ih =>
+      simp [migrateUsers, idsV1, idsV2, migrateUser, ih]
+\end{minted}
+\caption{移行前後のID列が一致する}
+\label{lst:induction-list-ids}
+\end{listing}
+
+この証明は、件数保存より少しだけ業務仕様に近い。
+\texttt{idsV1} は移行前のID一覧、\texttt{idsV2} は移行後のID一覧を取り出す。
+定理は、移行してからIDを取り出しても、先にIDを取り出しても同じ列になることを主張している。
+
+\begin{softwarebox}
+実務では、この定理をそのまま本番DBへ適用できるわけではない。
+しかし、移行仕様の核として「ID列を保存する」という主張を明示できる。
+レビューでは、実装コードがこの小さなモデルと同じ意味を持っているかを確認する。
+\end{softwarebox}
+
+\subsection{\texttt{append} と分割バッチ}
+
+バッチ移行では、一覧を複数のチャンクに分けて処理することが多い。
+そのとき、前半と後半を結合したリストの長さは、それぞれの長さの和になる。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+theorem append_length {α : Type} :
+    ∀ xs ys : List α, (xs ++ ys).length = xs.length + ys.length := by
+  intro xs ys
+  induction xs with
+  | nil =>
+      simp
+  | cons x xs ih =>
+      simp [List.append, ih]
+\end{minted}
+\caption{append 後の長さは長さの和になる}
+\label{lst:induction-append-length}
+\end{listing}
+
+この証明も、\texttt{xs} について帰納法を使っている。
+\texttt{ys} について帰納法を使わない点に注意する。
+なぜなら、\texttt{xs ++ ys} の再帰的な定義は、左側の \texttt{xs} の形に沿って進むからである。
+
+\begin{warningbox}
+帰納法では、どの変数について帰納法を使うかが重要である。
+\texttt{xs ++ ys} のように、定義が \texttt{xs} 側を再帰的に見る場合は、まず \texttt{xs} について帰納法を使うと証明しやすい。
+証明が進まないときは、対象の関数がどの引数を分解しているかを見るとよい。
+\end{warningbox}
+
+\section{サンプル：木構造変換でノード数が保存されること}
+
+リストは一方向に伸びるデータ構造である。
+実務では、より複雑な再帰構造も現れる。
+たとえば、カテゴリツリー、組織図、ファイルツリー、画面部品のツリー、構文木などである。
+このようなデータでは、空リストと \texttt{cons} ではなく、木の形に沿った帰納法を使う。
+
+\begin{intuitionbox}
+木に対する帰納法では、葉の場合と、左右の部分木を持つノードの場合を考える。
+ノードの場合には、左部分木についての仮定と、右部分木についての仮定を使える。
+リストの帰納法が「残りのリスト」だけを見るのに対して、木の帰納法では複数の部分構造を見る。
+\end{intuitionbox}
+
+\FigurePlaceholder{fig-ch14-tree-induction.png}{0.90}{左右の部分木の仮定から木全体の性質を示す構造帰納法}{fig:ch14-tree-induction}
+
+図\ref{fig:ch14-tree-induction}では、1つのノードが左部分木と右部分木を持つ様子を表している。
+木全体の性質を示すには、左部分木と右部分木の両方について性質が成り立つことを使う。
+
+\subsection{木構造とノード数}
+
+まず、値を持たない葉 \texttt{leaf} と、左右の部分木と値を持つ \texttt{node} からなる木を定義する。
+さらに、木全体に関数を適用する \texttt{Tree.map} と、ノード数を数える \texttt{Tree.size} を定義する。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+inductive Tree (α : Type) where
+  | leaf : Tree α
+  | node : Tree α → α → Tree α → Tree α
+  deriving Repr
+
+namespace Tree
+
+def map {α β : Type} (f : α → β) : Tree α → Tree β
+  | Tree.leaf => Tree.leaf
+  | Tree.node l x r => Tree.node (map f l) (f x) (map f r)
+
+def size {α : Type} : Tree α → Nat
+  | Tree.leaf => 0
+  | Tree.node l _ r => 1 + size l + size r
+
+end Tree
+\end{minted}
+\caption{単純な二分木とノード数}
+\label{lst:induction-tree-def}
+\end{listing}
+
+ここでは、\texttt{leaf} のサイズを0、\texttt{node} のサイズを「1 + 左部分木のサイズ + 右部分木のサイズ」としている。
+この定義は、値の個数を数える仕様になっている。
+
+\subsection{木の \texttt{map} はノード数を保存する}
+
+木の各ノードに入っている値を変換しても、木の形そのものは変わらない。
+したがって、ノード数は保存されるはずである。
+この主張を Lean で証明する。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+theorem tree_map_preserves_size {α β : Type} (f : α → β) :
+    ∀ t : Tree α, Tree.size (Tree.map f t) = Tree.size t := by
+  intro t
+  induction t with
+  | leaf =>
+      rfl
+  | node l x r ihL ihR =>
+      simp [Tree.map, Tree.size, ihL, ihR]
+\end{minted}
+\caption{Tree.map はノード数を保存する}
+\label{lst:induction-tree-size}
+\end{listing}
+
+この証明では、\texttt{node} ケースで \texttt{ihL} と \texttt{ihR} が出てくる。
+\texttt{ihL} は左部分木についての帰納仮定であり、\texttt{ihR} は右部分木についての帰納仮定である。
+これらを使って、左右の部分木のサイズが保存されることを示し、その結果として木全体のサイズ保存を示す。
+
+\subsection{ユーザー木の移行に適用する}
+
+木にユーザー情報が入っている場合も同じである。
+\texttt{Tree.map migrateUser} によって各ノードの中身を移行しても、木の形は変わらない。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def migrateUserTree (t : Tree UserV1) : Tree UserV2 :=
+  Tree.map migrateUser t
+
+theorem migrateUserTree_preserves_size (t : Tree UserV1) :
+    Tree.size (migrateUserTree t) = Tree.size t := by
+  simpa [migrateUserTree] using tree_map_preserves_size migrateUser t
+\end{minted}
+\caption{ユーザー木の移行はノード数を保存する}
+\label{lst:induction-migrate-tree}
+\end{listing}
+
+リストの場合と同じく、ここでも一般定理を具体的なドメインへ適用している。
+\texttt{tree\_map\_preserves\_size} は任意の型と任意の変換関数について成り立つ。
+\texttt{migrateUserTree\_preserves\_size} は、それをユーザー移行へ特殊化した定理である。
+
+\section{実務への読み替え}
+
+本章で見た証明は、小さい。
+しかし、扱っている考え方は実務でよく使う。
+
+\begin{softwarebox}
+帰納法で扱いやすい仕様には、次のようなものがある。
+
+\begin{itemize}
+\item リスト移行で件数が保存される。
+\item 全要素についてIDやキーが保存される。
+\item チャンク分割しても、結合後の件数が期待通りになる。
+\item 木構造の変換でノード数や形が保存される。
+\item 再帰的な設定ファイル変換で、キーの構造が保存される。
+\end{itemize}
+\end{softwarebox}
+
+一方で、帰納法だけですべてが解決するわけではない。
+たとえば、移行後の値が外部サービス上でも正しく解釈されるか、DBトランザクションが失敗時に安全にロールバックされるか、分散処理で重複が発生しないか、といった問題は別のモデル化が必要になる。
+
+\begin{warningbox}
+Leanで証明したのは、あくまで小さなモデル上の性質である。
+本番コードに同じ保証を主張するには、Lean上の関数と実装コードが同じ仕様を表していること、入出力の前提条件が合っていること、外部システムの挙動を別途扱っていることを確認する必要がある。
+\end{warningbox}
+
+\section{本章で証明したことと、しなかったこと}
+
+本章では、リストと木について次の性質を証明した。
+
+\begin{itemize}
+\item \texttt{List.map} は長さを保存する。
+\item ユーザー一覧の移行は件数を保存する。
+\item ユーザー一覧の移行はID列を保存する。
+\item \texttt{append} 後の長さは、左右の長さの和になる。
+\item \texttt{Tree.map} はノード数を保存する。
+\item ユーザー木の移行はノード数を保存する。
+\end{itemize}
+
+これらは、すべて「任意の大きさのデータ構造」に対する主張である。
+空、1件、2件、3件だけを確認したわけではない。
+Lean の \texttt{induction} によって、すべての形を覆う証明になっている。
+
+一方で、本章では次のことは証明していない。
+
+\begin{itemize}
+\item 本番DBの全レコードがLean上のモデルと一致していること。
+\item 移行処理の性能やメモリ使用量。
+\item 並行実行、リトライ、途中失敗時の整合性。
+\item JSONやSQLなど、外部表現との完全な対応。
+\end{itemize}
+
+この境界を明示することは、形式化を実務で使ううえで重要である。
+証明は強い道具だが、証明した範囲を越えて主張してはいけない。
+
+\section{本章のまとめ}
+
+\begin{summarybox}
+\begin{itemize}
+\item 帰納法は、任意の長さのリストや任意の深さの木に対する仕様を扱うための道具である。
+\item リストでは、空リストのケースと、先頭要素を追加する \texttt{cons} ケースを確認する。
+\item \texttt{List.map} の件数保存は、バッチ移行の基本仕様として使える。
+\item \texttt{append} の長さに関する性質は、分割バッチや結合処理の説明に使える。
+\item 木構造では、左右の部分木に対する帰納仮定を使って、木全体の性質を証明する。
+\item 本章の証明は、第24章の \texttt{List} 全体のマイグレーションと関手則へ直接つながる。
+\end{itemize}
+\end{summarybox}
+
+次章では、関数そのものが等しいとはどういうことかを扱う。
+リストや木の中身を変換するだけでなく、2つの adapter や wrapper が同じ振る舞いをすることを示すには、すべての入力で結果が一致するという見方が必要になる。
