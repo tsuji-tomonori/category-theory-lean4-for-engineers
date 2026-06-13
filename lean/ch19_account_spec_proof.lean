@@ -32,10 +32,10 @@ def withdraw? (a : Account) (amount : Amount) : Option Account :=
 def totalBalance (a b : Account) : Balance :=
   a.balance + b.balance
 
-def transfer? (from to : Account) (amount : Amount) : Option (Account × Account) :=
-  match withdraw? from amount with
+def transfer? (src to : Account) (amount : Amount) : Option (Account × Account) :=
+  match withdraw? src amount with
   | none => none
-  | some from' => some (from', deposit to amount)
+  | some src' => some (src', deposit to amount)
 
 theorem deposit_balance (a : Account) (amount : Amount) :
     (deposit a amount).balance = a.balance + amount := by
@@ -62,48 +62,48 @@ theorem withdraw_failure (a : Account) (amount : Amount)
     exact h hp
   simp [withdraw?, h']
 
-theorem transfer_success (from to : Account) (amount : Amount)
-    (h : CanWithdraw from amount) :
-    transfer? from to amount =
-      some ({ from with balance := from.balance - amount },
+theorem transfer_success (src to : Account) (amount : Amount)
+    (h : CanWithdraw src amount) :
+    transfer? src to amount =
+      some ({ src with balance := src.balance - amount },
             { to with balance := to.balance + amount }) := by
-  have h' : amount <= from.balance := h
+  have h' : amount <= src.balance := h
   simp [transfer?, withdraw?, deposit, h']
 
-theorem transfer_failure (from to : Account) (amount : Amount)
-    (h : ¬ CanWithdraw from amount) :
-    transfer? from to amount = none := by
-  have h' : ¬ amount <= from.balance := by
+theorem transfer_failure (src to : Account) (amount : Amount)
+    (h : ¬ CanWithdraw src amount) :
+    transfer? src to amount = none := by
+  have h' : ¬ amount <= src.balance := by
     intro hp
     exact h hp
   simp [transfer?, withdraw?, h']
 
 theorem transfer_success_preserves_total
-    (from to : Account) (amount : Amount)
-    (h : CanWithdraw from amount) :
-    totalBalance { from with balance := from.balance - amount }
+    (src to : Account) (amount : Amount)
+    (h : CanWithdraw src amount) :
+    totalBalance { src with balance := src.balance - amount }
       { to with balance := to.balance + amount } =
-    totalBalance from to := by
-  have h' : amount <= from.balance := h
+    totalBalance src to := by
+  have h' : amount <= src.balance := h
   dsimp [totalBalance]
   calc
-    (from.balance - amount) + (to.balance + amount)
-        = (from.balance - amount) + (amount + to.balance) := by
+    (src.balance - amount) + (to.balance + amount)
+        = (src.balance - amount) + (amount + to.balance) := by
             rw [Nat.add_comm to.balance amount]
-    _ = ((from.balance - amount) + amount) + to.balance := by
+    _ = ((src.balance - amount) + amount) + to.balance := by
             rw [← Nat.add_assoc]
-    _ = from.balance + to.balance := by
+    _ = src.balance + to.balance := by
             rw [Nat.sub_add_cancel h']
 
 theorem transfer_result_preserves_total
-    (from to from' to' : Account) (amount : Amount)
-    (hTransfer : transfer? from to amount = some (from', to')) :
-    totalBalance from' to' = totalBalance from to := by
+    (src to src' to' : Account) (amount : Amount)
+    (hTransfer : transfer? src to amount = some (src', to')) :
+    totalBalance src' to' = totalBalance src to := by
   unfold transfer? at hTransfer
-  by_cases h : amount <= from.balance
+  by_cases h : amount <= src.balance
   · simp [withdraw?, h, deposit] at hTransfer
     cases hTransfer
-    exact transfer_success_preserves_total from to amount h
+    exact transfer_success_preserves_total src to amount h
   · simp [withdraw?, h] at hTransfer
 
 def alice : Account := { id := 1, balance := 100 }
