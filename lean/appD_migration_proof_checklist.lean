@@ -60,18 +60,18 @@ theorem migrate_rename_commutes (u : UserV1) (s : String) :
   cases u
   rfl
 
-opaque Old : Type
-opaque New : Type
-opaque migrate : Old -> New
-opaque rollback : New -> Old
-opaque observeOld : Old -> Nat
-opaque observeNew : New -> Nat
-opaque WellFormedOld : Old -> Prop
-opaque WellFormedNew : New -> Prop
-opaque normalizeOld : Old -> Nat
-opaque normalizeNew : New -> Nat
-opaque abstract : Old -> Nat
-opaque SafePublic : Nat -> Prop
+axiom Old : Type
+axiom New : Type
+axiom migrate : Old -> New
+axiom rollback : New -> Old
+axiom observeOld : Old -> Nat
+axiom observeNew : New -> Nat
+axiom WellFormedOld : Old -> Prop
+axiom WellFormedNew : New -> Prop
+axiom normalizeOld : Old -> Nat
+axiom normalizeNew : New -> Nat
+axiom abstract : Old -> Nat
+axiom SafePublic : Nat -> Prop
 
 theorem rollback_migrate_id (x : Old) :
     rollback (migrate x) = x := by
