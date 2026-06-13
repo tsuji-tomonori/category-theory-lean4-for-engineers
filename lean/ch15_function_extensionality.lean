@@ -108,6 +108,6 @@ theorem clientWithFallback_eq
     (client : Request → Option Response) :
     clientWithFallback client = client := by
   funext r
-  simp [clientWithFallback]
+  cases h : client r <;> simp [clientWithFallback, h]
 
 end Ch15
