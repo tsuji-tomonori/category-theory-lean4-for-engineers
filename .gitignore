@@ -28,8 +28,11 @@
 # LaTeX temporary files
 *.nav
 *.snm
+*.pyg
 *.vrb
 *.tmp
+.texmf-cache/
+.texmf-var/
 
 # Editor swap/backup files
 *~
@@ -41,3 +44,4 @@ __pycache__/
 *.py[cod]
 
 _minted-main/*
+_minted-main-lean-keywords/
