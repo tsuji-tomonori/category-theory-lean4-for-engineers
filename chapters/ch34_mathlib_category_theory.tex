@@ -403,17 +403,19 @@ API adapter や migration の局所性を示す & まずは本書の小さな定
 
 \section{本章のまとめ}
 
-\begin{summarybox}
-\begin{itemize}
-\item Mathlib の \texttt{Category C} は、対象型 \texttt{C} に圏構造を載せる型クラスとして読む。
-\item \(X \longrightarrow Y\) は射、\(\mathbb{1}_X\) は恒等射、\texttt{f ≫ g} は矢印向きの合成である。
-\item \(F : C \Rightarrow D\) は関手であり、\texttt{F.obj} と \texttt{F.map} によって対象と射を移す。
-\item \texttt{NatTrans F G} は自然変換であり、\texttt{α.app X} と \texttt{α.naturality f} が中心になる。
-\item \(X \cong Y\) は同型であり、\texttt{hom}、\texttt{inv}、二つの round-trip law を持つ。
-\item Mathlib は強力だが、型クラス、universe、記法の負荷があるため、本書のミニ定義で概念を掴んでから進むのが安全である。
-\item 実務では、Mathlib を使うこと自体が目的ではない。既存の標準定義と定理を再利用したいときに、必要な範囲で移行する。
-\end{itemize}
-\end{summarybox}
+Mathlib の \texttt{Category C} は、対象型 \texttt{C} に圏構造を載せる型クラスとして読む。
+
+\(X \longrightarrow Y\) は射、\(\mathbb{1}_X\) は恒等射、\texttt{f ≫ g} は矢印向きの合成である。
+
+\(F : C \Rightarrow D\) は関手であり、\texttt{F.obj} と \texttt{F.map} によって対象と射を移す。
+
+\texttt{NatTrans F G} は自然変換であり、\texttt{α.app X} と \texttt{α.naturality f} が中心になる。
+
+\(X \cong Y\) は同型であり、\texttt{hom}、\texttt{inv}、二つの round-trip law を持つ。
+
+Mathlib は強力だが、型クラス、universe、記法の負荷があるため、本書のミニ定義で概念を掴んでから進むのが安全である。
+
+実務では、Mathlib を使うこと自体が目的ではない。既存の標準定義と定理を再利用したいときに、必要な範囲で移行する。
 
 \section{参考リンク}
 

@@ -457,15 +457,15 @@ adapter が中身の意味を変えないように設計されているからこ
 
 \section{本章のまとめ}
 
-\begin{summarybox}
-\begin{itemize}
-\item 自然変換は、二つの関手的な構造の間をつなぐ、型に依存しない一貫した adapter として読める。
-\item 自然性の四角形は、「中身を変えてから adapter」と「adapter してから中身を変える」が一致するという仕様である。
-\item \texttt{Option A -> List A} の例では、\texttt{none} を空リストへ、\texttt{some a} を1要素リストへ変換する adapter が自然性を満たす。
-\item Lean では、自然性を通常の等式として書ける。\texttt{cases} による場合分けで、\texttt{none} と \texttt{some} の両方を確認できる。
-\item API response wrapper の変更では、adapter と \texttt{map} が可換であることを示すと、adapter が業務ロジックと干渉しないことを説明できる。
-\end{itemize}
-\end{summarybox}
+自然変換は、二つの関手的な構造の間をつなぐ、型に依存しない一貫した adapter として読める。
+
+自然性の四角形は、「中身を変えてから adapter」と「adapter してから中身を変える」が一致するという仕様である。
+
+\texttt{Option A -> List A} の例では、\texttt{none} を空リストへ、\texttt{some a} を1要素リストへ変換する adapter が自然性を満たす。
+
+Lean では、自然性を通常の等式として書ける。\texttt{cases} による場合分けで、\texttt{none} と \texttt{some} の両方を確認できる。
+
+API response wrapper の変更では、adapter と \texttt{map} が可換であることを示すと、adapter が業務ロジックと干渉しないことを説明できる。
 
 \section{次章への接続}
 

@@ -367,12 +367,12 @@ theorem validate_result_post (input : SignupInput) :
 
 \section{本章のまとめ}
 
-\begin{summarybox}
-\begin{itemize}
-\item \texttt{cases} は、値が取りうる形をコンストラクタごとに分解する証明道具である。
-\item \texttt{Bool}、\texttt{Option}、\texttt{Sum} は、場合分け証明を学ぶための基本的な型である。
-\item \texttt{match} は実装上の分岐、\texttt{cases} は証明上の分岐として読める。
-\item エラーケースも仕様の一部であり、成功値を返さないことを事後条件として表せる。
-\item バリデーション結果を型として定義すると、全ケースを Lean に分解させて証明できる。
-\end{itemize}
-\end{summarybox}
+\texttt{cases} は、値が取りうる形をコンストラクタごとに分解する証明道具である。
+
+\texttt{Bool}、\texttt{Option}、\texttt{Sum} は、場合分け証明を学ぶための基本的な型である。
+
+\texttt{match} は実装上の分岐、\texttt{cases} は証明上の分岐として読める。
+
+エラーケースも仕様の一部であり、成功値を返さないことを事後条件として表せる。
+
+バリデーション結果を型として定義すると、全ケースを Lean に分解させて証明できる。

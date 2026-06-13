@@ -393,17 +393,19 @@ theorem handleResponse_ok (onError : ApiError → String)
 
 \section{本章のまとめ}
 
-\begin{summarybox}
-\begin{itemize}
-\item 積は「両方持つ」構造であり、ペア、レコード、DTOとして現れる。
-\item 余積は「どちらか一方」の構造であり、\texttt{Either}、\texttt{Result}、エラー分岐として現れる。
-\item Leanでは、積を \texttt{Prod} または \texttt{A × B}、余積を \texttt{Sum A B} として扱える。
-\item \texttt{Option A} は、値なしの場合と値ありの場合を持つ小さな余積として読める。
-\item 積の普遍性は「二つの射影を持つペア関数が一意に決まる」こととして読める。
-\item 余積の普遍性は「左右の処理を与えると、分岐全体の処理が一意に決まる」こととして読める。
-\item APIレスポンスやエラー処理では、同時に持つ情報か排他的な分岐かを区別することが重要である。
-\end{itemize}
-\end{summarybox}
+積は「両方持つ」構造であり、ペア、レコード、DTOとして現れる。
+
+余積は「どちらか一方」の構造であり、\texttt{Either}、\texttt{Result}、エラー分岐として現れる。
+
+Leanでは、積を \texttt{Prod} または \texttt{A × B}、余積を \texttt{Sum A B} として扱える。
+
+\texttt{Option A} は、値なしの場合と値ありの場合を持つ小さな余積として読める。
+
+積の普遍性は「二つの射影を持つペア関数が一意に決まる」こととして読める。
+
+余積の普遍性は「左右の処理を与えると、分岐全体の処理が一意に決まる」こととして読める。
+
+APIレスポンスやエラー処理では、同時に持つ情報か排他的な分岐かを区別することが重要である。
 
 \section{次章への接続}
 

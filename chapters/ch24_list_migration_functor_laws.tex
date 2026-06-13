@@ -449,13 +449,14 @@ Leanで証明したのは、抽出したモデル上の性質である。
 それらを扱うには、\texttt{Option}、\texttt{Except}、状態、関係、集合的な仕様などを導入する必要がある。
 本章の目的は、まず純粋なリスト変換の核を正確に理解することである。
 
-\begin{summarybox}
-\begin{itemize}
-\item \texttt{migrate : UserV1 -> UserV2} は、\texttt{List.map migrate} によって \texttt{List UserV1 -> List UserV2} へ持ち上げられる。
-\item \texttt{List.map} はリストの外側の構造を保ち、中身だけを変換する。
-\item 件数保存は、\texttt{List.map} の基本性質として帰納法で証明できる。
-\item 関手の合成保存により、二段階変換のまとめ方を変えても結果が一致する。
-\item 1件の round-trip 性質があれば、リスト全体の round-trip 性質も帰納法で証明できる。
-\item Leanの証明は、バッチ移行の純粋な変換核についての保証であり、実システム全体の保証とは区別する。
-\end{itemize}
-\end{summarybox}
+\texttt{migrate : UserV1 -> UserV2} は、\texttt{List.map migrate} によって \texttt{List UserV1 -> List UserV2} へ持ち上げられる。
+
+\texttt{List.map} はリストの外側の構造を保ち、中身だけを変換する。
+
+件数保存は、\texttt{List.map} の基本性質として帰納法で証明できる。
+
+関手の合成保存により、二段階変換のまとめ方を変えても結果が一致する。
+
+1件の round-trip 性質があれば、リスト全体の round-trip 性質も帰納法で証明できる。
+
+Leanの証明は、バッチ移行の純粋な変換核についての保証であり、実システム全体の保証とは区別する。

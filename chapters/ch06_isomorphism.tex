@@ -370,12 +370,12 @@ def userIso : Iso UserV1 UserV2 where
 \section{本章のまとめ}
 \label{sec:ch06-summary}
 
-\begin{summarybox}
-\begin{itemize}
-\item 同型は、二つの型が同じ情報を表していることを示す関係である。
-\item $A \to B$ と $B \to A$ の関数があるだけでは同型ではない。両方向のround-trip lawが必要である。
-\item Leanでは、同型を \texttt{toFun}、\texttt{invFun}、\texttt{left\_inv}、\texttt{right\_inv} を持つ構造体として表せる。
-\item \texttt{UserV1} と \texttt{UserV2} のような情報を保つスキーマ変更は、Lean上で同型として表現できる。
-\item 実務では、完全同型、片方向互換、制約付き同型、情報損失ありを区別することが重要である。
-\end{itemize}
-\end{summarybox}
+同型は、二つの型が同じ情報を表していることを示す関係である。
+
+$A \to B$ と $B \to A$ の関数があるだけでは同型ではない。両方向のround-trip lawが必要である。
+
+Leanでは、同型を \texttt{toFun}、\texttt{invFun}、\texttt{left\_inv}、\texttt{right\_inv} を持つ構造体として表せる。
+
+\texttt{UserV1} と \texttt{UserV2} のような情報を保つスキーマ変更は、Lean上で同型として表現できる。
+
+実務では、完全同型、片方向互換、制約付き同型、情報損失ありを区別することが重要である。

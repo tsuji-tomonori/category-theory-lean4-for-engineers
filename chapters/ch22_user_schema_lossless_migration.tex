@@ -387,12 +387,12 @@ CI に置くファイル名は、たとえば \texttt{lean/ch22\_user\_schema\_l
 
 \section{本章のまとめ}
 
-\begin{summarybox}
-\begin{itemize}
-\item lossless migration は、旧形式と新形式が同じ情報を別の構造で持つ変更である。
-\item \texttt{migrate} と \texttt{rollback} があるだけでは同型ではない。
-\item \texttt{rollback (migrate u) = u} と \texttt{migrate (rollback v) = v} の二つを証明して初めて、両方向の情報保存を主張できる。
-\item Lean では、構造体、関数、\texttt{cases}、\texttt{rfl} だけで小さな round-trip 証明を書ける。
-\item CI に入れる場合は、Lean が保証するモデル上の性質と、本番システムで別途確認すべき性質を分けて書く必要がある。
-\end{itemize}
-\end{summarybox}
+lossless migration は、旧形式と新形式が同じ情報を別の構造で持つ変更である。
+
+\texttt{migrate} と \texttt{rollback} があるだけでは同型ではない。
+
+\texttt{rollback (migrate u) = u} と \texttt{migrate (rollback v) = v} の二つを証明して初めて、両方向の情報保存を主張できる。
+
+Lean では、構造体、関数、\texttt{cases}、\texttt{rfl} だけで小さな round-trip 証明を書ける。
+
+CI に入れる場合は、Lean が保証するモデル上の性質と、本番システムで別途確認すべき性質を分けて書く必要がある。

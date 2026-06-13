@@ -398,12 +398,12 @@ Lean で総残高保存を証明したからといって、送金機能のテス
 
 \section{本章のまとめ}
 
-\begin{summarybox}
-\begin{itemize}
-\item 口座操作は、状態、操作、事前条件、事後条件、不変条件を学ぶための小さく有用な題材である。
-\item \texttt{Balance} と \texttt{Amount} を \texttt{Nat} で表すことで、残高非負条件の一部を型に入れた。
-\item \texttt{deposit}、\texttt{withdraw?}、\texttt{transfer?} を関数として定義し、成功・失敗の仕様を等式として証明した。
-\item 送金成功時の総残高保存は、\texttt{calc} による式変形としてレビュー可能な形で証明できる。
-\item Lean の証明はテストを置き換えるものではなく、テストでは網羅しにくい仕様の核を補強するものである。
-\end{itemize}
-\end{summarybox}
+口座操作は、状態、操作、事前条件、事後条件、不変条件を学ぶための小さく有用な題材である。
+
+\texttt{Balance} と \texttt{Amount} を \texttt{Nat} で表すことで、残高非負条件の一部を型に入れた。
+
+\texttt{deposit}、\texttt{withdraw?}、\texttt{transfer?} を関数として定義し、成功・失敗の仕様を等式として証明した。
+
+送金成功時の総残高保存は、\texttt{calc} による式変形としてレビュー可能な形で証明できる。
+
+Lean の証明はテストを置き換えるものではなく、テストでは網羅しにくい仕様の核を補強するものである。

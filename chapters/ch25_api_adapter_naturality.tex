@@ -383,13 +383,14 @@ payload の意味を変更する処理は、別の関数として切り出し、
 
 \section{本章のまとめ}
 
-\begin{summarybox}
-\begin{itemize}
-\item API adapter は、旧レスポンスwrapperから新レスポンスwrapperへの変換としてモデル化できる。
-\item \texttt{OldResponse.map} と \texttt{NewResponse.map} は、metadataを保ち、payloadだけに業務ロジックを適用する。
-\item 自然性は、\texttt{adapt (OldResponse.map f r) = NewResponse.map f (adapt r)} という等式で表せる。
-\item Leanでは、構造体を分解し、定義を展開することで、adapter と \texttt{map} の可換性を証明できる。
-\item この証明は、adapter が業務ロジックと干渉しないこと、つまり adapter の位置を変えても結果が同じであることを示す。
-\item ただし、外部API仕様、JSONエンコード、ネットワーク、副作用、実装との同期は、Leanモデルの外側で確認する必要がある。
-\end{itemize}
-\end{summarybox}
+API adapter は、旧レスポンスwrapperから新レスポンスwrapperへの変換としてモデル化できる。
+
+\texttt{OldResponse.map} と \texttt{NewResponse.map} は、metadataを保ち、payloadだけに業務ロジックを適用する。
+
+自然性は、\texttt{adapt (OldResponse.map f r) = NewResponse.map f (adapt r)} という等式で表せる。
+
+Leanでは、構造体を分解し、定義を展開することで、adapter と \texttt{map} の可換性を証明できる。
+
+この証明は、adapter が業務ロジックと干渉しないこと、つまり adapter の位置を変えても結果が同じであることを示す。
+
+ただし、外部API仕様、JSONエンコード、ネットワーク、副作用、実装との同期は、Leanモデルの外側で確認する必要がある。

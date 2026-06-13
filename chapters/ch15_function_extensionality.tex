@@ -340,7 +340,7 @@ theorem clientWithFallback_eq
     (client : Request → Option Response) :
     clientWithFallback client = client := by
   funext r
-  cases client r <;> rfl
+  simp [clientWithFallback]
 
 end Ch15
 \end{minted}
@@ -348,7 +348,7 @@ end Ch15
 \label{lst:ch15-option-wrapper}
 \end{listing}
 
-この証明では、\texttt{funext r} によって任意のリクエスト \texttt{r} に対する等式へ移る。その後、\texttt{client r} が \texttt{some res} なのか \texttt{none} なのかで場合分けする。どちらの場合も、定義を展開すれば左右は同じ形になる。
+この証明では、\texttt{funext r} によって任意のリクエスト \texttt{r} に対する等式へ移る。その後、\texttt{clientWithFallback} を展開して簡約すると、戻り値を変えていないことが分かる。
 
 このように、関数外延性は単独で使うだけでなく、\texttt{cases} や \texttt{simp} と組み合わせて使うことが多い。
 
@@ -410,12 +410,12 @@ end Ch15
 
 \section{本章のまとめ}
 
-\begin{summarybox}
-\begin{itemize}
-\item 関数の等しさは、実装本文の一致ではなく、すべての入力に対する出力の一致として捉えられる。
-\item Lean では、点ごとの一致を \texttt{∀ x, f x = g x}、関数そのものの等式を \texttt{f = g} として表す。
-\item \texttt{funext} は、関数そのものの等式を、任意の入力での等式に分解する道具である。
-\item wrapper や adapter の置き換え安全性は、モデル化した範囲では関数外延性の証明として表せる。
-\item 証明できるのは、型と関数として明示した観測対象についてだけである。ログ、性能、外部副作用などを含めたい場合は、それらもモデルに入れる必要がある。
-\end{itemize}
-\end{summarybox}
+関数の等しさは、実装本文の一致ではなく、すべての入力に対する出力の一致として捉えられる。
+
+Lean では、点ごとの一致を \texttt{∀ x, f x = g x}、関数そのものの等式を \texttt{f = g} として表す。
+
+\texttt{funext} は、関数そのものの等式を、任意の入力での等式に分解する道具である。
+
+wrapper や adapter の置き換え安全性は、モデル化した範囲では関数外延性の証明として表せる。
+
+証明できるのは、型と関数として明示した観測対象についてだけである。ログ、性能、外部副作用などを含めたい場合は、それらもモデルに入れる必要がある。

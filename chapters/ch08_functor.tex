@@ -433,12 +433,12 @@ theorem migrateUsers_preserves_ids (users : List UserV1) :
 
 \section{本章のまとめ}
 
-\begin{summarybox}
-\begin{itemize}
-\item 関手は、対象と射を対応させ、恒等関数と合成を保存する構造である。
-\item ソフトウェアでは、\texttt{List.map}、\texttt{Option.map}、\texttt{Result.map} として直感的に読める。
-\item 恒等関数の保存は、\texttt{map} に何もしない関数を渡すと全体も変わらないことを意味する。
-\item 合成の保存は、二段階の変換を \texttt{map} の内側で合成しても、外側で二回 \texttt{map} しても同じであることを意味する。
-\item 一件のマイグレーションは、\texttt{List.map} によってバッチ全体のマイグレーションへ持ち上げられる。
-\end{itemize}
-\end{summarybox}
+関手は、対象と射を対応させ、恒等関数と合成を保存する構造である。
+
+ソフトウェアでは、\texttt{List.map}、\texttt{Option.map}、\texttt{Result.map} として直感的に読める。
+
+恒等関数の保存は、\texttt{map} に何もしない関数を渡すと全体も変わらないことを意味する。
+
+合成の保存は、二段階の変換を \texttt{map} の内側で合成しても、外側で二回 \texttt{map} しても同じであることを意味する。
+
+一件のマイグレーションは、\texttt{List.map} によってバッチ全体のマイグレーションへ持ち上げられる。

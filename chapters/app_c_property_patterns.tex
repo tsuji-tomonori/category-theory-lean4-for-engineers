@@ -534,14 +534,16 @@ Lean ファイルでは、性質ごとに定理名を分けるとよい。たと
 \item Lean で証明するモデルと、実装コードとの差分はどこか。
 \end{itemize}
 
-\begin{summarybox}
-\begin{itemize}
-\item round-trip は、情報を失わない相互変換を確認する中心パターンである。
-\item idempotent は、再実行や正規化の安全性を表す。
-\item monotone は、完全な等式ではなく、仕様の強弱や安全な近似を扱う。
-\item length、keys、total の保存は、バッチ移行や集計処理で別々に証明する。
-\item naturality は、adapter が業務ロジックと干渉しないことを表す。
-\item invariant preservation と pre/post condition は、ドメイン操作の仕様を Lean に移す基本形である。
-\item 証明対象は、自然言語仕様の全文ではなく、小さく重要な核として切り出す。
-\end{itemize}
-\end{summarybox}
+round-trip は、情報を失わない相互変換を確認する中心パターンである。
+
+idempotent は、再実行や正規化の安全性を表す。
+
+monotone は、完全な等式ではなく、仕様の強弱や安全な近似を扱う。
+
+length、keys、total の保存は、バッチ移行や集計処理で別々に証明する。
+
+naturality は、adapter が業務ロジックと干渉しないことを表す。
+
+invariant preservation と pre/post condition は、ドメイン操作の仕様を Lean に移す基本形である。
+
+証明対象は、自然言語仕様の全文ではなく、小さく重要な核として切り出す。

@@ -313,13 +313,14 @@ structure GaloisConnection {A B : Type}
 \section{本章のまとめ}
 \label{sec:ch31-summary}
 
-\begin{summarybox}
-\begin{itemize}
-\item 随伴は、まず「自由に作る操作」と「構造を忘れる操作」の対応として理解するとよい。
-\item \texttt{List A} は、型 \texttt{A} から自由モノイドを作る典型例である。
-\item \texttt{foldMap} は、要素ごとの関数 \texttt{A -> M} を、リスト全体のモノイド準同型 \texttt{List A -> M} へ拡張する。
-\item free monoid の普遍性は、「そのような拡張が一意に決まる」という設計上の強い制約を与える。
-\item Galois 接続は、前順序を圏として見たときの随伴であり、抽象化と具体化の対応を表す。
-\item 本章では Mathlib の本格的な随伴 API までは扱わず、自作ミニ定義で直感を固めた。
-\end{itemize}
-\end{summarybox}
+随伴は、まず「自由に作る操作」と「構造を忘れる操作」の対応として理解するとよい。
+
+\texttt{List A} は、型 \texttt{A} から自由モノイドを作る典型例である。
+
+\texttt{foldMap} は、要素ごとの関数 \texttt{A -> M} を、リスト全体のモノイド準同型 \texttt{List A -> M} へ拡張する。
+
+free monoid の普遍性は、「そのような拡張が一意に決まる」という設計上の強い制約を与える。
+
+Galois 接続は、前順序を圏として見たときの随伴であり、抽象化と具体化の対応を表す。
+
+本章では Mathlib の本格的な随伴 API までは扱わず、自作ミニ定義で直感を固めた。

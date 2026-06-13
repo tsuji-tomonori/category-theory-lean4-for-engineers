@@ -450,14 +450,16 @@ def tick : SimpleState Nat Nat :=
 
 \section{本章のまとめ}
 
-\begin{summarybox}
-\begin{itemize}
-\item \texttt{Option A}、\texttt{Except E A}、\texttt{S -> (A, S)} は、いずれも文脈を持つ値として読める。
-\item \texttt{pure} は普通の値を文脈に入れ、\texttt{bind} は文脈つきの値を次の文脈つき処理へつなぐ。
-\item モナド則は、effectful code の左単位、右単位、結合律というリファクタリング規則として読める。
-\item Lean では、\texttt{Option} の \texttt{none} と \texttt{some} を場合分けすることで、モナド則を小さく証明できる。
-\item 失敗しうるマイグレーションでは、失敗可能性を返り値の型に入れ、\texttt{bind} で段階的に合成すると、失敗ケースを漏らしにくくなる。
-\item 失敗理由が必要な場合は \texttt{Option} ではなく \texttt{Except} を使う。
-\item 状態つき処理や非同期処理も、値だけでなく文脈を次へ渡す合成として読むことができる。
-\end{itemize}
-\end{summarybox}
+\texttt{Option A}、\texttt{Except E A}、\texttt{S -> (A, S)} は、いずれも文脈を持つ値として読める。
+
+\texttt{pure} は普通の値を文脈に入れ、\texttt{bind} は文脈つきの値を次の文脈つき処理へつなぐ。
+
+モナド則は、effectful code の左単位、右単位、結合律というリファクタリング規則として読める。
+
+Lean では、\texttt{Option} の \texttt{none} と \texttt{some} を場合分けすることで、モナド則を小さく証明できる。
+
+失敗しうるマイグレーションでは、失敗可能性を返り値の型に入れ、\texttt{bind} で段階的に合成すると、失敗ケースを漏らしにくくなる。
+
+失敗理由が必要な場合は \texttt{Option} ではなく \texttt{Except} を使う。
+
+状態つき処理や非同期処理も、値だけでなく文脈を次へ渡す合成として読むことができる。

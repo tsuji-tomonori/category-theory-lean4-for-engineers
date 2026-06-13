@@ -453,8 +453,6 @@ apply & 定理を適用する & ゴールを、使いたい定理の前提へ変
 
 \section{本付録のまとめ}
 
-\begin{summarybox}
 Lean 4 の最小語彙は、四つの役割に分けて読むと整理しやすい。\texttt{def}、\texttt{structure}、\texttt{inductive} はモデルを作る語彙である。\texttt{example}、\texttt{theorem}、\texttt{by} は仕様を主張して証明を始める語彙である。\texttt{rfl}、\texttt{simp}、\texttt{rw}、\texttt{calc} は等式を扱う語彙である。\texttt{cases} と \texttt{induction} は、分岐や任意長のデータを漏れなく扱う語彙である。最後に、\texttt{constructor}、\texttt{exact}、\texttt{apply} は、証明を小さな部品から組み立てる語彙である。
 
 本書の本文では、これらを組み合わせて、リファクタリング前後の意味保存、データ移行の round-trip、不変条件の保存、API adapter の一貫性を表す。分からない構文に出会ったら、まずこの一覧に戻り、その構文が「モデルを書く」「仕様を書く」「等式を閉じる」「ケースを分ける」のどれに当たるかを確認するとよい。
-\end{summarybox}

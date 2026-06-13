@@ -391,12 +391,12 @@ API wrapper の変更が業務ロジックと干渉しないか & 自然変換 &
 
 \section{本付録のまとめ}
 
-\begin{summarybox}
-\begin{itemize}
-\item 対象・射・合成・恒等射は、型・関数・パイプライン・no-op として読む。
-\item 同型は、情報を失わない相互変換であり、round-trip 証明が必要である。
-\item 関手は構造を壊さない一括変換であり、自然変換は型に依存しない一貫した adapter である。
-\item モノイドは集約、モナドは文脈つき処理の合成、Pullback は整合条件つき join として読む。
-\item Lean では、まず型・関数・構造体・述語・等式で小さくモデル化し、必要になってから Mathlib の \texttt{CategoryTheory} へ進む。
-\end{itemize}
-\end{summarybox}
+対象・射・合成・恒等射は、型・関数・パイプライン・no-op として読む。
+
+同型は、情報を失わない相互変換であり、round-trip 証明が必要である。
+
+関手は構造を壊さない一括変換であり、自然変換は型に依存しない一貫した adapter である。
+
+モノイドは集約、モナドは文脈つき処理の合成、Pullback は整合条件つき join として読む。
+
+Lean では、まず型・関数・構造体・述語・等式で小さくモデル化し、必要になってから Mathlib の \texttt{CategoryTheory} へ進む。
