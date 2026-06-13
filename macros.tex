@@ -1,13 +1,35 @@
+\tcbset{
+  chapterboxstyle/.style={
+    breakable,
+    enhanced,
+    colback=white,
+    colframe=black,
+    coltitle=black,
+    colbacktitle=white,
+    fonttitle=\bfseries,
+    boxrule=0.4pt,
+    arc=0pt,
+    before skip=1.2em,
+    after skip=0.8em,
+    boxed title style={
+      colback=white,
+      colframe=black,
+      boxrule=0.4pt,
+      arc=0pt
+    }
+  }
+}
+
 % Chapter abstract
 \newenvironment{chapterabstract}{%
-  \begin{tcolorbox}[breakable,colback=gray!5,colframe=gray!50,title=この章の概要]
+  \begin{tcolorbox}[chapterboxstyle,title=この章の概要]
 }{%
   \end{tcolorbox}
 }
 
 % Learning goals
 \newenvironment{learninggoals}{%
-  \begin{tcolorbox}[breakable,colback=blue!3,colframe=blue!45!black,title=この章でできるようになること]
+  \begin{tcolorbox}[chapterboxstyle,title=この章でできるようになること]
   \begin{itemize}
 }{%
   \end{itemize}
@@ -16,51 +38,37 @@
 
 % Common boxes
 \newtcolorbox{intuitionbox}{
-  breakable,
-  colback=yellow!6,
-  colframe=yellow!50!black,
+  chapterboxstyle,
   title=直感
 }
 
 \newtcolorbox{softwarebox}{
-  breakable,
-  colback=green!5,
-  colframe=green!45!black,
+  chapterboxstyle,
   title=ソフトウェアでの読み替え
 }
 
 \newtcolorbox{definitionbox}{
-  breakable,
-  colback=blue!4,
-  colframe=blue!50!black,
+  chapterboxstyle,
   title=定義
 }
 
 \newtcolorbox{leanbox}{
-  breakable,
-  colback=purple!4,
-  colframe=purple!50!black,
+  chapterboxstyle,
   title=Lean では
 }
 
 \newtcolorbox{warningbox}{
-  breakable,
-  colback=red!4,
-  colframe=red!55!black,
+  chapterboxstyle,
   title=注意
 }
 
 \newtcolorbox{exercisebox}{
-  breakable,
-  colback=gray!4,
-  colframe=gray!60!black,
+  chapterboxstyle,
   title=演習
 }
 
 \newtcolorbox{summarybox}{
-  breakable,
-  colback=teal!4,
-  colframe=teal!55!black,
+  chapterboxstyle,
   title=本章のまとめ
 }
 
