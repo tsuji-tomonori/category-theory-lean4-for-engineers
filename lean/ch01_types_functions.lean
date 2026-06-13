@@ -7,76 +7,92 @@ These examples intentionally avoid Mathlib and advanced proof features.
 #check Nat
 #check Bool
 #check String
+
+#check (3 : Nat)
+#check (true : Bool)
+#check ("lean" : String)
+
 #check List Nat
 #check Option String
 
 #eval (3 : Nat) + 4
 #eval true && false
 #eval "lean" ++ "4"
-#eval [1, 2, 3].length
-#eval (some "alice" : Option String)
 
-def addTax10 (price : Nat) : Nat :=
-  price + price / 10
+#eval ([1, 2, 3] : List Nat).length
+#eval ([true, false] : List Bool)
 
-def isLarge (price : Nat) : Bool :=
-  decide (1000 <= price)
+#eval (some 3 : Option Nat)
+#eval (none : Option Nat)
 
-def labelBySize (price : Nat) : String :=
-  if isLarge price then "large" else "small"
+def answer : Nat :=
+  42
 
-#eval addTax10 1200
-#eval labelBySize 900
-#eval labelBySize (addTax10 1000)
+def addOne (n : Nat) : Nat :=
+  n + 1
 
-def findUserName (userId : Nat) : Option String :=
-  if userId == 1 then some "alice"
-  else if userId == 2 then some "bob"
-  else none
+def add (m : Nat) (n : Nat) : Nat :=
+  m + n
 
-def greeting (name : String) : String :=
-  "hello, " ++ name
+def joinWithSpace (left : String) (right : String) : String :=
+  left ++ " " ++ right
 
-def greetingById (userId : Nat) : String :=
-  match findUserName userId with
-  | some name => greeting name
-  | none => "unknown user"
+#check answer
+#check addOne
+#check add
 
-#eval greetingById 1
-#eval greetingById 3
+#eval addOne 5
+#eval add 2 3
+#eval joinWithSpace "Lean" "4"
 
-def keepAsIs (s : String) : String :=
-  s
+#eval answer
+#eval addOne answer
+#eval addOne (addOne 10)
+#eval add (addOne 2) (addOne 3)
+#eval joinWithSpace (joinWithSpace "Lean" "4") "book"
 
-def addUserPrefix (s : String) : String :=
-  "user:" ++ s
+#check addOne
+#check (fun (n : Nat) => n + 1)
 
-def addExampleDomain (s : String) : String :=
-  s ++ "@example.com"
+def inc : Nat -> Nat :=
+  fun n => n + 1
 
-def normalizeUserName (s : String) : String :=
-  addExampleDomain (addUserPrefix (keepAsIs s))
+def applyTwice (f : Nat -> Nat) (x : Nat) : Nat :=
+  f (f x)
+
+#eval inc 4
+#eval applyTwice inc 10
+#eval applyTwice (fun n => n + 2) 10
 
 def compose {A B C : Type} (g : B -> C) (f : A -> B) : A -> C :=
   fun x => g (f x)
 
-def normalizeUserName' : String -> String :=
-  compose addExampleDomain (compose addUserPrefix keepAsIs)
+def surround (s : String) : String :=
+  "[" ++ s ++ "]"
 
-#eval normalizeUserName "alice"
-#eval normalizeUserName' "alice"
+def mark (s : String) : String :=
+  s ++ "!"
 
-def rejectEmpty (s : String) : Option String :=
+def transform : String -> String :=
+  compose mark surround
+
+#eval transform "x"
+#eval compose addOne addOne 10
+
+def nonempty (s : String) : Option String :=
   if s == "" then none else some s
 
-def canonicalUserId (s : String) : Option String :=
-  match rejectEmpty s with
+def decorate (s : String) : String :=
+  mark (surround s)
+
+def decorateIfNonempty (s : String) : Option String :=
+  match nonempty s with
   | none => none
-  | some name => some (normalizeUserName name)
+  | some value => some (decorate value)
 
-def normalizeAll (names : List String) : List (Option String) :=
-  names.map canonicalUserId
+def decorateAll (xs : List String) : List (Option String) :=
+  xs.map decorateIfNonempty
 
-#eval canonicalUserId ""
-#eval canonicalUserId "alice"
-#eval normalizeAll ["alice", "", "bob"]
+#eval decorateIfNonempty ""
+#eval decorateIfNonempty "lean"
+#eval decorateAll ["a", "", "b"]
