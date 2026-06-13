@@ -33,17 +33,17 @@ structure PreorderMini (A : Type) where
   trans : forall {a b c}, le a b -> le b c -> le a c
 
 inductive Detail where
-  | public
-  | internal
-  | secret
+  | publicLevel
+  | internalLevel
+  | secretLevel
 deriving Repr, DecidableEq
 
 -- public <= internal <= secret と読む。
 def detailLe : Detail -> Detail -> Prop
-  | .public, _ => True
-  | .internal, .internal => True
-  | .internal, .secret => True
-  | .secret, .secret => True
+  | .publicLevel, _ => True
+  | .internalLevel, .internalLevel => True
+  | .internalLevel, .secretLevel => True
+  | .secretLevel, .secretLevel => True
   | _, _ => False
 
 theorem detail_refl : forall d : Detail, detailLe d d := by
@@ -63,7 +63,7 @@ def DetailPreorder : PreorderMini Detail where
     exact detail_trans hab hbc
 
 theorem no_secret_as_public :
-    detailLe Detail.secret Detail.public -> False := by
+    detailLe Detail.secretLevel Detail.publicLevel -> False := by
   intro h
   simpa [detailLe] using h
 
@@ -99,14 +99,14 @@ def viewLe : PublicView -> PublicView -> Prop
 
 -- 抽象化: 詳細レベルを公開判定用の二段階へ落とす。
 def erase : Detail -> PublicView
-  | .public => .publicOnly
-  | .internal => .mayContainPrivate
-  | .secret => .mayContainPrivate
+  | .publicLevel => .publicOnly
+  | .internalLevel => .mayContainPrivate
+  | .secretLevel => .mayContainPrivate
 
 -- 具体化: 抽象ビューが許す最大の詳細レベルを見る。
 def allow : PublicView -> Detail
-  | .publicOnly => .public
-  | .mayContainPrivate => .secret
+  | .publicOnly => .publicLevel
+  | .mayContainPrivate => .secretLevel
 
 theorem view_refl : forall v : PublicView, viewLe v v := by
   intro v
@@ -125,30 +125,30 @@ def PublicViewPreorder : PreorderMini PublicView where
     exact view_trans hab hbc
 
 theorem erase_monotone :
-    MonotoneMini detailLe viewLe erase := by
+    MonotoneMini (A := Detail) (B := PublicView) detailLe viewLe erase := by
   intro x y h
   cases x <;> cases y <;> simp [detailLe, viewLe, erase] at *
 
 theorem allow_monotone :
-    MonotoneMini viewLe detailLe allow := by
+    MonotoneMini (A := PublicView) (B := Detail) viewLe detailLe allow := by
   intro x y h
   cases x <;> cases y <;> simp [viewLe, detailLe, allow] at *
 
-structure GaloisConnectionMini {C A : Type}
+structure GaloisConnectionMini (C A : Type)
     (cLe : C -> C -> Prop) (aLe : A -> A -> Prop)
     (alpha : C -> A) (gamma : A -> C) : Prop where
   law : forall c a, Iff (aLe (alpha c) a) (cLe c (gamma a))
 
 -- erase と allow は Galois 接続をなす。
 theorem erase_allow_galois :
-    GaloisConnectionMini detailLe viewLe erase allow := by
+    GaloisConnectionMini Detail PublicView detailLe viewLe erase allow := by
   constructor
   intro c a
   cases c <;> cases a <;> simp [erase, allow, detailLe, viewLe]
 
 theorem gc_unit {C A : Type} {cLe : C -> C -> Prop} {aLe : A -> A -> Prop}
     {alpha : C -> A} {gamma : A -> C}
-    (gc : GaloisConnectionMini cLe aLe alpha gamma)
+    (gc : GaloisConnectionMini C A cLe aLe alpha gamma)
     (a_refl : forall a, aLe a a) :
     forall c, cLe c (gamma (alpha c)) := by
   intro c
@@ -156,7 +156,7 @@ theorem gc_unit {C A : Type} {cLe : C -> C -> Prop} {aLe : A -> A -> Prop}
 
 theorem gc_counit {C A : Type} {cLe : C -> C -> Prop} {aLe : A -> A -> Prop}
     {alpha : C -> A} {gamma : A -> C}
-    (gc : GaloisConnectionMini cLe aLe alpha gamma)
+    (gc : GaloisConnectionMini C A cLe aLe alpha gamma)
     (c_refl : forall c, cLe c c) :
     forall a, aLe (alpha (gamma a)) a := by
   intro a
