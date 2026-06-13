@@ -128,7 +128,7 @@ def natAddMonoid : TinyMonoid Nat where
   op := Nat.add
   unit_left := by
     intro x
-    rfl
+    exact Nat.zero_add x
   unit_right := by
     intro x
     exact Nat.add_zero x
