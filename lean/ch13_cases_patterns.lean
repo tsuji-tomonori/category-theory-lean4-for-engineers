@@ -27,12 +27,9 @@ theorem optionCode_all (x : Option Nat) :
        (Exists fun n => And (x = some n) (optionCode x = 1)) := by
   cases x with
   | none =>
-      left
-      constructor <;> rfl
+      exact Or.inl ⟨rfl, rfl⟩
   | some n =>
-      right
-      exists n
-      exact And.intro rfl rfl
+      exact Or.inr ⟨n, rfl, rfl⟩
 
 -- Sum は左 inl / 右 inr の二通りに分解できる。
 def sumTag (x : Sum Nat Nat) : Nat :=
@@ -47,13 +44,9 @@ theorem sumTag_is_left_or_right (x : Sum Nat Nat) :
                              (sumTag x = 1)) := by
   cases x with
   | inl n =>
-      left
-      exists n
-      exact And.intro rfl rfl
+      exact Or.inl ⟨n, rfl, rfl⟩
   | inr n =>
-      right
-      exists n
-      exact And.intro rfl rfl
+      exact Or.inr ⟨n, rfl, rfl⟩
 
 -- 実務寄りの小さな入力モデル。
 structure SignupInput where

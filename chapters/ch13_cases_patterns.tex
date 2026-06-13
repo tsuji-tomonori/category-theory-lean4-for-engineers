@@ -115,12 +115,9 @@ theorem optionCode_all (x : Option Nat) :
        (Exists fun n => And (x = some n) (optionCode x = 1)) := by
   cases x with
   | none =>
-      left
-      constructor <;> rfl
+      exact Or.inl ⟨rfl, rfl⟩
   | some n =>
-      right
-      exists n
-      exact And.intro rfl rfl
+      exact Or.inr ⟨n, rfl, rfl⟩
 \end{minted}
 \caption{\texttt{Bool}、\texttt{Option}、\texttt{Sum} の基本的な場合分け}
 \label{lst:ch13-basic-cases}
@@ -146,13 +143,9 @@ theorem sumTag_is_left_or_right (x : Sum Nat Nat) :
                              (sumTag x = 1)) := by
   cases x with
   | inl n =>
-      left
-      exists n
-      exact And.intro rfl rfl
+      exact Or.inl ⟨n, rfl, rfl⟩
   | inr n =>
-      right
-      exists n
-      exact And.intro rfl rfl
+      exact Or.inr ⟨n, rfl, rfl⟩
 \end{minted}
 \caption{\texttt{Sum} の左右ケースを分ける}
 \label{lst:ch13-sum-cases}
