@@ -32,7 +32,7 @@ theorem optionCode_all (x : Option Nat) :
   | some n =>
       right
       exists n
-      constructor <;> rfl
+      exact And.intro rfl rfl
 
 -- Sum は左 inl / 右 inr の二通りに分解できる。
 def sumTag (x : Sum Nat Nat) : Nat :=
@@ -49,11 +49,11 @@ theorem sumTag_is_left_or_right (x : Sum Nat Nat) :
   | inl n =>
       left
       exists n
-      constructor <;> rfl
+      exact And.intro rfl rfl
   | inr n =>
       right
       exists n
-      constructor <;> rfl
+      exact And.intro rfl rfl
 
 -- 実務寄りの小さな入力モデル。
 structure SignupInput where

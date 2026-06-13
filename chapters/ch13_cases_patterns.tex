@@ -120,7 +120,7 @@ theorem optionCode_all (x : Option Nat) :
   | some n =>
       right
       exists n
-      constructor <;> rfl
+      exact And.intro rfl rfl
 \end{minted}
 \caption{\texttt{Bool}、\texttt{Option}、\texttt{Sum} の基本的な場合分け}
 \label{lst:ch13-basic-cases}
@@ -148,11 +148,11 @@ theorem sumTag_is_left_or_right (x : Sum Nat Nat) :
   | inl n =>
       left
       exists n
-      constructor <;> rfl
+      exact And.intro rfl rfl
   | inr n =>
       right
       exists n
-      constructor <;> rfl
+      exact And.intro rfl rfl
 \end{minted}
 \caption{\texttt{Sum} の左右ケースを分ける}
 \label{lst:ch13-sum-cases}
