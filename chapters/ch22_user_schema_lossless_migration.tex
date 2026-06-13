@@ -309,15 +309,15 @@ theorem migrate_rollback (v : UserV2) :
 \begin{minted}{lean4}
 structure SchemaIso (A B : Type) where
   to : A -> B
-  from : B -> A
-  from_to : forall a, from (to a) = a
-  to_from : forall b, to (from b) = b
+  backward : B -> A
+  backward_to : forall a, backward (to a) = a
+  to_backward : forall b, to (backward b) = b
 
 def userSchemaIso : SchemaIso UserV1 UserV2 :=
   { to := migrate
-    from := rollback
-    from_to := rollback_migrate
-    to_from := migrate_rollback }
+    backward := rollback
+    backward_to := rollback_migrate
+    to_backward := migrate_rollback }
 \end{minted}
 \caption{スキーマ同型を表す小さな構造体}
 \label{lst:ch22-schema-iso}

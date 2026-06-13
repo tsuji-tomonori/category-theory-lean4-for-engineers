@@ -81,16 +81,16 @@ theorem migrate_rollback (v : UserV2) :
 -- 二つの変換関数と二つの round-trip 証明をまとめる。
 structure SchemaIso (A B : Type) where
   to : A -> B
-  from : B -> A
-  from_to : forall a, from (to a) = a
-  to_from : forall b, to (from b) = b
+  backward : B -> A
+  backward_to : forall a, backward (to a) = a
+  to_backward : forall b, to (backward b) = b
 
 -- UserV1 と UserV2 は、このモデル上では同型である。
 def userSchemaIso : SchemaIso UserV1 UserV2 :=
   { to := migrate
-    from := rollback
-    from_to := rollback_migrate
-    to_from := migrate_rollback }
+    backward := rollback
+    backward_to := rollback_migrate
+    to_backward := migrate_rollback }
 
 -- 次章への橋渡し：一件の round-trip は、map でリスト全体にも使える。
 def batchMigrate (users : List UserV1) : List UserV2 :=
@@ -104,6 +104,7 @@ theorem batch_rollback_migrate (users : List UserV1) :
   induction users with
   | nil => rfl
   | cons u us ih =>
-    simp [batchMigrate, batchRollback, rollback_migrate, ih]
+    unfold batchMigrate batchRollback at ih ⊢
+    simp [rollback_migrate, ih]
 
 end Chapter22
