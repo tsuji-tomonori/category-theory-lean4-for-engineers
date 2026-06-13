@@ -1,0 +1,403 @@
+% !TEX root = ../main.tex
+\setcounter{chapter}{-1}
+\chapter{仕様・変更・証明の地図}
+\label{chap:ch00_map}
+
+\begin{chapterabstract}
+本章は、本書全体の地図である。圏論や Lean 4 の細部に入る前に、ソフトウェア開発で何を「正しい」と呼ぶのか、変更前後で何を保存したいのか、その主張をどのように検査可能な形へ落とすのかを整理する。テスト、型、仕様、証明は競合する道具ではない。それぞれが異なる粒度で正しさを支える。本章では、圏論を合成と変換の言語として、Lean 4 を仕様を小さく検査する実験室として位置づける。
+\end{chapterabstract}
+
+\begin{learninggoals}
+\item ソフトウェアにおける正しさを、実行結果、型、仕様、不変条件、変更前後の意味保存に分けて説明できる。
+\item テスト、型、仕様、証明がそれぞれ何を得意とし、何を保証しないのかを区別できる。
+\item 圏論の語彙を、型、関数、変換、パイプライン、マイグレーション、adapter と結びつけて読める。
+\item Lean 4 を、本番コードの代替ではなく、仕様の核を検査する小さなモデルとして位置づけられる。
+\item 本書で扱うケーススタディが、どのような「保存したい性質」を扱うのかを把握できる。
+\end{learninggoals}
+
+\section{この章の役割}
+
+本書は、圏論の定義を順番に暗記する本ではない。また、Lean 4 の構文を網羅的に説明する本でもない。主題は、ソフトウェアの仕様と変更を、より正確に扱うことである。
+
+日々の開発では、次のような判断が繰り返し現れる。
+
+\begin{itemize}
+\item 関数を分割したが、外から見た結果は変わっていないか。
+\item API レスポンスの形を変えたが、旧クライアントの期待を壊していないか。
+\item DB スキーマを移行したが、必要なクエリ結果は保存されているか。
+\item 文字列や JSON を encode して decode したとき、元の情報に戻るか。
+\item 口座残高や注文合計のような不変条件は、操作後にも保たれているか。
+\end{itemize}
+
+これらは別々の作業に見える。しかし、どれも「何かを別の形へ変換し、その変換が期待した性質を保存するか」を問うている。この共通部分を取り出すと、圏論と Lean 4 が同じ方向を向いていることが見える。
+
+\begin{intuitionbox}
+圏論は、変換と合成を整理するための言語である。Lean 4 は、その言語で書いた小さな主張を機械的に確認するための道具である。本書では、圏論を抽象数学として閉じ込めず、Lean を学術的な証明専用ツールとして閉じ込めない。どちらも、変更に強い設計を考えるための実務上の補助線として使う。
+\end{intuitionbox}
+
+\FigurePlaceholder{fig-ch00-book-roadmap.png}{0.92}{本書全体のロードマップ。仕様、変更、証明を起点に、Lean 4 の基礎、圏論の基礎、証明の道具箱、実務ケーススタディへ進む。}{fig:ch00-book-roadmap}
+
+この章では、まだ本格的な Lean 証明には入らない。最初に必要なのは、証明を書くことではなく、「何を証明すべきか」を見分けることである。正しさの種類を混同したまま Lean を使うと、証明は書けても、実務上あまり重要でない性質だけを確認してしまう。逆に、証明すべき核をうまく切り出せると、短い定理でも設計レビューに強い価値を持つ。
+
+\section{ソフトウェアにおける「正しさ」とは何か}
+\label{sec:ch00-correctness}
+
+\subsection{正しさは一種類ではない}
+
+ソフトウェアの正しさは、単に「バグがない」という一語では足りない。実務では、いくつもの異なる正しさが重なっている。
+
+\begin{table}[htbp]
+\centering
+\caption{ソフトウェアにおける正しさの種類}
+\label{tab:ch00-correctness-kinds}
+\begin{tabular}{p{0.20\linewidth}p{0.34\linewidth}p{0.36\linewidth}}
+\toprule
+種類 & 典型的な問い & 例 \\
+\midrule
+実行結果の正しさ & この入力で期待した出力になるか & 料金計算で、入力 1000 円に対して 1100 円が返る \\
+型の正しさ & 不正な形の値を受け取らないか & ユーザー ID と金額を取り違えない \\
+仕様の正しさ & どの入力でも期待する性質を満たすか & 出金後も残高が負にならない \\
+変更の正しさ & 変更前後で意味が保存されるか & リファクタリング後も計算結果が同じ \\
+移行の正しさ & 古い形式と新しい形式の間で情報が保存されるか & \texttt{rollback (migrate u) = u} が成り立つ \\
+合成の正しさ & 部品をつないでも約束が保たれるか & adapter を通す順序を変えても業務ロジックの結果が同じ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+ここで重要なのは、これらが互いに置き換え可能ではないという点である。ある入力に対するテストが通っても、すべての入力で不変条件が保たれるとは限らない。型が付いていても、金額計算の式が仕様通りであるとは限らない。仕様書に「互換性がある」と書いてあっても、どの方向の互換性なのか、情報損失があるのかは別途明確にする必要がある。
+
+\begin{warningbox}
+「テストがあるから仕様は不要」「型があるから証明は不要」「証明したから実装全体が安全」という言い方は、どれも強すぎる。テスト、型、仕様、証明はそれぞれ違う穴を埋める。どれか一つが他を完全に置き換えるわけではない。
+\end{warningbox}
+
+\subsection{正しさは保存性として現れる}
+
+本書では、正しさをしばしば「保存される性質」として見る。これは、変更を扱うときに特に有効である。
+
+たとえば、関数をリファクタリングするときに保存したいのは、内部構造ではなく外から見た結果である。DB スキーマを変えるときに保存したいのは、テーブルの形そのものではなく、業務上必要なクエリの意味である。JSON encoder と decoder で保存したいのは、文字列の見た目ではなく、データとして持っていた情報である。
+
+\begin{softwarebox}
+実務で「安全な変更」と呼ぶものの多くは、「すべてを変えない変更」ではない。安全な変更とは、変えてよい部分と保存すべき部分を区別し、保存すべき部分が本当に保たれる変更である。
+\end{softwarebox}
+
+この見方を採ると、レビューで聞くべき問いが変わる。
+
+\begin{itemize}
+\item 何が変わったか。
+\item 何が変わってはいけないか。
+\item 変わってはいけないものは、テスト、型、仕様、証明のどれで確認するのが適切か。
+\item その確認は、具体例に対する確認か、すべての場合に対する確認か。
+\end{itemize}
+
+この問いが、本書全体の出発点になる。
+
+\section{テスト、型、仕様、証明の役割分担}
+\label{sec:ch00-test-type-spec-proof}
+
+\subsection{四つの道具を重ねて使う}
+
+テスト、型、仕様、証明は、同じ「正しさ」を別の角度から支える。
+
+\FigurePlaceholder{fig-ch00-correctness-layers.png}{0.90}{テスト、型、仕様、証明の役割分担。具体例の確認から、すべての場合に対する主張へ段階的に進む。}{fig:ch00-correctness-layers}
+
+\begin{definitionbox}
+本書では、次のように言葉を使う。
+\begin{itemize}
+\item テストは、具体的な入力例について期待結果を確認するもの。
+\item 型は、値や関数がどの形を持つかを表し、不正な組み合わせを事前に排除するもの。
+\item 仕様は、システムや関数が満たすべき性質を明文化したもの。
+\item 証明は、その仕様が定義された範囲のすべての場合で成り立つことを示すもの。
+\end{itemize}
+\end{definitionbox}
+
+テストは非常に重要である。外部システムとの接続、実 DB の挙動、UI、ブラウザ差異、パフォーマンス、運用上の例外は、Lean の小さなモデルだけでは扱いにくい。一方で、テストは有限個の入力例を選ぶ。入力空間が広いとき、「選んだ例では正しい」ことと「すべての入力で正しい」ことの間には大きな差がある。
+
+型は、テストよりも広い範囲で不正な形を排除する。たとえば、\texttt{Nat} を使えば負の数はそもそも表現できない。\texttt{Option User} を使えば、値が存在しない場合を型に現せる。しかし、型が付いているからといって、関数が業務仕様を満たすとは限らない。\texttt{Nat \to Nat} という型を持つ関数は無数にあり、その中には料金計算として正しいものも誤ったものもある。
+
+仕様は、期待する性質を言葉にする。自然言語の仕様書は人間に読みやすいが、曖昧さも持つ。「適切に処理する」「互換性を保つ」「一貫性を維持する」という表現だけでは、機械は検査できない。そこで、仕様の一部を型、関数、述語、定理へ分解する必要がある。
+
+証明は、仕様として切り出した性質が定義された範囲で常に成り立つことを示す。ただし、証明はモデルの内側に対してだけ効く。Lean で小さな \texttt{UserV1} と \texttt{UserV2} の round-trip を証明しても、本番のシリアライザ、DB 制約、文字コード、外部 API の全挙動まで自動的に保証されるわけではない。
+
+\subsection{どの道具を使うべきか}
+
+実務では、すべてを証明しようとするよりも、道具を選ぶほうが重要である。次の表は、判断の出発点になる。
+
+\begin{table}[htbp]
+\centering
+\caption{確認したい性質と向いている道具}
+\label{tab:ch00-tool-choice}
+\begin{tabular}{p{0.36\linewidth}p{0.18\linewidth}p{0.36\linewidth}}
+\toprule
+確認したいこと & 主な道具 & 理由 \\
+\midrule
+代表的なユースケースで期待結果になる & テスト & 具体的な入出力例を読みやすく残せる \\
+不正な形のデータを受け取らない & 型 & そもそも表現できない値を減らせる \\
+業務上守るべきルールを明文化する & 仕様 & 人間が合意すべき性質を言葉にできる \\
+すべての入力で式変形が意味を変えない & 証明 & 有限個の例ではなく一般的な主張を確認できる \\
+旧形式から新形式へ移して戻せる & 証明 & round-trip のような全称的性質を直接表せる \\
+外部 API が実際に応答する & テスト・監視 & モデル外の環境依存を観測する必要がある \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{intuitionbox}
+Lean で証明する価値が高いのは、「小さく切り出せる」「仕様として重要」「具体例では網羅しにくい」「変更時に壊れると困る」性質である。
+\end{intuitionbox}
+
+\section{圏論を合成と変換の言語として見る}
+\label{sec:ch00-category-language}
+
+\subsection{圏論の最初の読み替え}
+
+圏論という名前は抽象的に見える。しかし、本書では最初から高度な一般論に入らない。まずは、ソフトウェアで慣れた言葉へ読み替える。
+
+\begin{table}[htbp]
+\centering
+\caption{圏論の語彙とソフトウェアでの読み替え}
+\label{tab:ch00-category-translation}
+\begin{tabular}{p{0.20\linewidth}p{0.34\linewidth}p{0.36\linewidth}}
+\toprule
+圏論の語彙 & ソフトウェアでの読み替え & 例 \\
+\midrule
+対象 & 型、データ構造、状態空間 & \texttt{UserV1}, \texttt{Order}, \texttt{Account} \\
+射 & 関数、変換、処理 & \texttt{normalize}, \texttt{migrate}, \texttt{decode} \\
+合成 & パイプライン、処理連結 & \texttt{validate} の後に \texttt{persist} する \\
+恒等射 & 何もしない処理 & 変換層を通しても値を変えない \\
+同型 & 情報を失わない相互変換 & \texttt{migrate} と \texttt{rollback} が戻し合う \\
+関手 & 構造を保つ一括変換 & \texttt{List.map migrate} \\
+自然変換 & 一貫した adapter & \texttt{OldResponse A} から \texttt{NewResponse A} への変換 \\
+積 & 両方を持つ構造 & ペア、レコード、DTO \\
+余積 & どちらか一方の構造 & \texttt{Sum}, \texttt{Either}, \texttt{Result} \\
+モナド & 文脈つき処理の合成 & 失敗、状態、検証を含む処理 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{softwarebox}
+圏論を使うということは、すべてを数学っぽく言い換えることではない。実務上の変換を、合成できるか、戻せるか、構造を保存するか、一貫しているか、という観点で整理することである。
+\end{softwarebox}
+
+\subsection{変更を矢印として見る}
+
+本書では、処理や変更をしばしば矢印として描く。
+
+\[
+  \texttt{UserV1} \xrightarrow{\texttt{migrate}} \texttt{UserV2}
+\]
+
+この図は、単に「旧形式から新形式へ変換する」という意味だけではない。次の問いを引き出すための図である。
+
+\begin{itemize}
+\item 逆向きの変換はあるか。
+\item 変換して戻したら元に戻るか。
+\item 逆向きにも元に戻るか。
+\item すべての値で成り立つか、well-formed な値だけで成り立つか。
+\item リスト全体へ \texttt{map} しても件数や順序は保たれるか。
+\item adapter を通す前後で業務ロジックの結果は変わらないか。
+\end{itemize}
+
+\FigurePlaceholder{fig-ch00-change-map.png}{0.90}{変更を変換として見る図。旧形式、新形式、逆変換、保存したい性質を分けて示す。}{fig:ch00-change-map}
+
+このように見ると、圏論の語彙は実務レビューの語彙になる。「これは同型なのか」「これは片方向互換なのか」「この \texttt{map} は構造を保存しているのか」「この adapter は自然なのか」という問いは、抽象数学のためだけの問いではない。安全な変更を議論するための問いである。
+
+\section{Lean 4 を仕様を検査する小さな実験室として使う}
+\label{sec:ch00-lean-lab}
+
+\subsection{Lean で何をするのか}
+
+Lean 4 は、プログラムを書ける言語であり、命題と証明を書ける言語でもある。本書ではこの二面性を利用する。
+
+たとえば、\texttt{UserV1} と \texttt{UserV2} という二つの小さな構造体を Lean で定義する。次に、\texttt{migrate : UserV1 \to UserV2} と \texttt{rollback : UserV2 \to UserV1} を書く。さらに、\texttt{rollback (migrate u) = u} を定理として書く。Lean がその証明を受け入れれば、少なくともその小さなモデルでは、移行して戻すと元に戻ることが確認できる。
+
+\begin{leanbox}
+Lean で行うのは、「本番コード全体をそのまま証明する」ことではない。まずは、仕様の核を小さな型、関数、命題として表す。そのうえで、重要な性質がすべての入力に対して成り立つことを確認する。
+\end{leanbox}
+
+次のコードは、本章で読めれば十分である。細部の構文は第1章以降で説明する。
+
+\begin{lstlisting}[language=Lean,caption={第0章でのLeanコードの予告：移行とround-trip性質},label={lst:ch00-roundtrip-preview}]
+structure UserV1 where
+  id : Nat
+  name : String
+
+deriving instance Repr for UserV1
+
+structure UserV2 where
+  id : Nat
+  profileName : String
+
+deriving instance Repr for UserV2
+
+def migrate (u : UserV1) : UserV2 :=
+  { id := u.id, profileName := u.name }
+
+def rollback (v : UserV2) : UserV1 :=
+  { id := v.id, name := v.profileName }
+
+theorem rollback_migrate (u : UserV1) :
+    rollback (migrate u) = u := by
+  cases u
+  rfl
+
+theorem migrate_rollback (v : UserV2) :
+    migrate (rollback v) = v := by
+  cases v
+  rfl
+\end{lstlisting}
+
+この例で大切なのは、Lean の構文を覚えることではない。\texttt{migrate} と \texttt{rollback} があるだけでは不十分で、二つの round-trip 性質を確認して初めて「情報を失っていない」と言える、という点である。
+
+\subsection{証明モデルと本番実装の境界}
+
+Lean で証明した性質は強い。ただし、それは Lean で定義したモデルについての強さである。現実のシステムには、モデル化していない要素が残る。
+
+\begin{warningbox}
+Lean で \texttt{rollback (migrate u) = u} を証明しても、実装言語の JSON ライブラリ、DB の NULL 制約、文字コード、タイムゾーン、外部 API の仕様変更まで自動で保証されるわけではない。証明した範囲と、テストやレビューで確認すべき範囲を分けて書く必要がある。
+\end{warningbox}
+
+したがって、本書での基本方針は次のようになる。
+
+\begin{itemize}
+\item 実務の仕様から、証明したい小さな性質を切り出す。
+\item その性質を Lean の型、関数、述語、定理として表す。
+\item 証明が通る範囲を明記する。
+\item モデル外の要素は、通常のテスト、レビュー、監視と組み合わせる。
+\end{itemize}
+
+この方針は、Lean を過大評価しすぎないためにも重要である。Lean は非常に厳密な道具だが、何をモデル化したか以上のことは証明しない。
+
+\section{本書で扱うサンプル一覧}
+\label{sec:ch00-samples}
+
+本書では、抽象概念を先に積み上げるのではなく、ソフトウェア上の困りごとから出発する。次のサンプルは、章をまたいで繰り返し登場する。
+
+\FigurePlaceholder{fig-ch00-case-studies.png}{0.92}{本書で扱うケーススタディの対応関係。リファクタリング、マイグレーション、encoder/decoder、口座操作、API adapter、DB join を、保存したい性質と結びつける。}{fig:ch00-case-studies}
+
+\begin{table}[htbp]
+\centering
+\caption{本書で扱う主なサンプルと保存したい性質}
+\label{tab:ch00-samples}
+\begin{tabular}{p{0.28\linewidth}p{0.32\linewidth}p{0.30\linewidth}}
+\toprule
+サンプル & 保存したい性質 & 関連する主な章 \\
+\midrule
+関数パイプラインのリファクタリング & 入力に対する出力が変わらない & 第3章、第5章、第12章、第28章 \\
+\texttt{UserV1} から \texttt{UserV2} へのスキーマ移行 & round-trip によって情報が戻る & 第6章、第21章、第22章 \\
+JSON encoder / decoder & encode して decode すると元に戻る & 第6章、第21章 \\
+口座残高操作 & 操作後も不変条件が保たれる & 第4章、第18章、第19章 \\
+API adapter & adapter と業務ロジックの順序を入れ替えても結果が一致する & 第9章、第15章、第25章 \\
+DB join と整合性制約 & 移行後も必要な join 結果が保存される & 第17章、第26章 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{関数パイプラインのリファクタリング}
+
+リファクタリングでは、内部構造を変えても外から見た意味を変えないことが重要である。Lean では、この主張を等式として書く。
+
+\[
+  \texttt{newPipeline x = oldPipeline x}
+\]
+
+この形は単純に見えるが、非常に強い。任意の \texttt{x} について成り立つなら、特定のテストケースだけでなく、モデル化されたすべての入力で意味が保存される。
+
+\subsection{スキーマ移行と round-trip}
+
+\texttt{UserV1} から \texttt{UserV2} への移行では、形が変わっても情報が失われないかを確認する。完全に情報を保つなら、二つの式を証明したくなる。
+
+\[
+  \texttt{rollback (migrate u) = u}
+\]
+
+\[
+  \texttt{migrate (rollback v) = v}
+\]
+
+片方だけが成り立つ場合は、完全同型ではなく片方向互換かもしれない。条件付きでしか成り立たない場合は、well-formed 条件を仕様に入れる必要がある。
+
+\subsection{JSON encoder / decoder}
+
+encoder と decoder も、同型や round-trip の典型例である。ただし、実務では注意が必要である。空白、フィールド順、デフォルト値、省略フィールド、未知フィールド、数値表現などにより、「文字列として同じ」と「データとして同じ」は一致しないことがある。
+
+本書では、最初から現実の JSON パーサを完全にモデル化しない。まず、何を同じと見なすかを仕様として切り出す。データとして戻ればよいのか、表示文字列まで一致させたいのかを分ける。
+
+\subsection{口座残高操作}
+
+口座操作では、入金、出金、送金を扱う。中心になるのは不変条件である。たとえば「残高は負にならない」という条件を、操作後にも保ちたい。
+
+この性質は、実務ではテストしやすいように見える。だが、境界値や失敗ケースを含めてすべての入力を手作業で列挙するのは難しい。Lean では、モデル化した範囲で「すべての入力」に対する主張として扱える。
+
+\subsection{API adapter}
+
+API レスポンスの wrapper を変更するとき、旧形式から新形式へ変換する adapter を作ることがある。このとき、単に adapter が存在するだけでは不十分である。業務ロジックを適用してから adapter を通す場合と、adapter を通してから業務ロジックを適用する場合で結果が一致するなら、adapter は業務ロジックと干渉していないと言える。
+
+この性質は、後の章で自然性として扱う。自然性は抽象的な言葉だが、実務的には「どの型でも一貫して動く adapter の条件」と読める。
+
+\subsection{DB join と整合性制約}
+
+DB スキーマ変更では、移行前後でテーブルの形が変わる。保存したいのは、必ずしもテーブル構造そのものではない。業務上必要なクエリ結果が保存されること、特に join の意味が変わらないことが重要になる。
+
+このとき、単に二つのレコードをペアにするだけでは足りない。ユーザー ID が一致する、注文が存在する、参照整合性が満たされる、といった制約が必要である。後の章では、これを Pullback の直感と結びつける。
+
+\section{本書の読み方}
+\label{sec:ch00-reading-guide}
+
+\subsection{最短実務ルート}
+
+Lean 4 と圏論の両方が初めてで、まず実務に使える感覚を得たい場合は、次の順で読むとよい。
+
+\begin{enumerate}
+\item 第1章から第4章で、Lean 4 における型、関数、命題、不変条件を学ぶ。
+\item 第5章から第9章で、圏、同型、積・余積、関手、自然変換をソフトウェアの例で理解する。
+\item 第18章から第25章で、仕様証明、マイグレーション、API adapter のケーススタディを見る。
+\item 付録のチェックリストを使い、自分のプロジェクトの変更に当てはめる。
+\end{enumerate}
+
+\subsection{Lean 証明力を先に強めるルート}
+
+Lean で仕様を書けるようになりたい場合は、次の順が向いている。
+
+\begin{enumerate}
+\item 第1章から第4章で Lean の最小構文を学ぶ。
+\item 第12章から第15章で、等式、場合分け、帰納法、関数外延性を学ぶ。
+\item 第18章から第20章で、自然言語仕様を Lean の定理へ落とす流れを見る。
+\end{enumerate}
+
+このルートでは、圏論の抽象語彙は必要になったところで戻って読んでもよい。
+
+\subsection{圏論を丁寧に学ぶルート}
+
+圏論の概念そのものを丁寧に身につけたい場合は、第5章から第11章をゆっくり読む。対象、射、合成、同型、関手、自然変換、モノイド、モナドを、すべてソフトウェアの例と結びつけて理解する。その後、第16章、第17章、第31章以降へ進むと、より抽象的な概念への橋渡しがしやすい。
+
+\begin{warningbox}
+どのルートでも、最初から Mathlib の高度な \texttt{CategoryTheory} API に飛び込む必要はない。本書では、まず自作の小さな定義を使う。概念を掴んでから既存ライブラリへ進むほうが、Lean と圏論を同時に学ぶ負荷を減らせる。
+\end{warningbox}
+
+\section{この章でまだ扱わないこと}
+\label{sec:ch00-out-of-scope}
+
+本章は地図であり、詳細な証明の章ではない。したがって、次の内容は後続章に回す。
+
+\begin{itemize}
+\item Lean 4 の基本構文、\texttt{def}、\texttt{theorem}、\texttt{by}、\texttt{simp}、\texttt{rw} の使い方。
+\item 圏の公理、関手則、自然性の四角形の形式的な説明。
+\item 口座操作、料金計算、スキーマ移行、API adapter、DB join の具体的な証明。
+\item Mathlib の \texttt{CategoryTheory} ライブラリの使い方。
+\item 実システム全体を完全に検証する方法。
+\end{itemize}
+
+\begin{intuitionbox}
+この章で持ち帰るべき問いは一つである。「この変更で、何が保存されるべきなのか」。この問いに答えられるようになると、テストを書くべき箇所、型で表すべき制約、仕様として明文化すべき性質、Lean で証明すべき核が見え始める。
+\end{intuitionbox}
+
+\section{本章のまとめ}
+
+\begin{summarybox}
+\begin{itemize}
+\item ソフトウェアの正しさは、実行結果、型、仕様、不変条件、変更前後の意味保存など、複数の層に分かれる。
+\item テスト、型、仕様、証明は互いに補完する道具であり、どれか一つが他を完全に置き換えるわけではない。
+\item 圏論は、型やデータ構造を対象、関数や変換を射、パイプラインを合成として見るための言語である。
+\item Lean 4 は、仕様の核を小さなモデルとして表し、すべての場合に成り立つ性質を機械的に確認するための実験室である。
+\item 本書では、リファクタリング、スキーマ移行、encoder / decoder、口座操作、API adapter、DB join を通じて、「保存されるべき性質」を具体的に証明していく。
+\end{itemize}
+\end{summarybox}

@@ -1,0 +1,60 @@
+% Encoding / Japanese
+\usepackage{luatexja}
+\usepackage{luatexja-fontspec}
+
+% Math
+\usepackage{amsmath,amssymb,mathtools}
+
+% Layout
+\usepackage{geometry}
+\geometry{margin=25mm}
+\usepackage{setspace}
+\setstretch{1.12}
+\usepackage{enumitem}
+\setlist{nosep,leftmargin=2em}
+\usepackage{booktabs,longtable,array}
+
+% Figures
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,fit,shapes.geometric}
+
+% Boxes
+\usepackage[most]{tcolorbox}
+\tcbuselibrary{breakable,skins,listings}
+
+% Code
+\usepackage{listings}
+\lstdefinelanguage{Lean}{
+  morekeywords={def,theorem,example,by,exact,fun,match,with,where,structure,inductive,namespace,end,variable,variables,import,open,if,then,else,let,in,Type,Prop,True,False,And,Or,Not,Nat,Bool,String,List,Option,Some,None,Sum,Except},
+  sensitive=true,
+  morecomment=[l]{--},
+  morestring=[b]"
+}
+\lstdefinestyle{leanstyle}{
+  basicstyle=\ttfamily\small,
+  keywordstyle=\bfseries,
+  commentstyle=\itshape\color{gray!70!black},
+  stringstyle=\color{gray!70!black},
+  columns=fullflexible,
+  breaklines=true,
+  frame=single,
+  framerule=0.3pt,
+  rulecolor=\color{gray!40},
+  numbers=left,
+  numberstyle=\tiny\color{gray!70},
+  xleftmargin=1.5em,
+  framexleftmargin=1.2em,
+  captionpos=b
+}
+\lstset{style=leanstyle}
+
+% Hyperlinks
+\usepackage[hidelinks]{hyperref}
+\usepackage[nameinlink,noabbrev]{cleveref}
+
+% Japanese captions
+\renewcommand{\figurename}{図}
+\renewcommand{\tablename}{表}
+\renewcommand{\lstlistingname}{コード}
