@@ -1,0 +1,401 @@
+% !TEX root = ../main.tex
+\chapter{型・値・関数}
+\label{chap:types-functions}
+
+\begin{chapterabstract}
+本章では、Lean 4を「証明を書くためだけの特殊な道具」としてではなく、まず型と関数を扱う小さな言語として導入する。
+ソフトウェアエンジニアにとって、型、値、関数は日常的な概念である。
+しかしLeanでは、それらが後で仕様や証明を組み立てるための材料にもなる。
+本章では、\texttt{Nat}、\texttt{Bool}、\texttt{String}、\texttt{List}、\texttt{Option}を使い、\texttt{def}による関数定義、\texttt{\#eval}による実行確認、関数合成による小さなパイプラインを扱う。
+圏論の用語はまだ前面に出さないが、「型を対象、関数を変換、合成を処理の連結として見る」ための準備を行う。
+\end{chapterabstract}
+
+\begin{learninggoals}
+\item Lean 4における型と値を、実務上の「値に対する約束」として読める。
+\item \texttt{Nat}、\texttt{Bool}、\texttt{String}、\texttt{List}、\texttt{Option}の基本的な使い方を理解できる。
+\item \texttt{def}で小さな関数を定義し、\texttt{\#eval}で動作を確認できる。
+\item 関数をつないで、処理パイプラインとして読む感覚を持てる。
+\item 後続章で扱う仕様、証明、圏論の語彙へ進むための最小限のLeanコードを読める。
+\end{learninggoals}
+
+\section{この章を読む理由}
+
+ソフトウェア開発では、値の形が変わるたびに小さな約束が生まれる。
+ユーザーIDは数値なのか文字列なのか。
+検索結果は必ず存在するのか、それとも存在しないことがあるのか。
+APIから返る値は単体なのか、リストなのか。
+このような約束が曖昧なままだと、実装は動いても、仕様の読み方は不安定になる。
+
+Leanで最初に確認するのは、まさにこの約束である。
+Leanは、値に必ず型を与える。
+そして関数には、入力の型と出力の型を与える。
+そのため、Leanのコードを読むときは、「この処理は何を受け取り、何を返すのか」を常に意識することになる。
+
+\begin{intuitionbox}
+型は、値の置き場所というよりも、値についての約束である。
+たとえば\texttt{Nat}という型は「この値は自然数として扱う」という約束であり、\texttt{Option String}という型は「文字列があるかもしれないし、ないかもしれない」という約束である。
+この約束を明示することが、後で仕様を命題として書くための第一歩になる。
+\end{intuitionbox}
+
+\FigurePlaceholder{fig-ch01-types-values-functions.png}{0.90}{型・値・関数の関係}{fig:ch01-types-values-functions}
+
+\section{ソフトウェア上の問題：値の約束が曖昧になる}
+
+実務では、関数の名前やコメントから意図を読み取ることが多い。
+しかし、名前やコメントだけでは機械的には検査されない。
+たとえば、次のような状況を考える。
+
+\begin{itemize}
+\item ユーザー名が空文字列かもしれない。
+\item ユーザー検索は失敗するかもしれない。
+\item 正規化済みの文字列と未正規化の文字列が同じ型で混ざっている。
+\item 単一の値を返す処理と、リストを返す処理が混同される。
+\end{itemize}
+
+このような曖昧さは、テストで一部は発見できる。
+しかし、関数の境界で「何が入力として許されるか」「何が出力として返るか」を型に書いておくと、そもそも混ぜてはいけない値を混ぜにくくなる。
+Leanでは、この型の情報が非常に中心的な役割を持つ。
+
+\begin{softwarebox}
+本章で行うことは、本番アプリケーションをLeanで書き直すことではない。
+実務コードの中から、仕様の核になりそうな小さな変換を取り出し、型と関数として書いてみることである。
+たとえば「入力文字列を正規化する」「IDからユーザー名を探す」「見つからない場合を\texttt{Option}で表す」といった小さな処理が対象になる。
+\end{softwarebox}
+
+\section{型は「値の約束」と考える}
+
+Leanでは、すべての式に型がある。
+値だけでなく、関数にも型がある。
+たとえば\texttt{3}は\texttt{Nat}として扱える。
+\texttt{true}は\texttt{Bool}として扱える。
+\texttt{"alice"}は\texttt{String}として扱える。
+
+\begin{definitionbox}
+本章では、型を次のように読む。
+
+\begin{itemize}
+\item 型は、値がどのように使われるべきかを表す約束である。
+\item 値は、ある型に属する具体的なデータである。
+\item 関数は、ある型の値から別の型の値を作る規則である。
+\end{itemize}
+
+この読み方は、後の圏論で「型を対象、関数を射」と見る準備になる。
+ただし、本章ではまだ圏論の公理は扱わない。
+\end{definitionbox}
+
+Leanでは、\texttt{\#check}で式や名前の型を確認できる。
+\texttt{\#eval}で計算できる式を実行できる。
+最初の段階では、この二つを使って「Leanが何をどう読んでいるか」を観察するとよい。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+#check Nat
+#check Bool
+#check String
+#check List Nat
+#check Option String
+
+#eval (3 : Nat) + 4
+#eval true && false
+#eval "lean" ++ "4"
+#eval [1, 2, 3].length
+#eval (some "alice" : Option String)
+\end{minted}
+\caption{基本的な型と値を確認する}
+\label{lst:ch01-basic-types}
+\end{listing}
+
+\begin{leanbox}
+\texttt{\#check}は、Leanに「これはどの型か」と尋ねるためのコマンドである。
+\texttt{\#eval}は、計算できる式を実際に評価するためのコマンドである。
+この二つは証明ではない。
+しかし、Leanが式をどのように理解しているかを確認する入口として非常に重要である。
+\end{leanbox}
+
+\section{基本型を読む}
+
+本章で使う基本型を、実務上の意味と対応させておく。
+ここで大切なのは、数学的な完全さではなく、仕様を読むときの感覚である。
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Leanの型 & 直感 & 実務での読み替え \\
+\midrule
+\texttt{Nat} & 自然数 & 件数、ID、非負の金額モデル \\
+\texttt{Bool} & 真偽値 & 条件分岐、フラグ、判定結果 \\
+\texttt{String} & 文字列 & 名前、コード、メッセージ \\
+\texttt{List A} & \texttt{A}の列 & 複数レコード、バッチ、ログ列 \\
+\texttt{Option A} & \texttt{A}があるかもしれない & 検索失敗、nullable、任意入力 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{\texttt{Nat}}
+
+\texttt{Nat}は自然数の型である。
+最初のLean入門では、整数全体や小数をいきなり扱うよりも、\texttt{Nat}で小さな計算を作る方がよい。
+料金計算、残高、割引などの現実のモデルではもっと注意が必要だが、本章ではまず「非負の数」として読む。
+
+\subsection{\texttt{Bool}}
+
+\texttt{Bool}は\texttt{true}または\texttt{false}を持つ型である。
+分岐や判定に使える。
+ただし、次章で見るように、Leanでは\texttt{Bool}と\texttt{Prop}を区別する。
+本章ではまだ、計算される真偽値としての\texttt{Bool}だけを使う。
+
+\subsection{\texttt{String}}
+
+\texttt{String}は文字列の型である。
+ユーザー名、ラベル、メッセージなどを表すのに使える。
+実務の文字列正規化では空白除去、大文字小文字変換、Unicode正規化などが問題になる。
+本章のサンプルでは、Leanの基本構文に集中するため、文字列を連結する程度の単純な正規化に留める。
+
+\subsection{\texttt{List}}
+
+\texttt{List A}は、\texttt{A}型の値を並べたリストである。
+たとえば\texttt{List String}は文字列のリストであり、\texttt{List Nat}は自然数のリストである。
+後の関手の章では、\texttt{List.map}を「構造を保ったまま中身を変える操作」として読む。
+本章では、リストを複数件のデータとして扱う。
+
+\subsection{\texttt{Option}}
+
+\texttt{Option A}は、値がある場合とない場合を明示する型である。
+値がある場合は\texttt{some a}、値がない場合は\texttt{none}と書く。
+検索やパースのように失敗しうる処理では、\texttt{A}だけを返すよりも\texttt{Option A}を返す方が仕様が明確になる。
+
+\begin{warningbox}
+\texttt{Option A}は「雑にnullを許す型」ではない。
+むしろ、値が存在しない可能性を型に書いて、呼び出し側に処理を促すための型である。
+値がない場合をどう扱うかを、後で\texttt{match}によって明示する。
+\end{warningbox}
+
+\section{\texttt{def}で関数を定義する}
+
+Leanでは、\texttt{def}を使って名前付きの定義を書く。
+関数を定義するときは、引数の名前と型、返り値の型、本体を書く。
+これは通常のプログラミング言語に近い。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def addTax10 (price : Nat) : Nat :=
+  price + price / 10
+
+def isLarge (price : Nat) : Bool :=
+  decide (1000 <= price)
+
+def labelBySize (price : Nat) : String :=
+  if isLarge price then "large" else "small"
+
+#eval addTax10 1200
+#eval labelBySize 900
+#eval labelBySize (addTax10 1000)
+\end{minted}
+\caption{小さな数値関数と判定関数}
+\label{lst:ch01-def-functions}
+\end{listing}
+
+\texttt{addTax10}は\texttt{Nat}を受け取り、\texttt{Nat}を返す。
+\texttt{isLarge}は\texttt{Nat}を受け取り、\texttt{Bool}を返す。
+\texttt{labelBySize}は\texttt{Nat}を受け取り、\texttt{String}を返す。
+このように、関数の型を見るだけで、その関数がどのような変換を行うかの輪郭が分かる。
+
+\begin{leanbox}
+\texttt{def name (x : A) : B := ...}という形は、「\texttt{name}は\texttt{A}型の値\texttt{x}を受け取り、\texttt{B}型の値を返す」という宣言である。
+この\texttt{A -> B}という形は、後の圏論で射として読む対象になる。
+\end{leanbox}
+
+\section{\texttt{Option}で失敗しうる処理を表す}
+
+検索、パース、外部入力の検査などでは、結果が存在しないことがある。
+このとき、失敗を例外や暗黙の値で表すのではなく、返り値の型に書くと仕様が見えやすくなる。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def findUserName (userId : Nat) : Option String :=
+  if userId == 1 then some "alice"
+  else if userId == 2 then some "bob"
+  else none
+
+def greeting (name : String) : String :=
+  "hello, " ++ name
+
+def greetingById (userId : Nat) : String :=
+  match findUserName userId with
+  | some name => greeting name
+  | none => "unknown user"
+
+#eval greetingById 1
+#eval greetingById 3
+\end{minted}
+\caption{\texttt{Option}で検索失敗を表す}
+\label{lst:ch01-option-search}
+\end{listing}
+
+ここで重要なのは、\texttt{findUserName}の返り値が\texttt{String}ではなく\texttt{Option String}であることだ。
+この型は、呼び出し側に「ユーザー名が存在しない場合を扱う必要がある」と知らせている。
+\texttt{greetingById}では、\texttt{match}を使って\texttt{some}の場合と\texttt{none}の場合を分けている。
+
+\begin{softwarebox}
+この例は、実務でのnullableな値や検索失敗に対応する。
+重要なのは、失敗を隠さないことである。
+失敗がありうるなら、返り値の型に\texttt{Option}を入れる。
+そうすると、呼び出し側は成功ケースと失敗ケースを明示的に扱うことになる。
+\end{softwarebox}
+
+\section{関数合成をプログラムとして読む}
+
+関数は、一つだけで使うよりも、つないで使うことが多い。
+入力を正規化し、形式を整え、別の表現に変換し、出力する。
+この一連の流れはパイプラインである。
+
+Leanでは、合成そのものを小さな関数として書ける。
+\texttt{compose g f}は、まず\texttt{f}を実行し、その結果に\texttt{g}を実行する関数である。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def keepAsIs (s : String) : String :=
+  s
+
+def addUserPrefix (s : String) : String :=
+  "user:" ++ s
+
+def addExampleDomain (s : String) : String :=
+  s ++ "@example.com"
+
+def normalizeUserName (s : String) : String :=
+  addExampleDomain (addUserPrefix (keepAsIs s))
+
+def compose {A B C : Type} (g : B -> C) (f : A -> B) : A -> C :=
+  fun x => g (f x)
+
+def normalizeUserName' : String -> String :=
+  compose addExampleDomain (compose addUserPrefix keepAsIs)
+
+#eval normalizeUserName "alice"
+#eval normalizeUserName' "alice"
+\end{minted}
+\caption{関数合成としてパイプラインを読む}
+\label{lst:ch01-composition}
+\end{listing}
+
+この例では、\texttt{keepAsIs}、\texttt{addUserPrefix}、\texttt{addExampleDomain}を順に適用している。
+実務で本当に使う正規化なら、空白除去や文字種の統一なども必要になる。
+しかし本章では、関数をつなぐ構造だけを取り出している。
+
+\begin{intuitionbox}
+関数合成は、「前の処理の出力が、次の処理の入力になる」というだけの考え方である。
+圏論ではこれを射の合成と呼ぶ。
+本章では用語を急がず、まずパイプラインとして読む。
+第5章で、この合成を圏の言葉で見直す。
+\end{intuitionbox}
+
+\FigurePlaceholder{fig-ch01-pipeline.png}{0.90}{文字列正規化パイプライン}{fig:ch01-pipeline}
+
+\section{サンプル：文字列正規化パイプライン}
+
+最後に、空文字列を拒否し、受け取った文字列を小さなユーザー識別子へ変換する例を見る。
+ここでは失敗しうる処理として\texttt{Option}を使う。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def rejectEmpty (s : String) : Option String :=
+  if s == "" then none else some s
+
+def canonicalUserId (s : String) : Option String :=
+  match rejectEmpty s with
+  | none => none
+  | some name => some (normalizeUserName name)
+
+def normalizeAll (names : List String) : List (Option String) :=
+  names.map canonicalUserId
+
+#eval canonicalUserId ""
+#eval canonicalUserId "alice"
+#eval normalizeAll ["alice", "", "bob"]
+\end{minted}
+\caption{失敗しうる文字列正規化パイプライン}
+\label{lst:ch01-normalization-pipeline}
+\end{listing}
+
+このコードは、実務の入力正規化をかなり単純化したものである。
+それでも、次の三つの読み方ができる。
+
+\begin{itemize}
+\item \texttt{rejectEmpty : String -> Option String}は、失敗しうる検査である。
+\item \texttt{canonicalUserId : String -> Option String}は、検査と正規化をつないだ処理である。
+\item \texttt{normalizeAll : List String -> List (Option String)}は、複数入力に同じ処理を適用する関数である。
+\end{itemize}
+
+ここでまだ証明はしていない。
+しかし、関数の型を見るだけで、どこに失敗があり、どこでリスト全体へ処理を持ち上げているかが分かる。
+この感覚が、後の\texttt{List.map}、\texttt{Option.map}、関手、マイグレーション証明につながる。
+
+\section{本章でまだ扱わないこと}
+
+本章では、Leanを「仕様を書くための言語」として使い始めた。
+ただし、まだ扱わないことも多い。
+
+\begin{warningbox}
+本章では、\texttt{Prop}、\texttt{theorem}、\texttt{example}、\texttt{rfl}、\texttt{simp}、\texttt{rw}を本格的には扱わない。
+これらは次章以降で導入する。
+本章の目的は、証明を急ぐことではなく、Leanの型、値、関数、実行確認を読めるようになることである。
+\end{warningbox}
+
+また、本章の文字列正規化は実務用の完全な正規化ではない。
+Unicode正規化、大文字小文字変換、空白処理、ロケール依存の問題などは、本格的なアプリケーションでは重要である。
+ここでは、Leanで関数の形と合成を確認するために、意図的に小さなモデルにしている。
+
+\section{実務への読み替え}
+
+本章の内容は、すぐに次のような実務上の読み替えができる。
+
+\begin{itemize}
+\item 入力検査は、\texttt{String -> Option String}のように失敗可能性を型へ出せる。
+\item DTO変換は、\texttt{A -> B}という関数として小さく切り出せる。
+\item 複数件の変換は、\texttt{List A -> List B}や\texttt{List A -> List (Option B)}として表せる。
+\item パイプラインは、関数合成として分解して読める。
+\end{itemize}
+
+ここで大切なのは、Leanで実務システム全体を再実装することではない。
+実務コードの中にある「仕様上重要な変換」を小さな関数として切り出すことである。
+小さく切り出せると、次章以降で「その関数はどんな性質を満たすべきか」を命題として書けるようになる。
+
+\section{圏論への橋渡し}
+
+本章では、圏論という言葉をほとんど使わなかった。
+しかし、すでに圏論へ進むための材料は出そろっている。
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+本章で見たもの & 後の圏論での読み方 & ソフトウェアでの感覚 \\
+\midrule
+型 & 対象 & データの形、状態空間 \\
+関数 & 射 & 変換、処理、adapter \\
+関数合成 & 射の合成 & パイプライン、処理連結 \\
+何もしない関数 & 恒等射 & no-op、恒等変換 \\
+\texttt{List.map} & 関手の入口 & 構造を保った一括変換 \\
+\texttt{Option} & 文脈つきの値 & 失敗可能性、nullable \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+第5章では、これらを「合成できる処理の世界」として整理する。
+その前に、第2章から第4章で、命題、証明、等式、不変条件を扱う。
+型と関数だけでは、「この変換が正しい」とまでは言えない。
+正しさを言うには、関数が満たすべき性質を命題として書く必要がある。
+
+\section{本章のまとめ}
+
+\begin{summarybox}
+\begin{itemize}
+\item Leanでは、型を値に対する約束として読むとよい。
+\item \texttt{Nat}、\texttt{Bool}、\texttt{String}、\texttt{List}、\texttt{Option}は、仕様の小さな部品を表すための入口になる。
+\item \texttt{def}は、名前付きの値や関数を定義するための基本構文である。
+\item \texttt{\#check}は型を確認し、\texttt{\#eval}は計算できる式を評価する。
+\item \texttt{Option}を使うと、値が存在しない可能性を型に明示できる。
+\item 関数合成は、処理パイプラインとして読める。
+\item 本章の内容は、後の命題・証明・圏論の基礎になる。
+\end{itemize}
+\end{summarybox}

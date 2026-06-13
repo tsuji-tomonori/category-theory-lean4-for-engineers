@@ -20,6 +20,7 @@
 \clearpage
 \refstepcounter{part}
 \addcontentsline{toc}{part}{第\thepart 部\hspace{1em}地図：なぜ圏論と Lean を一緒に学ぶのか}
+\markboth{第\thepart 部\quad 地図：なぜ圏論と Lean を一緒に学ぶのか}{}
 \begin{center}
 \makebox[\textwidth][c]{\large\bfseries 第\thepart 部\quad 地図：なぜ圏論と Lean を一緒に学ぶのか}
 \end{center}
@@ -29,8 +30,21 @@
 \input{parts/part00_preface}
 
 \input{chapters/ch00_map}
-% \input{chapters/ch01_types_functions}
-% \input{chapters/ch02_props_specs}
+
+\clearpage
+\refstepcounter{part}
+\addcontentsline{toc}{part}{第\thepart 部\hspace{1em}Lean 4 最小入門：仕様を書くための言語として}
+\markboth{第\thepart 部\quad Lean 4 最小入門：仕様を書くための言語として}{}
+\begin{center}
+\makebox[\textwidth][c]{\large\bfseries 第\thepart 部\quad Lean 4 最小入門：仕様を書くための言語として}
+\end{center}
+\vspace{2em}
+\label{part:lean-minimum}
+
+\input{parts/part01_preface}
+
+\input{chapters/ch01_types_functions}
+\input{chapters/ch02_props_specs}
 % \input{chapters/ch03_equality_refactoring}
 % \input{chapters/ch04_invariants}
 % \input{chapters/ch05_category}
