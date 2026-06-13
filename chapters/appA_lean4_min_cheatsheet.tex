@@ -58,8 +58,8 @@ def double (n : Nat) : Nat :=
 def pipeline (n : Nat) : Nat :=
   double (inc n)
 
-#eval addFee 1000
-#eval pipeline 10
+#eval addFee 1000  -- => 1300
+#eval pipeline 10  -- => 22
 \end{minted}
 \caption{\texttt{def} による値と関数の定義}
 \label{lst:appA_def}
@@ -121,6 +121,9 @@ def sameIdAfterMigrate (u : UserV1) : Nat :=
 \caption{構造体のフィールドを使う}
 \label{lst:appA_field_access}
 \end{listing}
+
+このコードでは、\texttt{migrateUser u}で作った新形式の値から、\texttt{.userId}でフィールドを取り出している。
+構造体の変換を読むときは、どのフィールドがどの名前へ移ったかを、このような小さな関数で確認するとよい。
 
 \section{分岐を持つ型を書く}
 
@@ -359,6 +362,9 @@ theorem pair_spec (n : Nat) :
 \label{lst:appA_constructor_exact}
 \end{listing}
 
+このコードでは、ゴールが二つの条件の組になっているため、\texttt{constructor}で左右のゴールへ分けている。
+それぞれのゴールは定義どおりの等式なので、手元の証拠として\texttt{rfl}を\texttt{exact}に渡して閉じている。
+
 \subsection{\texttt{exact}：手元の証拠でゴールを閉じる}
 
 \begin{definitionbox}
@@ -375,6 +381,9 @@ theorem use_existing_evidence
 \caption{\texttt{exact} による証拠の提出}
 \label{lst:appA_exact}
 \end{listing}
+
+このコードでは、仮定\texttt{hp : P}がそのままゴール\texttt{P}の証拠になっている。
+\texttt{exact hp}は、新しい証明を作るのではなく、すでに手元にある証拠を提出する読み方をする。
 
 \subsection{\texttt{apply}：使いたい定理にゴールを合わせる}
 
@@ -394,6 +403,15 @@ theorem use_implication
 \caption{\texttt{apply} による含意の利用}
 \label{lst:appA_apply}
 \end{listing}
+
+\begin{syntaxbox}
+\texttt{apply} は、現在のゴールに合う定理や関数を適用して、必要な前提を新しいゴールとして出す構文である。
+\begin{itemize}
+\item \texttt{apply h} は「このゴールは \texttt{h} を使えば示せるはずなので、\texttt{h} に必要な材料をそろえる」と読む。
+\item \texttt{exact} が完成済みの証明を渡すのに対し、\texttt{apply} は証明の形を先に決めて残りを埋める。
+\end{itemize}
+\end{syntaxbox}
+
 
 \begin{leanbox}
 \texttt{apply h} は、「\texttt{Q} を示すには、\texttt{h : P -> Q} が使える。あとは \texttt{P} を示せばよい」とゴールを変える操作である。

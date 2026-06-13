@@ -63,8 +63,8 @@ Lean では、そのような主張を \texttt{Prop} として表し、\texttt{e
 def hasDiscount (member : Bool) : Bool :=
   member
 
-#eval hasDiscount true   -- true
-#eval hasDiscount false  -- false
+#eval hasDiscount true  -- => true
+#eval hasDiscount false  -- => false
 \end{minted}
 \caption{Bool は計算される真偽値である}
 \label{lst:ch02_bool}
@@ -95,6 +95,16 @@ theorem member_hasDiscount : DiscountSpec true := by
 \caption{Prop は証明したい主張である}
 \label{lst:ch02_prop}
 \end{listing}
+
+\begin{syntaxbox}
+\texttt{Prop} は、証明したい主張を置くための種類である。
+\begin{itemize}
+\item \texttt{Bool} は実行時に \texttt{true} または \texttt{false} へ計算される値である。
+\item \texttt{Prop} は「この条件が成り立つ」という命題を表す。
+\item Lean では、仕様を \texttt{Prop} として書き、その \texttt{Prop} を証明する。
+\end{itemize}
+\end{syntaxbox}
+
 
 コード\ref{lst:ch02_prop}の \texttt{DiscountSpec true} は、\texttt{hasDiscount true = true} という主張である。
 \texttt{theorem member\_hasDiscount} は、その主張が正しいことを Lean に示している。
@@ -168,6 +178,15 @@ example : TaxSpec 1000 100 1100 := by
 \label{lst:ch02_spec_as_prop}
 \end{listing}
 
+\begin{syntaxbox}
+\texttt{example} は、名前を付けない小さな定理である。
+\begin{itemize}
+\item \texttt{example : P := ...} は「命題 \texttt{P} の証明例を書く」と読む。
+\item 後から再利用する必要がある主張には \texttt{theorem} を使い、説明用の短い確認には \texttt{example} を使う。
+\end{itemize}
+\end{syntaxbox}
+
+
 コード\ref{lst:ch02_spec_as_prop}では、\texttt{addTax} が計算であり、\texttt{TaxSpec} が仕様である。
 \texttt{TaxSpec 1000 100 1100} は「1000 に 100 を足した税込金額は 1100 である」という命題になる。
 
@@ -227,6 +246,16 @@ theorem addTax_zero (price : Nat) :
 \caption{theorem による名前付き仕様}
 \label{lst:ch02_theorem}
 \end{listing}
+
+\begin{syntaxbox}
+\texttt{simp} は、Lean による自動的な単純化である。
+\begin{itemize}
+\item 定義を展開したり、明らかな等式を整理したりする。
+\item \texttt{simp [name]} のように角括弧へ名前を書くと、その定義や補題も使って単純化する。
+\item 何でも証明する魔法ではなく、「計算すれば明らか」な部分を片付ける道具である。
+\end{itemize}
+\end{syntaxbox}
+
 
 コード\ref{lst:ch02_theorem}は、「税額が 0 のとき、税込金額は元の価格と一致する」という名前付きの仕様である。
 \texttt{addTax\_zero} という名前が付いているため、後の章でこの事実を使って別の証明を組み立てることができる。
@@ -312,6 +341,16 @@ theorem member_shipping_zero (shipping : Nat) :
 \label{lst:ch02_simp}
 \end{listing}
 
+\begin{syntaxbox}
+\texttt{rw} は、等式を使って式を書き換える構文である。
+\begin{itemize}
+\item \texttt{rw [h]} は、等式 \texttt{h} を使って現在のゴールを書き換える。
+\item \texttt{rw [<- h]} のように左向き矢印を付けると、等式を逆向きに使う。
+\item リファクタリングの説明では「同じ意味の式へ置換する」操作として読む。
+\end{itemize}
+\end{syntaxbox}
+
+
 コード\ref{lst:ch02_simp}では、\texttt{isMember} が \texttt{true} の場合、\texttt{if true then 0 else shipping} は \texttt{0} に整理される。
 \texttt{simp [chargeShipping]} は、\texttt{chargeShipping} の定義を展開し、明らかな分岐を整理している。
 
@@ -383,6 +422,17 @@ theorem addTax_zero (price : Nat) :
 \caption{税込金額計算の小さな仕様証明}
 \label{lst:ch02_tax_spec}
 \end{listing}
+
+\begin{syntaxbox}
+全称量化と導入の構文が初めてまとまって出てくる。
+\begin{itemize}
+\item \texttt{∀ x, P x} は「任意の \texttt{x} について \texttt{P x} が成り立つ」と読む。
+\item \texttt{forall x, P x} も \texttt{∀ x, P x} と同じ全称量化である。本書では両方を見かける。
+\item \texttt{intro x} は、任意の値 \texttt{x} を仮に受け取って証明を始める操作である。
+\item 複数の値や仮定をまとめて受け取るときは \texttt{intros} が使われる。
+\end{itemize}
+\end{syntaxbox}
+
 
 コード\ref{lst:ch02_tax_spec}で重要なのは、\texttt{example} と \texttt{theorem} の違いである。
 \texttt{example} は、具体的な入力 \texttt{1000} と \texttt{100} についての確認である。

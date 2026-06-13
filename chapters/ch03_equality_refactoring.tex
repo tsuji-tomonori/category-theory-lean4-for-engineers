@@ -75,6 +75,16 @@ theorem rawCalc_eq_refactoredCalc (x : Nat) :
 \label{lst:ch03_raw_refactored}
 \end{listing}
 
+\begin{syntaxbox}
+\texttt{namespace} は、名前の衝突を避けるための囲いである。
+\begin{itemize}
+\item \texttt{namespace X} から \texttt{end X} までの定義は、\texttt{X} というまとまりの中に置かれる。
+\item 同じ \texttt{def name} が別章や別例にあっても、名前空間が違えば衝突しにくくなる。
+\item \texttt{unfold f} は、定義 \texttt{f} の中身を証明中で展開するタクティクである。
+\end{itemize}
+\end{syntaxbox}
+
+
 ここで証明しているのは、\texttt{rawCalc} と \texttt{refactoredCalc} が、任意の自然数 \texttt{x} について同じ結果を返す、ということだ。\texttt{unfold} は定義を展開し、\texttt{simp} は \texttt{x + 0} や \texttt{x * 1} のような明らかな整理を行う。
 
 \begin{leanbox}
@@ -151,6 +161,17 @@ theorem total_extracted_preserves
 \caption{一時変数の抽出を等式で確認する}
 \label{lst:ch03_calc_extract}
 \end{listing}
+
+\begin{syntaxbox}
+ここでは局所定義と計算列が出てくる。
+\begin{itemize}
+\item \texttt{let x := v} は、その場だけで使う名前 \texttt{x} に値 \texttt{v} を束縛する構文である。
+\item \texttt{calc} は、等式変形を一行ずつ並べて読むための構文である。
+\item \texttt{\_ = \_ := by ...} の各行が、前の式から次の式へ進む根拠になる。
+\item \texttt{rw [← h]} は、等式 \texttt{h} を通常と逆向きに使って書き換える。
+\end{itemize}
+\end{syntaxbox}
+
 
 この証明で使っているのは、足し算の結合律である。結合律とは、\texttt{(a + b) + c} と \texttt{a + (b + c)} が等しいという法則である。
 
@@ -268,8 +289,8 @@ theorem add_steps_commute (n : Nat) :
 def discount100 (n : Nat) : Nat :=
   n - 100
 
-#eval discount100 (addShipping 50)
-#eval addShipping (discount100 50)
+#eval discount100 (addShipping 50)  -- => 450
+#eval addShipping (discount100 50)  -- => 500
 \end{minted}
 \caption{順序を変えると結果が変わる例}
 \label{lst:ch03_order_not_safe}

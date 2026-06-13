@@ -182,6 +182,9 @@ theorem no_secret_as_public :
 \label{lst:ch16-no-downgrade}
 \end{listing}
 
+このコードでは、\texttt{secretLevel}が\texttt{publicLevel}以下であるという仮定を置くと矛盾することを示している。
+秘密情報を公開情報としてそのまま扱うのではなく、後で出てくる抽象化やマスキングを通す必要がある、という読み方をする。
+
 \section{仕様の強弱と単調性}
 
 前順序は、データの情報量だけでなく、仕様の強弱にも使える。たとえば、ある入力 \texttt{x} に対する述語 \texttt{p x} と \texttt{q x} を考える。\texttt{p} が成り立つなら必ず \texttt{q} も成り立つとき、\texttt{p} は \texttt{q} より強い仕様であると言える。
@@ -230,6 +233,9 @@ def MonotoneMini {A B : Type}
 \caption{単調性の最小定義}
 \label{lst:ch16-monotone}
 \end{listing}
+
+このコードでは、二つの順序\texttt{leA}と\texttt{leB}を受け取り、関数\texttt{f}が順序を保つことを\texttt{MonotoneMini}として定義している。
+入力側で比較できる二つの値が、変換後にも出力側の順序で比較できることを要求している。
 
 \section{抽象化と具体化}
 
@@ -380,6 +386,9 @@ theorem gc_counit {C A : Type} {cLe : C -> C -> Prop} {aLe : A -> A -> Prop}
 \caption{Galois接続から得られる一般的な性質}
 \label{lst:ch16-galois-consequences}
 \end{listing}
+
+このコードでは、Galois接続の法則から、具体値を抽象化して戻す方向と、抽象値を具体化して戻す方向の基本的な不等式を取り出している。
+\texttt{gc\_unit}と\texttt{gc\_counit}は、抽象化と具体化が互いにどの範囲を覆うかを確認するための一般形である。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}

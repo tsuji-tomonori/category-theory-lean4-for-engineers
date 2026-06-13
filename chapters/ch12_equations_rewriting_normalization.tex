@@ -81,8 +81,8 @@ def legacyPrice (base discount tax : Nat) : Nat :=
 def refactoredPrice (base discount tax : Nat) : Nat :=
   (base - discount) + tax
 
-#eval legacyPrice 1000 100 80
-#eval refactoredPrice 1000 100 80
+#eval legacyPrice 1000 100 80  -- => 980
+#eval refactoredPrice 1000 100 80  -- => 980
 
 theorem legacy_eq_refactored
     (base discount tax : Nat) :
@@ -291,7 +291,7 @@ theorem chargeLegacy_eq_chargeNormalized
 
 ここでの \texttt{unfold} は、抽象化を一時的にほどく操作である。普段は \texttt{subtotal} や \texttt{addFee} の名前を使う方が読みやすい。しかし、変更前後が本当に同じか比較するときには、必要な範囲だけ定義を展開する。
 
-\section{\texttt{rw}、\texttt{simp}、\texttt{calc} の使い分け}
+\section{\texorpdfstring{\texttt{rw}、\texttt{simp}、\texttt{calc} の使い分け}{rw、simp、calc の使い分け}}
 
 三つの道具は重なり合うが、目的は少し違う。
 

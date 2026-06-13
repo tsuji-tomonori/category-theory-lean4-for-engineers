@@ -194,6 +194,17 @@ end Chapter18
 \label{lst:ch18-postcondition}
 \end{listing}
 
+\begin{syntaxbox}
+\texttt{have} は、証明の途中で補助的な事実に名前を付ける構文である。
+\begin{itemize}
+\item \texttt{have h : P := ...} は「ここで \texttt{P} の証明を \texttt{h} として持っておく」と読む。
+\item 長い証明を、小さな中間結果に分けて読みやすくするために使う。
+\item 後続の行では \texttt{h} を根拠として利用できる。
+\item \texttt{¬ P} は「\texttt{P} ではない」という否定命題である。
+\end{itemize}
+\end{syntaxbox}
+
+
 \texttt{withdraw\_success\_when\_allowed} は、「事前条件が満たされているなら成功する」という定理である。\texttt{withdraw\_success\_post} は、「成功した結果は事後条件を満たす」という形に言い換えている。実務の仕様書では、この二つが一文にまとめて書かれることが多い。Lean では、分けて書くほうが読みやすい。
 
 \section{証明すべき性質を選ぶ}

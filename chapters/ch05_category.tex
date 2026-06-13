@@ -328,7 +328,7 @@ def pipelineLeft : String -> String :=
 def pipelineRight : String -> String :=
   comp renderGreeting (comp fetchUserName parseUserId)
 
-#eval pipelineLeft "abc"
+#eval pipelineLeft "abc"  -- => "hello, user-3"
 
 end Ch05Category
 \end{minted}

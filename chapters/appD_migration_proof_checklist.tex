@@ -133,6 +133,9 @@ deriving Repr
 \label{lst:appD_old_new_types}
 \end{listing}
 
+このコードでは、旧形式\texttt{UserV1}と新形式\texttt{UserV2}を、移行で比較したい最小の型として切り出している。
+\texttt{Profile}を別構造体にしている点が、新形式では名前が入れ子のフィールドへ移ったことを表している。
+
 \subsection{2. 変換関数は何か}
 
 変換関数は、移行仕様の中心である。
@@ -161,6 +164,9 @@ def migrateUser : UserV1 -> UserV2 :=
 \caption{正方向の移行関数}
 \label{lst:appD_migrate_function}
 \end{listing}
+
+このコードでは、旧形式の\texttt{id}をそのまま新形式の\texttt{id}へ移し、旧形式の\texttt{name}を\texttt{profile.displayName}へ入れている。
+移行関数を読むときは、保存される値と、構造だけが変わる値を分けて確認する。
 
 \subsection{3. 逆変換は存在するか}
 
@@ -192,6 +198,9 @@ def rollbackUser : UserV2 -> UserV1 :=
 \caption{逆方向の変換関数}
 \label{lst:appD_rollback_function}
 \end{listing}
+
+このコードでは、新形式の入れ子になった\texttt{profile.displayName}を、旧形式の\texttt{name}へ戻している。
+逆変換が書けることは出発点にすぎず、後続のround-trip証明で本当に元へ戻るかを確認する必要がある。
 
 \subsection{4. 情報損失はあるか}
 
@@ -252,6 +261,9 @@ theorem migrate_preserves_id (u : UserV1) :
 \label{lst:appD_wellformed}
 \end{listing}
 
+このコードでは、完全な値の一致ではなく、IDが一致するという観測可能な性質を\texttt{HasSameId}として切り出している。
+\texttt{migrate\_preserves\_id}は、移行後もその性質が保たれることを示す小さな証明である。
+
 \subsection{6. 証明したい性質はどの分類か}
 
 証明したい性質を分類すると、Leanで書く定理の形が決まる。
@@ -293,6 +305,9 @@ theorem migrate_after_rollback (u : UserV2) :
 \label{lst:appD_roundtrip}
 \end{listing}
 
+このコードでは、旧形式から新形式へ移して戻す経路と、新形式から旧形式へ戻して移す経路の両方を証明している。
+二つの定理がそろって初めて、この例を完全同型として扱える。
+
 \subsection{7. バッチ化したとき性質は保存されるか}
 
 1件の移行が安全でも、バッチ移行で必要な性質が自動的にすべて得られるわけではない。
@@ -324,6 +339,9 @@ theorem migrateUsers_length (xs : List UserV1) :
 \caption{リスト全体への移行}
 \label{lst:appD_batch_migration}
 \end{listing}
+
+このコードでは、1件の移行関数\texttt{migrateUser}を\texttt{List.map}でリスト全体へ広げている。
+\texttt{migrateUsers\_length}は、移行によって件数が変わらないことを確認するバッチ固有の性質である。
 
 \subsection{8. 業務ロジックとの順序を入れ替えてもよいか}
 
@@ -364,6 +382,9 @@ theorem migrate_rename_commutes (u : UserV1) (s : String) :
 \caption{移行と業務ロジックの可換性}
 \label{lst:appD_commute_business}
 \end{listing}
+
+このコードでは、名前変更を旧形式で行ってから移行する経路と、移行してから新形式で名前変更する経路を比較している。
+\texttt{migrate\_rename\_commutes}は、二つの順序が同じ結果になることを示す可換性の例である。
 
 \subsection{9. DBやクエリの結果は保存されるか}
 
@@ -468,6 +489,9 @@ theorem old_observation_preserved (x : Old) :
 \label{lst:appD_template_one_way}
 \end{listing}
 
+このテンプレートでは、完全な二方向同型ではなく、旧データを移した後に旧向けの観測が保たれることを主張している。
+\texttt{old\_roundtrip}が強すぎる場合は、\texttt{old\_observation\_preserved}のように保存したい観測へ弱める。
+
 \subsection{制約付き同型テンプレート}
 
 制約付き同型では、すべての値ではなく、well-formedな値に限って復元性を主張する。
@@ -490,6 +514,9 @@ theorem migrate_preserves_wellformed
 \label{lst:appD_template_wellformed}
 \end{listing}
 
+このテンプレートでは、任意の新形式ではなく、\texttt{WellFormedNew}を満たす値に限って復元性を主張している。
+同時に、旧形式から移行した値が新形式のwell-formed条件を満たすことも別の定理として切り出している。
+
 \subsection{仕様弱化テンプレート}
 
 完全復元が成り立たない場合は、業務上必要な観測だけを保存する。
@@ -511,6 +538,9 @@ theorem abstraction_is_safe (x : Old) :
 \caption{仕様弱化のテンプレート}
 \label{lst:appD_template_weakening}
 \end{listing}
+
+このテンプレートでは、元の値を完全に戻す代わりに、正規化後の観測や公開安全性だけを証明対象にしている。
+情報を落とす移行では、このように「保存する性質」を明示してからLeanの定理へ落とす。
 
 \section{レビュー用ワークシート}
 

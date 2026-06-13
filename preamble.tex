@@ -29,7 +29,8 @@
 
 % Code
 \usepackage{accsupp}
-\usepackage{minted}
+\usepackage[cachedir=_minted-main-lean-keywords]{minted}
+\renewcommand{\MintedPygmentize}{./tools/pygmentize_lean_keywords.py}
 \usemintedstyle{friendly}
 \newcommand{\copyablespace}{%
   \BeginAccSupp{method=escape,ActualText={\space}}%

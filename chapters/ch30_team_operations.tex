@@ -243,7 +243,7 @@ def userMigrationLink : ModelLink :=
     implementationFile := "src/user_migration.ts"
     assumption := "Lean model ignores database IO and timestamps" }
 
-#eval userMigrationLink.theoremName
+#eval userMigrationLink.theoremName  -- => "rollback_migrate_user_v1"
 
 end Chapter30
 \end{minted}

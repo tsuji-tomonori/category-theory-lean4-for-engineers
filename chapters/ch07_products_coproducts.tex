@@ -176,6 +176,17 @@ def showParseResult (r : ParseResult) : String :=
 \label{lst:ch07_sum_basic}
 \end{listing}
 
+\begin{syntaxbox}
+\texttt{inductive} は、値の形を列挙して新しい型を作る構文である。
+\begin{itemize}
+\item 各行の \texttt{| name ...} は、その型の値を作る方法を表す。
+\item \texttt{abbrev} は、既存の型や式に短い別名を付ける構文である。新しい構造を作るのではなく、長い名前を読みやすくするために使う。
+\item \texttt{Option} の \texttt{none} と \texttt{some} も、このような「候補の列挙」として理解できる。
+\item 後で \texttt{cases} や \texttt{match} を使うと、列挙した形ごとに場合分けできる。
+\end{itemize}
+\end{syntaxbox}
+
+
 \texttt{Sum} を受け取る関数は、原則として左右両方のケースを処理する必要がある。これが余積の大きな実務上の利点である。成功ケースだけを見てエラーケースを忘れる、という設計ミスを減らせる。
 
 \begin{softwarebox}

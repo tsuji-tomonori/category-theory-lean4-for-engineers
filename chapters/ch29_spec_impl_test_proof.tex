@@ -130,7 +130,7 @@ UIとブラウザ挙動 & レイアウト、アクセシビリティ、イベン
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
-#eval chargeImpl { base := 100, discount := 10, shipping := 5 }
+#eval chargeImpl { base := 100, discount := 10, shipping := 5 }  -- => 95
 
 example :
     chargeImpl { base := 100, discount := 10, shipping := 5 } = 95 := by

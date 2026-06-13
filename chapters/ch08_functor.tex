@@ -156,6 +156,16 @@ theorem list_map_id {A : Type} (xs : List A) :
 \label{lst:ch08_list_map_id}
 \end{listing}
 
+\begin{syntaxbox}
+\texttt{induction} は、再帰的なデータに対して帰納法を使う構文である。
+\begin{itemize}
+\item リストなら、空リストの場合と、先頭要素を追加した場合に分ける。
+\item 各ケースを証明できれば、任意の長さのリストについて証明できる。
+\item \texttt{case} の中では、その場合に使える仮定や名前が導入される。
+\end{itemize}
+\end{syntaxbox}
+
+
 \subsection{合成を保存する}
 
 次に、二段階の変換を考える。
@@ -286,6 +296,9 @@ theorem result_map_comp {E A B C : Type}
 \label{lst:ch08_result_map_laws}
 \end{listing}
 
+このコードでは、\texttt{Result.map}が成功値だけを変換し、エラー値には触れないことを前提に二つの関手則を確認している。
+\texttt{result\_map\_id}は何もしない関数を写しても全体が変わらないこと、\texttt{result\_map\_comp}は二段階の変換を一つの合成関数としてまとめても同じであることを表す。
+
 \section{一件のマイグレーションをコレクション全体へ持ち上げる}
 
 ここから、より実務に近い例へ移る。
@@ -326,6 +339,7 @@ def migrateUsers (users : List UserV1) : List UserV2 :=
   { id := 1, name := "Ada" },
   { id := 2, name := "Grace" }
 ]
+-- => [{ userId := 1, displayName := "Ada" }, { userId := 2, displayName := "Grace" }]
 \end{minted}
 \caption{一件の移行をリスト全体へ持ち上げる}
 \label{lst:ch08_user_migration_list}
@@ -375,6 +389,9 @@ theorem migrateUsers_preserves_ids (users : List UserV1) :
 \caption{リスト全体の移行で ID 列が保存される}
 \label{lst:ch08_preserve_ids}
 \end{listing}
+
+このコードでは、移行前のID列\texttt{idsV1}と移行後のID列\texttt{idsV2}を別々の関数として定義している。
+\texttt{migrateUsers\_preserves\_ids}は、リスト全体を移行してもIDの並びが保存されることを確認している。
 
 \FigurePlaceholder{fig-ch08-migration-lift.png}{0.92}{一件の移行を List.map でバッチ移行へ持ち上げる}{fig:ch08-migration-lift}
 

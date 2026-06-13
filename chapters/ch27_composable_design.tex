@@ -126,6 +126,15 @@ end Ch27
 \label{lst:ch27-composition-laws}
 \end{listing}
 
+\begin{syntaxbox}
+\texttt{variable} は、以後の定義や定理で共通して使う変数を先に宣言する構文である。
+\begin{itemize}
+\item \texttt{variable (A : Type)} と書くと、その範囲では \texttt{A} を型として使える。
+\item 同じ引数を何度も書かずに済むため、抽象的な設計や圏論的な記述でよく使う。
+\end{itemize}
+\end{syntaxbox}
+
+
 この証明が短いのは、Leanにとって関数合成の両辺が定義を展開すると同じ形になるからである。これは実務で「どんな処理でも順序を変えてよい」という意味ではない。ここで証明しているのは、純粋な関数合成の括弧の付け方だけである。副作用や失敗を含む処理については、\texttt{Option}、\texttt{Except}、状態などの文脈を型に出す必要がある。
 
 \section{サンプル：ETLパイプラインの段階的設計}
@@ -252,6 +261,9 @@ theorem left_id (s : Stage A B) (x : A) :
 \caption{処理ステージの合成}
 \label{lst:ch27-stage}
 \end{listing}
+
+このコードでは、処理ステージを\texttt{run : A -> B}を持つ構造体として包み、\texttt{andThen}で二つのステージを合成している。
+\texttt{left\_id}は、左側に何もしないステージを置いても実行結果が変わらないことを確認している。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}

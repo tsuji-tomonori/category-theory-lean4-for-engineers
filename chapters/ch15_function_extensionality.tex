@@ -248,7 +248,7 @@ def clientV2 (r : Request) : Response :=
   let calculated := r.amount + 1
   { status := 200, value := calculated }
 
-#eval clientV1 { userId := 1, amount := 100 }
+#eval clientV1 { userId := 1, amount := 100 }  -- => { status := 200, value := 101 }
 
 end Ch15
 \end{minted}

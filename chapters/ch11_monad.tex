@@ -102,8 +102,8 @@ def optBind {α β : Type} (x : Option α) (f : α → Option β) : Option β :=
   | none => none
   | some a => f a
 
-#eval optBind (some 10) (fun n => some (n + 1))
-#eval optBind (none : Option Nat) (fun n => some (n + 1))
+#eval optBind (some 10) (fun n => some (n + 1))  -- => some 11
+#eval optBind (none : Option Nat) (fun n => some (n + 1))  -- => none
 \end{minted}
 \caption{Option 用の pure と bind}
 \label{lst:ch11_option_bind}
@@ -254,9 +254,9 @@ def missingEmailDraft : UserDraft :=
 def missingAgeDraft : UserDraft :=
   { id := 9, emailOpt := some "b@example.com", ageOpt := none }
 
-#eval migrateUser goodDraft
-#eval migrateUser missingEmailDraft
-#eval migrateUser missingAgeDraft
+#eval migrateUser goodDraft  -- => some { id := 7, email := "a@example.com", age := 20 }
+#eval migrateUser missingEmailDraft  -- => none
+#eval migrateUser missingAgeDraft  -- => none
 \end{minted}
 \caption{成功例と失敗例}
 \label{lst:ch11_user_examples}
@@ -290,6 +290,16 @@ theorem migrateUser_refactor (u : UserDraft) :
 \caption{bind 版と do 記法版の同値性}
 \label{lst:ch11_do_notation}
 \end{listing}
+
+\begin{syntaxbox}
+\texttt{do} は、段階的な処理を上から順に書くための構文である。
+\begin{itemize}
+\item \texttt{x <- action} は、文脈つきの計算 \texttt{action} から中身を取り出して \texttt{x} として使う。
+\item \texttt{Option} の文脈では、途中で \texttt{none} になると後続の処理へ進まない。
+\item 本質的には \texttt{bind} を読みやすく書くための記法である。
+\end{itemize}
+\end{syntaxbox}
+
 
 証明では、\texttt{UserDraft} の中身を分解し、\texttt{emailOpt} と \texttt{ageOpt} の有無を場合分けしている。
 これは「すべての欠損パターンについて、\texttt{bind} 版と \texttt{do} 記法版が同じ結果になる」と確認している、という意味である。
@@ -353,6 +363,9 @@ theorem except_assoc {ε α β γ : Type}
 \label{lst:ch11_except_laws}
 \end{listing}
 
+このコードでは、\texttt{Except.error}なら後続処理へ進まず、\texttt{Except.ok}なら中身を取り出して関数\texttt{f}へ渡す\texttt{exceptBind}を定義している。
+\texttt{except\_right\_identity}と\texttt{except\_assoc}は、失敗理由を持つ計算でも\texttt{Option}と同じ形の合成法則が成り立つことを示している。
+
 \section{\texttt{State}：値と一緒に状態を渡す}
 
 状態つき計算も、同じ発想で扱える。
@@ -398,7 +411,7 @@ def tick : SimpleState Nat Nat :=
     stateBind (putState (n + 1)) (fun _ =>
       statePure n))
 
-#eval tick 10
+#eval tick 10  -- => (10, 11)
 \end{minted}
 \caption{カウンタ状態を更新する例}
 \label{lst:ch11_state_example}

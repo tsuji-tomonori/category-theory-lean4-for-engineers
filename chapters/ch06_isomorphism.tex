@@ -124,6 +124,14 @@ example : defaultUser (eraseToUnit sampleUser) ≠ sampleUser := by
 \label{lst:ch06_bidirectional_not_iso}
 \end{listing}
 
+\begin{syntaxbox}
+\texttt{≠} と \texttt{decide} は、具体例で「等しくない」ことを確認するときに出てくる。
+\begin{itemize}
+\item \texttt{a ≠ b} は「\texttt{a} と \texttt{b} は等しくない」という命題である。
+\item \texttt{decide} は、計算で真偽を判定できる命題を自動的に確認するタクティクである。
+\end{itemize}
+\end{syntaxbox}
+
 このコードでは、\texttt{eraseToUnit} と \texttt{defaultUser} という二つの向きの関数がある。しかし、\texttt{sampleUser} を \texttt{Unit} に変換して戻すと、デフォルトユーザーになってしまう。元のメールアドレスも表示名も戻らない。
 
 \FigurePlaceholder{fig-ch06-bidirectional-not-iso.png}{0.90}{双方向の関数は存在しても、情報が落ちると同型ではない}{fig:ch06-bidirectional-not-iso}
@@ -195,6 +203,16 @@ structure Iso (A : Type u) (B : Type v) where
 \caption{同型を表す小さな構造}
 \label{lst:ch06_iso_structure}
 \end{listing}
+
+\begin{syntaxbox}
+\texttt{universe} は、型の大きさを明示するための構文である。
+\begin{itemize}
+\item Lean では \texttt{Type} にも段階があり、大きさの違いを区別することがある。
+\item \texttt{universe u v} は、その段階名として \texttt{u} と \texttt{v} を使う宣言である。
+\item 最初は、汎用的な構造体を定義するための型レベルの変数だと読めばよい。
+\end{itemize}
+\end{syntaxbox}
+
 
 この定義は、圏論の一般論をすべて実装しているわけではない。しかし、本章の目的には十分である。同型とは「変換関数のペア」ではなく、「変換関数のペアと、そのペアが正しく戻るという証明」であることが明確になる。
 

@@ -178,8 +178,8 @@ def optionToList {A : Type} : Option A -> List A
   | none => []
   | some a => [a]
 
-#eval optionToList (some 10)
-#eval optionToList (none : Option Nat)
+#eval optionToList (some 10)  -- => [10]
+#eval optionToList (none : Option Nat)  -- => []
 
 theorem optionToList_naturality {A B : Type}
     (f : A -> B) (x : Option A) :
@@ -362,7 +362,7 @@ def adapt {A : Type} (r : OldResponse A) : NewResponse A :=
     status := statusOf r.payload,
     items := optionToList r.payload }
 
-#eval adapt ({ traceId := 7, payload := some 42 } : OldResponse Nat)
+#eval adapt ({ traceId := 7, payload := some 42 } : OldResponse Nat)  -- => { traceId := 7, status := Chapter09.Status.ok, items := [42] }
 \end{minted}
 \caption{レスポンスwrapperのmapとadapter}
 \label{lst:ch09_api_map_adapt}

@@ -82,9 +82,9 @@ section CategoryFields
 variable {C : Type u} [Category.{v} C]
 variable {W X Y Z : C}
 
-#check (X ⟶ Y)
-#check (𝟙 X)
-#check fun (f : X ⟶ Y) (g : Y ⟶ Z) => f ≫ g
+#check (X ⟶ Y)  -- => X ⟶ Y : Type v
+#check (𝟙 X)  -- => 𝟙 X : X ⟶ X
+#check fun (f : X ⟶ Y) (g : Y ⟶ Z) => f ≫ g  -- => fun f g => f ≫ g : (X ⟶ Y) → (Y ⟶ Z) → (X ⟶ Z)
 
 end CategoryFields
 end Chapter34
@@ -92,6 +92,16 @@ end Chapter34
 \caption{圏構造を仮定して射・恒等射・合成を見る}
 \label{lst:ch34_category_basic}
 \end{listing}
+
+\begin{syntaxbox}
+Mathlib の例では、ライブラリを読むための補助構文も出てくる。
+\begin{itemize}
+\item \texttt{open CategoryTheory} は、\texttt{CategoryTheory} 名前空間の中にある名前を短く参照できるようにする構文である。
+\item \texttt{open scoped CategoryTheory} は、そのスコープで用意された記法を有効にする。ここでは圏論用の射や合成の記法を読みやすくするために使う。
+\item \texttt{section CategoryFields} は、変数宣言や補助定理を一つの範囲にまとめる囲いである。\texttt{end CategoryFields} までがその範囲になる。
+\item \texttt{[Category.\{v\} C]} の角括弧は、圏構造を型クラス推論で自動的に探して使う、という指定である。
+\end{itemize}
+\end{syntaxbox}
 
 ここで \texttt{C} は対象の型である。\texttt{[Category.\{v\} C]} は、「\texttt{C} の値を対象とする圏構造を型クラス推論で使う」という意味で読む。射の型は \(X \longrightarrow Y\) と書く。恒等射は \(\mathbb{1}_X\)、合成は \texttt{f ≫ g} と書く。
 
@@ -150,9 +160,9 @@ variable {C : Type u1} [Category.{v1} C]
 variable {D : Type u2} [Category.{v2} D]
 variable (F : C ⥤ D)
 
-#check F.obj
-#check F.map
-#check fun {X Y : C} (f : X ⟶ Y) => F.map f
+#check F.obj  -- => F.obj : C → D
+#check F.map  -- => F.map : (?m.7 ⟶ ?m.8) → (F.obj ?m.7 ⟶ F.obj ?m.8)
+#check fun {X Y : C} (f : X ⟶ Y) => F.map f  -- => fun {X Y} f => F.map f : {X Y : C} → (X ⟶ Y) → (F.obj X ⟶ F.obj Y)
 
 end FunctorFields
 end Chapter34
@@ -214,8 +224,8 @@ variable {D : Type u2} [Category.{v2} D]
 variable {F G : C ⥤ D}
 variable (α : NatTrans F G)
 
-#check fun (X : C) => α.app X
-#check fun {X Y : C} (f : X ⟶ Y) => α.naturality f
+#check fun (X : C) => α.app X  -- => fun X => α.app X : (X : C) → F.obj X ⟶ G.obj X
+#check fun {X Y : C} (f : X ⟶ Y) => α.naturality f  -- => fun {X Y} f => α.naturality f : ∀ {X Y : C} (f : X ⟶ Y), F.map f ≫ α.app Y = α.app X ≫ G.map f
 
 end NatTransFields
 end Chapter34
@@ -274,10 +284,10 @@ variable {C : Type u} [Category.{v} C]
 variable {X Y : C}
 variable (e : X ≅ Y)
 
-#check e.hom
-#check e.inv
-#check e.hom_inv_id
-#check e.inv_hom_id
+#check e.hom  -- => e.hom : X ⟶ Y
+#check e.inv  -- => e.inv : Y ⟶ X
+#check e.hom_inv_id  -- => e.hom_inv_id : e.hom ≫ e.inv = 𝟙 X
+#check e.inv_hom_id  -- => e.inv_hom_id : e.inv ≫ e.hom = 𝟙 Y
 
 end IsoFields
 end Chapter34
@@ -285,6 +295,9 @@ end Chapter34
 \caption{Iso を round-trip として読む}
 \label{lst:ch34_iso_basic}
 \end{listing}
+
+このコードでは、Mathlibの同型\texttt{X ≅ Y}が、順方向の射\texttt{hom}、逆方向の射\texttt{inv}、二つのround-trip lawを持つことを\texttt{\#check}で確認している。
+自作の同型構造で見てきた「行って戻ると元に戻る」という読み方を、Mathlibのフィールド名へ対応させている。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}

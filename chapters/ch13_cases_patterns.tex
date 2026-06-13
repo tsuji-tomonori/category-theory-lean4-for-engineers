@@ -123,6 +123,17 @@ theorem optionCode_all (x : Option Nat) :
 \label{lst:ch13-basic-cases}
 \end{listing}
 
+\begin{syntaxbox}
+\texttt{∃} は存在量化を表す記号である。
+\begin{itemize}
+\item \texttt{∃ x, P x} は「ある \texttt{x} が存在して、\texttt{P x} が成り立つ」と読む。
+\item 証明するときは、実際の値と、その値で条件が成り立つ証明を渡す。
+\item \(\langle a, b\rangle\) は、存在証明や複数条件の証明をまとめて渡す匿名コンストラクタである。Lean のコードでは山括弧の記法で表示される。
+\item 全称量化 \texttt{∀} が「すべて」、存在量化 \texttt{∃} が「少なくとも一つ」に対応する。
+\end{itemize}
+\end{syntaxbox}
+
+
 この証明では、\texttt{Bool} の二通り、\texttt{Option Nat} の二通りを Lean に出させている。\texttt{Option Nat} の \texttt{some n} ケースでは、\texttt{n} は任意の自然数である。つまり、\texttt{some 0} だけを確認しているわけではない。
 
 \subsection{\texttt{Sum} の左右を分ける}

@@ -130,6 +130,15 @@ def addRateTax (rateNum rateDen amount : Money) : Money :=
 \label{lst:ch20-money-model}
 \end{listing}
 
+\begin{syntaxbox}
+\texttt{import} は、別ファイルやライブラリで定義された名前を使うための構文である。
+\begin{itemize}
+\item \texttt{import A.B.C} と書くと、\texttt{A.B.C} が提供する定義や定理をこのファイルで参照できる。
+\item Mathlib を使う章では、必要なライブラリを \texttt{import} してから定理を書く。
+\end{itemize}
+\end{syntaxbox}
+
+
 \texttt{applyDiscount} は、金額から割引額を引く。Lean の \texttt{Nat} では、\texttt{500 - 1000} は負の数ではなく \texttt{0} になる。これは「割引後の金額は 0 未満にならない」という仕様に近いが、現実のシステムでは、過大割引をエラーにする設計もある。
 
 \texttt{taxOnly} は、\texttt{amount * rateNum / rateDen} によって税額を計算する。たとえば \texttt{rateNum = 1}、\texttt{rateDen = 10} なら、10\% 相当の税額である。ただし、\texttt{/} は自然数の整数除算なので、端数は切り捨てられる。つまり、この関数にはすでに丸めが含まれている。
@@ -330,8 +339,8 @@ def taxPerLine2 (a b : Money) : Money :=
 def taxOnSum2 (a b : Money) : Money :=
   taxOnly 1 10 (a + b)
 
-#eval taxPerLine2 9 9
-#eval taxOnSum2 9 9
+#eval taxPerLine2 9 9  -- => 0
+#eval taxOnSum2 9 9  -- => 1
 
 theorem rounding_position_counterexample :
     taxPerLine2 9 9 ≠ taxOnSum2 9 9 := by
@@ -340,6 +349,9 @@ theorem rounding_position_counterexample :
 \caption{丸め位置によって税額が変わる反例}
 \label{lst:ch20-rounding-counterexample}
 \end{listing}
+
+このコードでは、明細ごとに税を計算する\texttt{taxPerLine2}と、合計してから税を計算する\texttt{taxOnSum2}を分けて定義している。
+\texttt{\#eval}の二行は具体例の結果を観察するためのもので、\texttt{rounding\_position\_counterexample}はその二つが等しくないことをLeanに確認させている。
 
 \FigurePlaceholder{fig-ch20-rounding-boundary.png}{0.90}{明細ごとの丸めと合計後の丸めでは結果が変わりうる}{fig:ch20-rounding-boundary}
 

@@ -112,6 +112,9 @@ theorem rollback_migrate (u : UserV1) :
 \label{lst:appc_roundtrip}
 \end{listing}
 
+このコードでは、旧形式から新形式へ移す\texttt{migrate}と、新形式から旧形式へ戻す\texttt{rollback}を定義している。
+\texttt{rollback\_migrate}は、旧形式の値については移して戻すと元に戻ることを示している。
+
 \subsection{実務での注意}
 
 \begin{warningbox}
@@ -151,6 +154,9 @@ theorem normalizeStatus_idempotent (s : Status) :
 \caption{正規化処理の冪等性}
 \label{lst:appc_idempotent}
 \end{listing}
+
+このコードでは、\texttt{deleted}を\texttt{archived}へ寄せ、それ以外の状態はそのままにする正規化を定義している。
+\texttt{normalizeStatus\_idempotent}は、一度正規化した値をもう一度正規化しても結果が変わらないことを示している。
 
 \subsection{実務での注意}
 
@@ -194,6 +200,9 @@ theorem SpecLe_trans {A : Type} (p q r : A -> Prop) :
 \caption{単調性を命題として切り出す}
 \label{lst:appc_monotone}
 \end{listing}
+
+このコードでは、二つの仕様\texttt{p}と\texttt{q}の強弱関係を\texttt{SpecLe p q}として表している。
+反射律と推移律を定理として持つことで、仕様を弱める・段階的に変換するという判断をLean上で追える。
 
 \subsection{実務での注意}
 
@@ -240,6 +249,9 @@ theorem migrateItems_preserves_length (xs : List ItemV1) :
 \caption{List.map による長さ保存}
 \label{lst:appc_preserves_length}
 \end{listing}
+
+このコードでは、1件の移行関数\texttt{migrateItem}を\texttt{List.map}で全要素へ適用している。
+\texttt{migrateItems\_preserves\_length}は、要素を変換してもリストの件数は変わらないことを帰納法で示している。
 
 \subsection{実務での注意}
 
@@ -288,6 +300,9 @@ theorem migrateRows_preserves_ids (rs : List Row) :
 \label{lst:appc_preserves_keys}
 \end{listing}
 
+このコードでは、1行の移行でIDが保存されることと、行リスト全体でもID列が保存されることを分けて示している。
+リスト全体の定理では、各要素のID保存を\texttt{List.map}越しに持ち上げて読める。
+
 \subsection{実務での注意}
 
 キー保存は、参照整合性や join 結果保存の前提になる。ただし、キーが保存されても値が正しく移行されたとは限らない。必要なら、キー保存と値保存を別々の定理として分ける。
@@ -326,6 +341,9 @@ theorem swapAccounts_preserves_total (p : AccountPair) :
 \caption{左右を入れ替えても総量が変わらない例}
 \label{lst:appc_preserves_total}
 \end{listing}
+
+このコードでは、左右二つの口座を入れ替える操作\texttt{swapAccounts}と、合計を取る関数\texttt{total}を分けて定義している。
+\texttt{swapAccounts\_preserves\_total}は、順序を入れ替えても合計額は変わらないことを加法の交換法則で示している。
 
 \subsection{実務での注意}
 
@@ -366,6 +384,9 @@ theorem map_roundtrip (xs : List SmallV1) :
 \label{lst:appc_commutes_with_map}
 \end{listing}
 
+このコードでは、1件の値について成り立つround-trip性質を、リスト全体の\texttt{map}に持ち上げている。
+証明はリストの形に沿った帰納法で進み、各要素では単体の変換規則を使っている。
+
 \subsection{実務での注意}
 
 \begin{softwarebox}
@@ -403,6 +424,9 @@ theorem optionToList_natural {A B : Type}
 \caption{Option から List への自然な adapter}
 \label{lst:appc_naturality}
 \end{listing}
+
+このコードでは、\texttt{Option}の値を0件または1件の\texttt{List}へ変換するadapterを定義している。
+\texttt{optionToList\_natural}は、先に\texttt{Option.map}で中身を変換してからListへ移す経路と、先にListへ移してから\texttt{List.map}する経路が一致することを示している。
 
 \subsection{実務での注意}
 
@@ -443,6 +467,9 @@ theorem deposit_preserves_nonnegative
 \caption{操作後も不変条件が保たれることを示す}
 \label{lst:appc_invariant_preservation}
 \end{listing}
+
+このコードでは、口座残高が非負であるという不変条件を\texttt{NonNegative}として切り出している。
+\texttt{deposit\_preserves\_nonnegative}は、入金操作の後もその不変条件が保たれることを示している。
 
 \subsection{実務での注意}
 
@@ -488,6 +515,9 @@ theorem ensureEven_post (n out : Nat) :
 \caption{成功した結果が事後条件を満たす例}
 \label{lst:appc_pre_post_condition}
 \end{listing}
+
+このコードでは、失敗しうる処理の成功結果だけに事後条件を課している。
+\texttt{withdrawChecked\_success\_post}は、\texttt{some newBalance}が返った場合、その値が期待する条件を満たすことを示す例である。
 
 \subsection{実務での注意}
 

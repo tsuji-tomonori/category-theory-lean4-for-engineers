@@ -76,7 +76,7 @@ structure Account where
 def sampleAccount : Account :=
   { ownerId := 1, balance := 100 }
 
-#eval sampleAccount.balance
+#eval sampleAccount.balance  -- => 100
 \end{minted}
 \caption{ユーザーと口座の小さなドメインモデル}
 \label{lst:ch04_structure_model}
@@ -154,6 +154,14 @@ theorem deposit_preserves_valid
 \caption{口座が有効であることを述語として表す}
 \label{lst:ch04_invariant_predicate}
 \end{listing}
+
+\begin{syntaxbox}
+ここでは、構造体の一部だけを更新する記法と、単純化結果を既存の証明へ合わせるタクティクが出てくる。
+\begin{itemize}
+\item \texttt{\{ a with balance := ... \}} は、構造体 \texttt{a} をもとにして \texttt{balance} フィールドだけを変えた新しい値を作る。
+\item \texttt{simpa [f, P] using h} は、定義 \texttt{f} や \texttt{P} を使ってゴールと証明 \texttt{h} を単純化し、形を合わせて閉じる。
+\end{itemize}
+\end{syntaxbox}
 
 \texttt{AccountValid} は、口座の所有者IDが正であることを表している。
 この例では、残高の非負性は \texttt{balance : Nat} という型で表している。
@@ -334,8 +342,8 @@ def withdrawOpt (a : Account) (amount : Nat) : Option Account :=
   else
     none
 
-#eval withdrawOpt sampleAccount 40
-#eval withdrawOpt sampleAccount 150
+#eval withdrawOpt sampleAccount 40  -- => some { ownerId := 1, balance := 60 }
+#eval withdrawOpt sampleAccount 150  -- => none
 \end{minted}
 \caption{失敗しうる出金処理}
 \label{lst:ch04_withdraw_option}
@@ -373,6 +381,17 @@ theorem withdrawChecked_post
 \caption{事前条件を受け取る出金処理と成功時仕様}
 \label{lst:ch04_withdraw_checked}
 \end{listing}
+
+\begin{syntaxbox}
+複数の部品から証明を組み立てる構文がここで出てくる。
+\begin{itemize}
+\item \texttt{constructor} は、ゴールが複数の条件から成るとき、それぞれの部分ゴールへ分解する。
+\item \texttt{exact h} は、現在のゴールにぴったり合う証明 \texttt{h} を渡して終了する。
+\item 行頭の \texttt{·} は、分解された複数のゴールを一つずつ書くための箇条書きのような区切りである。
+\item レコードや \texttt{And} のように「部品をそろえる」場面でよく使う。
+\end{itemize}
+\end{syntaxbox}
+
 
 この証明は二つの部分からなる。
 第一に、所有者IDが変わらないことを \texttt{rfl} で示す。

@@ -343,8 +343,8 @@ def sampleOld : DBV1 :=
     { orderId := 1002, userId := 20,
       userName := "Grace", amount := 250 } ]
 
-#eval queryOld sampleOld
-#eval queryNew (migrateDB sampleOld)
+#eval queryOld sampleOld  -- => [{ orderId := 1001, userName := "Ada", amount := 120 }, { orderId := 1002, userName := "Grace", amount := 250 }]
+#eval queryNew (migrateDB sampleOld)  -- => [{ orderId := 1001, userName := "Ada", amount := 120 }, { orderId := 1002, userName := "Grace", amount := 250 }]
 \end{minted}
 \caption{小さなサンプル DB の評価}
 \label{lst:ch26-sample-eval}

@@ -249,6 +249,29 @@ theorem migrate_rollback (v : UserV2) :
 \label{lst:ch00_roundtrip_preview}
 \end{listing}
 
+\begin{syntaxbox}
+このコードでは、以後の章で何度も使う Lean の基本形がまとめて出てくる。
+\begin{itemize}
+\item \texttt{structure} は、複数の項目を持つデータ型を定義する構文である。\texttt{where} の後に、その型が持つフィールドを書く。
+\item \texttt{def} は、値や関数に名前を付ける構文である。\texttt{name : Type := body} の形で「名前、型、本体」を並べる。
+\item \texttt{:} は「左の名前や式が、右の型を持つ」と読む。\texttt{:=} は「右側の本体で定義する」と読む。
+\item \texttt{\{ id := u.id, ... \}} は構造体の値を作るレコードリテラルである。左側にフィールド名、右側に入れる値を書く。
+\item \texttt{u.id} は、値 \texttt{u} から \texttt{id} フィールドを取り出すフィールドアクセスである。
+\item \texttt{theorem} は、証明したい命題に名前を付ける構文である。型注釈の右側に書かれている式が、証明すべき主張になる。
+\item \texttt{by} は、ここから証明手順を書くという合図である。小さな証明では、後続の \texttt{rfl} や \texttt{cases} だけで終わることがある。
+\item \texttt{cases} は、値の形ごとに場合分けする構文である。Boolean や Option など、候補が分かれている型で使う。
+\item \texttt{instance} は、ある型が特定の機能を持つことを Lean に登録する構文である。ここでは表示や比較などの自動利用に関わる。
+\item \texttt{deriving Repr} は、値を表示しやすくするための自動生成指定である。証明の本質ではなく、確認用の表示を助ける。
+\end{itemize}
+\end{syntaxbox}
+
+\begin{keywordbox}
+\texttt{rfl} は、この本で最初に出てくる証明用のキーワードである。名前は reflexivity（反射律）に由来し、「両辺を定義に従って計算すると同じ形になる」ことを Lean に確認させる。
+
+Lean の公式な分類では、\texttt{rfl}、\texttt{simp}、\texttt{rw} は主にタクティクとして使われ、\texttt{calc} は式変形を並べる構文キーワードである。本書では読者がコード中で見つけやすいように、これらをまとめて証明で使うキーワードとして扱い、Lean のコード表示でも同じ色で強調する。
+\end{keywordbox}
+
+
 この例で大切なのは、Lean の構文を覚えることではない。\texttt{migrate} と \texttt{rollback} があるだけでは不十分で、二つの round-trip 性質を確認して初めて「情報を失っていない」と言える、という点である。
 
 \subsection{証明モデルと本番実装の境界}
