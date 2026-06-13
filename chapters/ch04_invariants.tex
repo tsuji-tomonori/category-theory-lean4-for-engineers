@@ -226,6 +226,15 @@ def WithdrawPost
 \label{lst:ch04_pre_post}
 \end{listing}
 
+\begin{syntaxbox}
+比較式は、値の大小関係を命題として書く構文である。
+\begin{itemize}
+\item \texttt{amount <= a.balance} は、「\texttt{amount} は \texttt{a.balance} 以下である」という命題である。
+\item Lean のコードでは ASCII の \texttt{<=} と、数学記号の \texttt{≤} の両方が使われることがある。
+\item 比較式は \texttt{Bool} ではなく、証明対象になる \texttt{Prop} として使われる場面が多い。
+\end{itemize}
+\end{syntaxbox}
+
 \texttt{CanWithdraw a amount} は、\texttt{amount} が \texttt{a.balance} 以下であることを表す。
 これは、出金を成功させるための条件である。
 一方、\texttt{WithdrawPost oldAccount newAccount amount} は、出金が成功した後に期待する結果を表す。

@@ -132,6 +132,16 @@ theorem foldMap_singleton {A M : Type}
 \label{lst:ch31_tiny_monoid}
 \end{listing}
 
+\begin{syntaxbox}
+リストを再帰的に読むときは、空リストと「先頭 + 残り」に分ける。
+\begin{itemize}
+\item \texttt{| [] => ...} は、リストが空の場合の枝である。
+\item \texttt{| x :: xs => ...} は、先頭要素 \texttt{x} と残りのリスト \texttt{xs} に分解する枝である。
+\item \texttt{::} は cons と呼ばれ、値をリストの先頭に付ける構成子である。
+\item この形の定義では、各枝の右側にその場合の結果を書く。
+\end{itemize}
+\end{syntaxbox}
+
 コード \ref{lst:ch31_tiny_monoid} では、\texttt{TinyMonoid} に単位元、二項演算、三つの法則を持たせている。\texttt{foldMap} は、リストを \texttt{M} の値へ畳み込む。\texttt{foldMap\_singleton} は、1要素リストに対しては元の関数 \texttt{f} と同じ働きをすることを示している。
 
 \subsection{モノイド準同型としての拡張}
@@ -269,6 +279,15 @@ structure GaloisConnection {A B : Type}
 \caption{Galois 接続を命題として表す最小モデル}
 \label{lst:ch31_galois}
 \end{listing}
+
+\begin{syntaxbox}
+\texttt{<->} は、二つの命題が同値であることを表す構文である。
+\begin{itemize}
+\item \texttt{P <-> Q} は、「\texttt{P} ならば \texttt{Q}」と「\texttt{Q} ならば \texttt{P}」の両方を持つ命題である。
+\item 数学記号では \(\leftrightarrow\) と書かれ、「if and only if」や「同値」と読む。
+\item Galois 接続では、片方の順序関係で比較できることと、もう片方の順序関係で比較できることが同値になる。
+\end{itemize}
+\end{syntaxbox}
 
 \begin{intuitionbox}
 自由モノイドの随伴では、「構造を保つ写像」と「要素への写像」が対応した。Galois 接続では、「抽象側で比較できること」と「具体側で比較できること」が対応する。どちらも、片方の世界での問いを、もう片方の世界での問いへ翻訳している。
