@@ -36,7 +36,9 @@ theorem withdraw_success_when_allowed
     (a : Account) (amount : Nat)
     (h : CanWithdraw a amount) :
     withdraw a amount = some { balance := a.balance - amount } := by
-  simp [withdraw, CanWithdraw, h]
+  have hle : amount <= a.balance := by
+    simpa [CanWithdraw] using h
+  simp [withdraw, hle]
 
 -- 成功時の戻り値は、PostSuccess を満たす。
 theorem withdraw_success_post
@@ -52,7 +54,9 @@ theorem withdraw_failure_when_not_allowed
     (a : Account) (amount : Nat)
     (h : Not (CanWithdraw a amount)) :
     withdraw a amount = none := by
-  simp [withdraw, CanWithdraw, h]
+  have hnot : ¬ amount <= a.balance := by
+    simpa [CanWithdraw] using h
+  simp [withdraw, hnot]
 
 -- amount が 0 なら、どの口座でも出金後に同じ口座が返る。
 theorem withdraw_zero (a : Account) :
@@ -71,13 +75,17 @@ theorem withdrawOrKeep_failure_keeps
     (a : Account) (amount : Nat)
     (h : Not (CanWithdraw a amount)) :
     withdrawOrKeep a amount = a := by
-  simp [withdrawOrKeep, withdraw, CanWithdraw, h]
+  have hnot : ¬ amount <= a.balance := by
+    simpa [CanWithdraw] using h
+  simp [withdrawOrKeep, withdraw, hnot]
 
 -- 成功条件では、残高が amount だけ減る。
 theorem withdrawOrKeep_success_balance
     (a : Account) (amount : Nat)
     (h : CanWithdraw a amount) :
     (withdrawOrKeep a amount).balance = a.balance - amount := by
-  simp [withdrawOrKeep, withdraw, CanWithdraw, h]
+  have hle : amount <= a.balance := by
+    simpa [CanWithdraw] using h
+  simp [withdrawOrKeep, withdraw, hle]
 
 end Chapter18
