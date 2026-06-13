@@ -190,6 +190,15 @@ theorem loadCode_normalized (n : Nat) :
 \label{lst:ch12-simp}
 \end{listing}
 
+\begin{syntaxbox}
+\texttt{@[simp]} は、直後の定理や定義に属性を付ける構文である。
+\begin{itemize}
+\item \texttt{@[...]} は属性指定で、Lean に追加の扱い方を伝える。
+\item \texttt{@[simp] theorem ...} は、その定理を \texttt{simp} が使う単純化規則として登録する。
+\item 属性は証明そのものではなく、「この証明済みの事実をどの自動化で使うか」という設定である。
+\end{itemize}
+\end{syntaxbox}
+
 \texttt{@[simp]} は、この補題を \texttt{simp} の整理規則として使ってよい、という印である。上の例では、\texttt{normalizeCode} が何もしない処理であることを一度証明しておく。その後、二重に呼ばれていても \texttt{simp} がまとめて取り除く。
 
 \begin{warningbox}

@@ -320,6 +320,16 @@ theorem transfer_result_preserves_total
 \label{lst:ch19-transfer-result-total}
 \end{listing}
 
+\begin{syntaxbox}
+\texttt{by\_cases} は、命題が成り立つ場合と成り立たない場合に分ける構文である。
+\begin{itemize}
+\item \texttt{by\_cases h : P} は、\texttt{P} が真の場合と偽の場合の二つのゴールに分ける。
+\item 真の場合の枝では、\texttt{h : P} が仮定として使える。
+\item 偽の場合の枝では、\texttt{h : ¬ P} が仮定として使える。
+\item 本文の例では、\texttt{amount <= src.balance} が成り立つかどうかで、送金成功側と失敗側を分けている。
+\end{itemize}
+\end{syntaxbox}
+
 この定理では、\texttt{by\_cases} によって、出金可能な場合と不可能な場合に分けている。出金可能な場合は、成功結果の形から総残高保存を使う。出金不可能な場合は、\texttt{transfer?} が \texttt{some} を返したという仮定と矛盾するため、そのケースは消える。
 
 \begin{leanbox}

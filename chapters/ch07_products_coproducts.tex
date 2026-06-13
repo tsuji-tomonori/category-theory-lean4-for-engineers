@@ -108,6 +108,16 @@ theorem prod_eta {A B : Type} (p : A × B) : (p.1, p.2) = p := by
 \label{lst:ch07_prod_basic}
 \end{listing}
 
+\begin{syntaxbox}
+積の値を扱うときの基本構文は、ペアの作成と射影である。
+\begin{itemize}
+\item \texttt{A × B} は \texttt{Prod A B} の記法で、「\texttt{A} の値と \texttt{B} の値を一つずつ持つ型」と読む。
+\item \texttt{(a, b)} はペアを作る構文である。
+\item \texttt{p.1} はペア \texttt{p} の第一成分、\texttt{p.2} は第二成分を取り出す。
+\item \texttt{(p.1, p.2)} は、取り出した二つの成分からペアを作り直している。
+\end{itemize}
+\end{syntaxbox}
+
 ここでの定理 \texttt{prod\_eta} は、積が余計な情報を持っていないことを表している。ペアから第一成分と第二成分を取り出し、それをもう一度ペアにすれば、元のペアに戻る。
 
 \subsection{レコードは名前付きの積}
