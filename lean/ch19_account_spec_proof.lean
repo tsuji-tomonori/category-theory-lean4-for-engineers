@@ -102,7 +102,8 @@ theorem transfer_result_preserves_total
   unfold transfer? at hTransfer
   by_cases h : amount <= src.balance
   · simp [withdraw?, h, deposit] at hTransfer
-    cases hTransfer
+    injection hTransfer with hPair
+    cases hPair
     exact transfer_success_preserves_total src to amount h
   · simp [withdraw?, h] at hTransfer
 
