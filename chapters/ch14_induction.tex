@@ -273,7 +273,7 @@ theorem append_length {α : Type} :
   | nil =>
       simp
   | cons x xs ih =>
-      simp [List.append, ih]
+      simp [ih, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm]
 \end{minted}
 \caption{append 後の長さは長さの和になる}
 \label{lst:induction-append-length}

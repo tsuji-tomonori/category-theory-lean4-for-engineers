@@ -46,7 +46,7 @@ theorem append_length {α : Type} :
   | nil =>
       simp
   | cons x xs ih =>
-      simp [List.append, ih]
+      simp [ih, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm]
 
 theorem migrateUsers_preserves_ids (xs : List UserV1) :
     idsV2 (migrateUsers xs) = idsV1 xs := by
