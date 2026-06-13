@@ -1,5 +1,6 @@
 # Workspace metadata
 .workspace/
+.lake/
 
 # Built documents
 *.pdf
