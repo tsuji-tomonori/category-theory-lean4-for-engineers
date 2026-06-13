@@ -1,0 +1,112 @@
+/-
+Chapter 27: 合成可能な設計を作る
+Lean examples for the chapter.
+-/
+
+namespace Ch27
+
+variable {A B C D : Type}
+
+theorem left_id_point (f : A -> B) (x : A) :
+    (Function.comp id f) x = f x := by
+  rfl
+
+theorem right_id_point (f : A -> B) (x : A) :
+    (Function.comp f id) x = f x := by
+  rfl
+
+theorem assoc_point
+    (f : A -> B) (g : B -> C) (h : C -> D) (x : A) :
+    (Function.comp h (Function.comp g f)) x =
+      (Function.comp (Function.comp h g) f) x := by
+  rfl
+
+end Ch27
+
+namespace Ch27ETL
+
+structure RawRow where
+  userId : Nat
+  amountText : Nat
+  deriving Repr, DecidableEq
+
+structure ValidRow where
+  userId : Nat
+  amount : Nat
+  deriving Repr, DecidableEq
+
+structure EnrichedRow where
+  userId : Nat
+  amount : Nat
+  fee : Nat
+  deriving Repr, DecidableEq
+
+structure ReportRow where
+  userId : Nat
+  total : Nat
+  deriving Repr, DecidableEq
+
+def sanitize (r : RawRow) : ValidRow :=
+  { userId := r.userId, amount := r.amountText }
+
+def enrich (r : ValidRow) : EnrichedRow :=
+  { userId := r.userId, amount := r.amount, fee := 10 }
+
+def summarize (r : EnrichedRow) : ReportRow :=
+  { userId := r.userId, total := r.amount + r.fee }
+
+def pipeline : RawRow -> ReportRow :=
+  Function.comp summarize (Function.comp enrich sanitize)
+
+def pipelineExpanded (r : RawRow) : ReportRow :=
+  summarize (enrich (sanitize r))
+
+theorem pipeline_same_as_expanded (r : RawRow) :
+    pipeline r = pipelineExpanded r := by
+  rfl
+
+def pipelineWithIdentity (r : RawRow) : ReportRow :=
+  summarize ((fun x => x) (enrich (sanitize r)))
+
+theorem identity_step_removed (r : RawRow) :
+    pipelineWithIdentity r = pipeline r := by
+  rfl
+
+theorem pipeline_assoc (r : RawRow) :
+    (Function.comp summarize (Function.comp enrich sanitize)) r =
+      (Function.comp (Function.comp summarize enrich) sanitize) r := by
+  rfl
+
+end Ch27ETL
+
+namespace Ch27Stage
+
+structure Stage (A B : Type) where
+  run : A -> B
+
+namespace Stage
+
+variable {A B C D : Type}
+
+def id (A : Type) : Stage A A :=
+  { run := fun x => x }
+
+def then (s1 : Stage A B) (s2 : Stage B C) : Stage A C :=
+  { run := Function.comp s2.run s1.run }
+
+theorem left_id (s : Stage A B) (x : A) :
+    ((id A).then s).run x = s.run x := by
+  rfl
+
+theorem right_id (s : Stage A B) (x : A) :
+    (s.then (id B)).run x = s.run x := by
+  rfl
+
+theorem assoc
+    (s1 : Stage A B) (s2 : Stage B C) (s3 : Stage C D) (x : A) :
+    ((s1.then s2).then s3).run x =
+      (s1.then (s2.then s3)).run x := by
+  rfl
+
+end Stage
+end Ch27Stage

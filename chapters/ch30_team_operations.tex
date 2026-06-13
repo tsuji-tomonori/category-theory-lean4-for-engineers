@@ -1,0 +1,323 @@
+% !TEX root = ../main.tex
+\chapter{チーム開発で使うための運用}
+\label{chap:team-operations}
+
+\begin{chapterabstract}
+本章では、Lean 4 で書いた仕様モデルと証明を、個人の学習成果ではなく、チーム開発のレビュー・CI・変更管理に組み込む方法を扱う。Lean ファイルの置き場所、仕様レビューでの使い方、\texttt{lake build} による継続的検査、壊れた証明の読み方、実装コードと検証モデルの同期、そして「証明済み」と言ってよい範囲の明記を順に整理する。
+
+本章の主張は単純である。証明は、チームにとって新しい種類のテストではなく、仕様変更に反応するセンサーである。センサーとして使うには、どの定理がどの仕様項目に対応しているか、どのファイルを誰がレビューするか、証明モデルが実装のどこまでを表しているかを、運用として決めておく必要がある。
+\end{chapterabstract}
+
+\begin{learninggoals}
+\item Lean ファイルをリポジトリ内のどこに置くかを判断できる。
+\item 証明を仕様レビューとコードレビューの補助資料として使える。
+\item CI で \texttt{lake build} を回し、壊れた証明を変更影響のシグナルとして読める。
+\item 実装コードと検証モデルの同期問題を説明し、同期の粒度を決められる。
+\item 「証明済み」と主張できる範囲と、証明していない範囲を明文化できる。
+\end{learninggoals}
+
+\section{この章を読む理由}
+
+ここまでの章では、仕様の核を Lean で小さく表す方法を学んできた。たとえば、データ移行の round-trip、API adapter の自然性、リスト移行の件数保存、状態更新の不変条件保存などである。これらは一人で試すだけでも有用だが、実務で本当に価値を持つのは、チームの変更プロセスに入ったときである。
+
+個人の手元では、Lean ファイルは「動くノート」でもよい。しかしチーム開発では、それだけでは足りない。誰が読めるのか。どの仕様に対応しているのか。証明が壊れたとき、実装が間違っているのか、仕様が変わったのか、モデルだけが古くなったのか。これらを決めずに導入すると、Lean は品質保証の道具ではなく、読めない追加ファイルになってしまう。
+
+\begin{intuitionbox}
+Lean の証明をチームで使うとは、「正しいことを一度証明して終わり」ではない。変更のたびに、以前の約束がまだ保たれているかを機械に確認してもらう運用を作ることである。
+\end{intuitionbox}
+
+\FigurePlaceholder{fig-ch30-team-loop.png}{0.92}{仕様、Lean 証明、レビュー、CI の運用ループ}{fig:ch30-team-loop}
+
+図~\ref{fig:ch30-team-loop} は、本章で扱う流れを表す。仕様から証明したい性質を切り出し、Lean ファイルに定理として置く。レビューでは、自然言語の仕様と Lean の定理名を対応させる。CI では \texttt{lake build} を回す。証明が壊れたら、変更の意味を確認する。これを小さく回すのが、Lean をチーム開発に入れる基本形である。
+
+\section{Lean ファイルの置き場所}
+
+最初に決めるべきことは、Lean ファイルをどこに置くかである。置き場所には二つの考え方がある。一つは、本番コードの近くに置く方法である。もう一つは、\texttt{verification/} や \texttt{spec/} のような専用ディレクトリに分ける方法である。
+
+本書では、導入初期には専用ディレクトリに分ける方法を勧める。理由は、Lean のモデルが本番コードそのものではなく、証明しやすいように抽出された検証モデルだからである。最初から本番コードと同じ階層に置くと、「これは実装なのか、仕様モデルなのか」が曖昧になりやすい。
+
+\begin{softwarebox}
+実装コードが \texttt{src/} にあるなら、Lean の検証モデルは \texttt{verification/} や \texttt{lean/} に置くとよい。さらに、対象ドメインごとに \texttt{UserMigration.lean}、\texttt{Pricing.lean}、\texttt{ApiAdapter.lean} のように分ける。
+\end{softwarebox}
+
+例として、次のような構成を考える。
+
+\begin{listing}[htbp]
+\begin{minted}{text}
+project-root/
+  src/
+    user_migration.ts
+    pricing.ts
+    api_adapter.ts
+  docs/
+    specs/
+      user_migration.md
+      pricing.md
+  verification/
+    lakefile.lean
+    lean-toolchain
+    Verification/
+      UserMigration.lean
+      Pricing.lean
+      ApiAdapter.lean
+      SpecIndex.lean
+\end{minted}
+\caption{小さく始める Lean 検証ディレクトリの例}
+\label{lst:ch30-directory-layout}
+\end{listing}
+
+この構成では、\texttt{src/} が本番コード、\texttt{docs/specs/} が自然言語仕様、\texttt{verification/} が Lean プロジェクトである。重要なのは、Lean ファイルを孤立させないことである。\texttt{SpecIndex.lean} のような索引ファイルを作り、仕様項目と theorem 名を対応させると、レビューで追いやすくなる。
+
+\begin{definitionbox}
+本章では、\textbf{検証モデル}という言葉を次の意味で使う。検証モデルとは、本番コードの全機能を再実装したものではなく、証明したい性質に関係する型・関数・述語だけを抽出した Lean 上の小さなモデルである。
+\end{definitionbox}
+
+検証モデルは、本番コードより小さくてよい。むしろ、小さくなければレビューできない。チームに必要なのは、すべてを Lean に移すことではなく、「この仕様項目に対して、この小さなモデルではこの性質が証明されている」と追跡できる状態である。
+
+\section{証明を仕様レビューに使う}
+
+Lean の定理は、仕様レビューで使うと効果が出やすい。コードレビューだけに置くと、実装差分の一部として埋もれてしまうからである。仕様レビューでは、自然言語の主張を見ながら、それが Lean ではどの theorem に対応するかを確認する。
+
+たとえば、仕様書に次のような文があるとする。
+
+\begin{quote}
+ユーザー移行では、旧形式から新形式へ移行したあと、旧形式へ戻すと元のユーザーと一致する。
+\end{quote}
+
+Lean では、これを次のような theorem 名に対応させる。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+namespace Chapter30
+
+inductive SpecStatus where
+  | draft
+  | reviewed
+  | proved
+
+deriving Repr, DecidableEq
+
+structure SpecItem where
+  id : Nat
+  title : String
+  status : SpecStatus
+
+def markProved (s : SpecItem) : SpecItem :=
+  { s with status := SpecStatus.proved }
+
+def IsProved (s : SpecItem) : Prop :=
+  s.status = SpecStatus.proved
+
+theorem markProved_isProved (s : SpecItem) :
+    IsProved (markProved s) := by
+  unfold IsProved markProved
+  rfl
+
+end Chapter30
+\end{minted}
+\caption{仕様項目と theorem 名を対応させる小さなモデル}
+\label{lst:ch30-spec-link}
+\end{listing}
+
+このコード自体は、実務の仕様を証明しているわけではない。ここで示しているのは、仕様項目を状態つきの項目として扱い、\texttt{proved} になった項目には根拠となる theorem が必要だと考えるための最小モデルである。実際のプロジェクトでは、\texttt{SpecItem} の \texttt{id} を仕様書の項番に対応させ、\texttt{title} に仕様名を入れ、theorem 名をレビュー表に記録する。
+
+\begin{leanbox}
+Lean で重要なのは、定理名を人間が読めるレビュー単位にすることである。\texttt{theorem userV1\_rollback\_migrate} のような名前なら、「UserV1 の rollback と migrate の round-trip についての証明だ」と推測できる。逆に、\texttt{thm1} や \texttt{aux2} ばかりでは、CI が通ってもチームの知識にはならない。
+\end{leanbox}
+
+仕様レビューでは、次の三つを確認する。
+
+\begin{itemize}
+\item 自然言語仕様が、Lean で表せる粒度まで分解されているか。
+\item theorem 名が、仕様項目と対応しているか。
+\item 証明の前提条件が、仕様書にも明示されているか。
+\end{itemize}
+
+この三つがそろって初めて、Lean の証明はレビュー可能な資料になる。
+
+\section{CI で \texttt{lake build} を回す}
+
+Lean の証明をチームで使うなら、CI で自動的に検査する。手元でだけ \texttt{lake build} を実行している状態では、証明は個人の作業に閉じてしまう。Pull Request ごとに \texttt{lake build} が走るようにしておくと、仕様モデルや定理が壊れた変更を早く検出できる。
+
+\begin{softwarebox}
+CI で Lean を回す目的は、「Lean ファイルもコンパイル対象にする」ことである。証明は実行時テストではないが、\texttt{lake build} が失敗すれば、少なくとも Lean 上の仕様主張は現在の定義と整合していない。
+\end{softwarebox}
+
+典型的な GitHub Actions の形は、次のようになる。
+
+\begin{listing}[htbp]
+\begin{minted}{text}
+name: lean-verification
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  lake-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: verification
+    steps:
+      - uses: actions/checkout@v4
+      - uses: leanprover/lean-action@v1
+      - name: Build Lean verification project
+        run: lake build
+\end{minted}
+\caption{CI で lake build を呼ぶ例}
+\label{lst:ch30-ci-build}
+\end{listing}
+
+この例では、Lean プロジェクトを \texttt{verification/} に置いているため、CI の working directory もそこに合わせている。本番コード側のテストとは別ジョブにしてもよいし、同じワークフローの中で並列に動かしてもよい。
+
+\begin{warningbox}
+CI で \texttt{lake build} が通ることは、「本番コードが完全に正しい」ことを意味しない。通っているのは、Lean 上に書いた検証モデルと定理である。本番コードがそのモデルと対応しているかは、別途レビューと同期ルールで管理する。
+\end{warningbox}
+
+導入初期には、CI の対象を広げすぎないほうがよい。最初は、壊れると困る中核仕様を一つか二つ選ぶ。たとえば、\texttt{UserMigration.lean} の round-trip、\texttt{Pricing.lean} の単純な等式、\texttt{ApiAdapter.lean} の自然性のようなものだけでよい。CI が安定してから、対象を増やす。
+
+\section{壊れた証明をレビューシグナルとして読む}
+
+証明が壊れたとき、すぐに「Lean が面倒なことを言っている」と考えてはいけない。壊れた証明は、変更影響のシグナルである。ただし、そのシグナルには複数の意味がある。
+
+証明が壊れる原因は、主に次の四つである。
+
+\begin{itemize}
+\item 実装に対応するモデル定義が変わり、以前の性質が成り立たなくなった。
+\item 仕様が変わったので、以前の theorem 自体を更新すべきである。
+\item 補助定義や名前が変わっただけで、主張はまだ正しい。
+\item 証明モデルが本番コードからずれており、モデル側を見直す必要がある。
+\end{itemize}
+
+この分類を持っておくと、壊れた証明をレビューで扱いやすい。証明の修正を単なる作業として片付けるのではなく、「何が変わったから壊れたのか」を Pull Request の説明に書く。
+
+\FigurePlaceholder{fig-ch30-broken-proof-flow.png}{0.92}{壊れた証明をレビューで読むための判断フロー}{fig:ch30-broken-proof-flow}
+
+図~\ref{fig:ch30-broken-proof-flow} は、壊れた証明を読むときの判断フローである。最初に、定義変更が意図した仕様変更かどうかを見る。次に、theorem の主張を変える必要があるか、証明だけを更新すればよいかを分ける。最後に、本番コードと検証モデルの対応がまだ妥当かを確認する。
+
+\begin{definitionbox}
+本章では、\textbf{レビューシグナル}を「変更内容について追加確認が必要だと知らせる機械的な兆候」と呼ぶ。壊れた証明は、失敗そのものではなく、変更前に成り立っていた仕様主張が現在の定義では確認できなくなったというシグナルである。
+\end{definitionbox}
+
+重要なのは、証明を無理やり直さないことである。もし仕様が変わったなら theorem 名や仕様書も変える。もし仕様は変わっていないのに証明が壊れたなら、実装変更やモデル変更が意味を変えた可能性がある。その区別をレビューで確認する。
+
+\section{ドメインコードと検証モデルの同期問題}
+
+Lean を実務に持ち込むとき、最も誤解されやすいのが同期問題である。Lean の検証モデルは、本番コードそのものではない。したがって、モデルが正しくても、本番コードが同じ意味で実装されていなければ保証は弱くなる。
+
+\begin{intuitionbox}
+検証モデルは地図であり、本番コードは地形である。地図が正確であれば移動に役立つが、地形が変わったのに地図を更新しなければ危険である。逆に、地図を細かくしすぎると、更新できなくなる。
+\end{intuitionbox}
+
+同期の方法には、いくつかの粒度がある。
+
+\begin{itemize}
+\item \textbf{手動同期}: 実装変更時に、担当者が Lean モデルも更新する。
+\item \textbf{レビュー同期}: Pull Request テンプレートに「Lean モデルへの影響」を書かせる。
+\item \textbf{仕様同期}: 仕様書の項番と theorem 名を対応表で管理する。
+\item \textbf{生成同期}: 可能な範囲で、型定義や schema から Lean 側の一部を生成する。
+\end{itemize}
+
+本書の範囲では、手動同期とレビュー同期から始める。生成同期は強力だが、導入コストが高い。最初から自動生成を目指すと、Lean の導入目的が「証明」ではなく「ツールチェーン整備」にすり替わりやすい。
+
+次の Lean コードは、同期対象を小さな記録として表す例である。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+namespace Chapter30
+
+structure ModelLink where
+  specId : Nat
+  theoremName : String
+  modelFile : String
+  implementationFile : String
+  assumption : String
+
+
+def userMigrationLink : ModelLink :=
+  { specId := 2204
+    theoremName := "rollback_migrate_user_v1"
+    modelFile := "Verification/UserMigration.lean"
+    implementationFile := "src/user_migration.ts"
+    assumption := "Lean model ignores database IO and timestamps" }
+
+#eval userMigrationLink.theoremName
+
+end Chapter30
+\end{minted}
+\caption{検証モデルと実装ファイルの対応を表すメタデータ}
+\label{lst:ch30-model-link}
+\end{listing}
+
+このコードは証明ではない。しかし、チーム運用ではこのようなメタデータも重要である。証明の theorem 名だけが残っていても、どの実装ファイルと対応しているかが分からなければ、レビューで使いにくい。Lean の中に書いてもよいし、Markdown や YAML の対応表として管理してもよい。
+
+\section{「証明済み」と言ってよい範囲を明記する}
+
+Lean を導入すると、強い言葉を使いたくなる。「この機能は証明済みです」「この移行は安全です」という言い方である。しかし、その言い方は危険である。正確には、「この Lean モデルにおいて、この前提のもとで、この theorem が検査されています」と言うべきである。
+
+\begin{warningbox}
+「証明済み」という言葉は、必ず範囲と前提を添えて使う。Lean が証明したのは、Lean に書いた命題である。本番環境、外部 API、DB、時刻、並行性、パフォーマンス、権限設定まで自動的に保証されるわけではない。
+\end{warningbox}
+
+チームで使う場合、証明済み範囲の記述には次の五項目を含めるとよい。
+
+\begin{itemize}
+\item \textbf{対象}: どの仕様項目、どの関数、どのデータ移行か。
+\item \textbf{モデル}: Lean でどの型・関数として表したか。
+\item \textbf{定理}: どの theorem が通っているか。
+\item \textbf{前提}: どの条件を仮定しているか。
+\item \textbf{範囲外}: 何を証明していないか。
+\end{itemize}
+
+たとえば、次のように書く。
+
+\begin{quote}
+\textbf{証明済み範囲}: \texttt{Verification/UserMigration.lean} の \texttt{rollback\_migrate\_user\_v1} により、Lean 上の \texttt{UserV1} と \texttt{UserV2} モデルについて、\texttt{rollback (migrate u) = u} を検査している。ただし、DB からの読み出し、時刻フィールドの自動補完、JSON parser の実装、実データの全件移行はこの証明の範囲外である。
+\end{quote}
+
+この書き方なら、証明の価値を過小評価せず、同時に過大評価もしない。チームにとって重要なのは、証明が何を保証し、何を保証していないかを共有することである。
+
+\section{導入初期の運用パターン}
+
+最後に、導入初期の現実的なパターンをまとめる。最初から全仕様を Lean に移す必要はない。むしろ、壊れると被害が大きく、かつ小さくモデル化できる箇所から始める。
+
+\subsection{パターン1: マイグレーションの round-trip だけを守る}
+
+最初の題材として最も分かりやすいのは、スキーマ移行である。\texttt{migrate} と \texttt{rollback} を Lean で小さく書き、round-trip を証明する。CI でこの theorem を回すだけでも、移行仕様の変更に強いセンサーになる。
+
+\subsection{パターン2: 料金計算のリファクタリングだけを守る}
+
+料金計算や集計ロジックでは、実装全体を Lean に移すのではなく、丸めを含まない中核式や、順序を入れ替えてよい部分だけをモデル化する。証明できる核を決め、範囲外を明記する。
+
+\subsection{パターン3: API adapter の可換性だけを守る}
+
+レスポンス wrapper の変更では、adapter が業務ロジックと干渉しないことを可換性として証明する。これは、自然変換の章で扱った考え方を、チームレビューに移す例である。
+
+\section{よくある誤解}
+
+\begin{warningbox}
+\begin{itemize}
+\item \textbf{誤解1}: Lean を入れればテストはいらない。\newline
+Lean はテストを置き換えない。Lean は、モデル化された範囲の一般的な性質を検査する。外部システム、性能、UI、運用設定は別の方法で確認する。
+\item \textbf{誤解2}: CI が通れば本番コードも証明済みである。\newline
+CI で通ったのは Lean プロジェクトである。本番コードとの対応は、レビューと同期ルールで守る必要がある。
+\item \textbf{誤解3}: すべてを Lean に移さなければ意味がない。\newline
+小さな中核仕様だけでも価値がある。特に round-trip、不変条件保存、合成保存のような性質は、少ないモデルで大きな効果を持つ。
+\item \textbf{誤解4}: 壊れた証明は邪魔である。\newline
+壊れた証明は、以前の約束が現在の定義では確認できないというシグナルである。邪魔なのではなく、レビューすべき点を知らせている。
+\end{itemize}
+\end{warningbox}
+
+\section{本章のまとめ}
+
+\begin{summarybox}
+\begin{itemize}
+\item Lean ファイルは、導入初期には \texttt{verification/} や \texttt{lean/} のような専用ディレクトリに置くと、実装と検証モデルの役割を分けやすい。
+\item theorem 名と仕様項目を対応させることで、証明は仕様レビューの資料になる。
+\item CI で \texttt{lake build} を回すと、仕様モデルや定理の破壊を Pull Request の段階で検出できる。
+\item 壊れた証明は失敗ではなく、仕様変更・実装変更・モデル更新のどれが起きたかを確認するレビューシグナルである。
+\item 「証明済み」と言うときは、対象、モデル、定理、前提、範囲外を必ず明記する。
+\end{itemize}
+\end{summarybox}

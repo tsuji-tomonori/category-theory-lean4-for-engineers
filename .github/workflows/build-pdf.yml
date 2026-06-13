@@ -1,4 +1,4 @@
-name: Build PDF
+name: Build and Test
 
 on:
   push:
@@ -6,6 +6,35 @@ on:
   workflow_dispatch:
 
 jobs:
+  test-lean:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check TeX and Lean snippet sync
+        run: python3 tools/check_tex_lean_sync.py
+
+      - name: Install Lean 4
+        run: |
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
+            | sh -s -- -y --default-toolchain leanprover/lean4:stable
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+
+      - name: Verify Lean version
+        run: lean --version
+
+      - name: Compile Lean files
+        run: |
+          find lean -type f -name '*.lean' -print0 \
+            | sort -z \
+            | while IFS= read -r -d '' file; do
+                echo "::group::$file"
+                lean "$file"
+                echo "::endgroup::"
+              done
+
   build-pdf:
     runs-on: ubuntu-latest
 

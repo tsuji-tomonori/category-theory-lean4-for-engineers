@@ -1,0 +1,455 @@
+% !TEX root = ../main.tex
+\chapter{ケーススタディ：DB スキーマ変更とクエリ保存}
+\label{chap:db-schema-query-preservation}
+
+\begin{chapterabstract}
+本章では、DB スキーマ変更を「データの形を変える処理」としてではなく、「重要なクエリの意味を保つべき変換」として扱う。
+テーブル分割、統合、カラム追加、正規化、非正規化は、実務では頻繁に起きる。
+しかし、移行後のデータで既存のクエリが同じ答えを返すかどうかは、別途確認しなければならない。
+ここでは、実 DB エンジン全体を形式化するのではなく、小さな有限モデルを Lean 4 で作り、ユーザーと注文の join 結果が移行後も保存されることを証明する。
+圏論側の言葉としては、Pullback を「共通キーによって整合するデータだけを合流させる考え方」として使う。
+\end{chapterabstract}
+
+\begin{learninggoals}
+\item DB スキーマ変更で「保存すべきクエリ」を明示できる。
+\item join を、共通キーに関する整合条件つきの合流として読める。
+\item Lean 4 で、旧テーブル、新テーブル、移行関数、クエリ関数を小さく定義できる。
+\item 移行前後のクエリ結果一致を、等式として証明する形を理解できる。
+\item Lean モデルで保証した範囲と、実 DB で別途確認すべき範囲を区別できる。
+\end{learninggoals}
+
+\section{この章を読む理由}
+
+DB マイグレーションでは、「スキーマ変更は終わった」「データも移した」と言えても、それだけでは十分ではない。
+アプリケーションにとって重要なのは、多くの場合、テーブルの内部形ではなく、そこから得られる問い合わせ結果である。
+
+たとえば、旧スキーマでは注文テーブルにユーザー名が重複して入っていたとする。
+新スキーマでは、ユーザー情報を \texttt{users} テーブルに分け、注文情報を \texttt{orders} テーブルに置く。
+これは正規化としては自然な変更である。
+しかし、画面や API が必要としている「注文 ID、ユーザー名、金額」の一覧が、移行前後で変わっていないことは別の主張である。
+
+\begin{intuitionbox}
+DB スキーマ変更で守りたいものは、必ずしもテーブルの形ではない。
+多くの場合に守りたいものは、「業務上観測される答え」である。
+本章では、この観測される答えをクエリ結果として切り出し、移行前後で一致することを Lean で表す。
+\end{intuitionbox}
+
+\FigurePlaceholder{fig-ch26-schema-split.png}{0.92}{注文テーブルをユーザーテーブルと注文テーブルへ分割するスキーマ変更}{fig:ch26-schema-split}
+
+図\ref{fig:ch26-schema-split}では、左側に旧スキーマの横長の注文行がある。
+右側には、ユーザー情報と注文情報へ分割された新スキーマがある。
+読者が見るべき点は、テーブルの形は変わっているが、画面や API に返したい「注文 ID、ユーザー名、金額」というビューは変わっていない、という点である。
+
+\section{ソフトウェア上の問題：スキーマ変更はクエリの意味を壊しうる}
+
+\begin{softwarebox}
+実務では、「DB マイグレーションが成功した」という言葉が複数の意味で使われる。
+\begin{itemize}
+\item DDL が実行できた。
+\item データ変換バッチが最後まで走った。
+\item 新アプリケーションが起動できた。
+\item 主要クエリの結果が旧実装と一致した。
+\end{itemize}
+本章で扱うのは最後の意味である。
+つまり、「アプリケーションが観測する答え」が保存されたかを扱う。
+\end{softwarebox}
+
+DB スキーマ変更には、少なくとも次のようなパターンがある。
+
+\begin{longtable}{p{0.25\linewidth}p{0.31\linewidth}p{0.34\linewidth}}
+\toprule
+変更 & 例 & 保存したい性質 \\
+\midrule
+テーブル分割 & \texttt{orders} から \texttt{users} を分ける & join 後の表示結果が同じ \\
+テーブル統合 & \texttt{users} と \texttt{profiles} をまとめる & 旧クエリを projection で再現できる \\
+カラム追加 & \texttt{status} を追加する & 旧クエリが追加カラムに依存しない \\
+カラム削除 & 使われていない値を落とす & 削除値を参照するクエリがない \\
+正規化 & 重複データをマスタへ移す & 外部キーで元の情報を復元できる \\
+非正規化 & 集計済みカラムを追加する & 集計値が元データから計算した値と一致する \\
+\bottomrule
+\end{longtable}
+
+この表の右列にある性質は、自然言語では「互換性がある」とまとめられがちである。
+しかし、Lean で扱うには、より具体的に書く必要がある。
+本章では、「旧 DB に対するクエリ」と「移行後 DB に対するクエリ」が同じ結果を返す、という等式に落とす。
+
+\section{クエリ結果が保存されるとは何か}
+
+\begin{definitionbox}
+本章でいうクエリ保存とは、旧 DB \(d\) に対して、次の形の等式が成り立つことである。
+\[
+  \mathit{queryNew}(\mathit{migrate}(d)) = \mathit{queryOld}(d)
+\]
+左辺は、旧 DB を新スキーマへ移行してから新クエリを実行した結果である。
+右辺は、旧 DB に旧クエリを実行した結果である。
+この二つが一致するとき、そのクエリに関しては移行が意味を保存している、と言う。
+\end{definitionbox}
+
+この定義は、すべてのクエリが保存されることを要求していない。
+実務では、保存したいクエリを選ぶ必要がある。
+たとえば、既存 API のレスポンスを支えるクエリ、帳票に使うクエリ、監査ログに出すクエリなどである。
+保存すべきクエリを明示しないままスキーマ変更をレビューすると、「何が壊れていないなら安全なのか」が曖昧になる。
+
+\begin{warningbox}
+「スキーマが情報を失っていない」ことと、「特定のクエリ結果が保存される」ことは別である。
+情報を失っていなくても、join 条件、重複行の扱い、NULL の扱い、並び順の扱いが変われば、特定のクエリ結果は変わりうる。
+逆に、情報を一部落としていても、ある画面に必要なクエリだけは保存される場合もある。
+\end{warningbox}
+
+この章では、証明対象をあえて小さくする。
+旧スキーマの 1 行を、新スキーマのユーザー行と注文行に分ける。
+そして、旧行から直接作る表示用ビューと、新行を join して作る表示用ビューが一致することを示す。
+その後、リスト全体に対して同じ性質を持ち上げる。
+
+\FigurePlaceholder{fig-ch26-query-preservation-square.png}{0.88}{旧クエリと新クエリが移行関数を挟んで一致する可換図式}{fig:ch26-query-preservation-square}
+
+図\ref{fig:ch26-query-preservation-square}は、本章の中心となる等式を図で表したものである。
+上から右へ行く道は「旧 DB を移行してから新クエリを実行する」道である。
+左から下へ行く道は「旧 DB に旧クエリを実行する」道である。
+二つの道の結果が同じなら、この図式は可換である。
+ソフトウェアの言葉で言えば、移行処理を挟んでも観測結果が変わらない。
+
+\section{Pullback 的な整合制約}
+
+DB join では、二つのテーブルから任意の行をペアにすればよいわけではない。
+ユーザー行と注文行を結合するなら、通常は \texttt{userId} が一致していなければならない。
+この「共通キーが一致する行だけを合流させる」という見方が、Pullback の直感に対応する。
+
+\begin{definitionbox}
+本章では、Pullback を完全な一般論として定義しない。
+ここでは、Pullback 的な整合制約を次のように読む。
+\begin{quote}
+二つのデータが共通の先へ写ったとき、同じ値になるものだけを組み合わせる。
+\end{quote}
+DB join であれば、ユーザー行と注文行が共通の \texttt{userId} を持つ場合だけ、それらを一つの表示結果へ合流させる。
+\end{definitionbox}
+
+\begin{softwarebox}
+SQL の inner join は、直感的には「条件を満たすペアだけを作る」操作である。
+本章の Lean モデルでは、SQL 実行器を形式化する代わりに、\texttt{Consistent} という述語で「このユーザー行と注文行は同じ \texttt{userId} を指している」と表す。
+この述語を満たすペアだけを、新スキーマ側の安全な行として扱う。
+\end{softwarebox}
+
+\FigurePlaceholder{fig-ch26-pullback-join.png}{0.88}{共通キー userId によって整合するユーザー行と注文行だけを合流させる}{fig:ch26-pullback-join}
+
+図\ref{fig:ch26-pullback-join}では、ユーザー行から \texttt{userId} を取り出す矢印と、注文行から \texttt{userId} を取り出す矢印がある。
+その二つが同じ値を返すときだけ、二つの行を組み合わせる。
+この見方により、join は単なるペア作成ではなく、制約を満たす合流として読める。
+
+\section{Lean では小さな有限モデルから始める}
+
+\begin{leanbox}
+Lean で扱う対象は、実 DB そのものではない。
+本章では、旧スキーマと新スキーマを小さな \texttt{structure} として定義し、DB をそれらの \texttt{List} として表す。
+これは、実 DB の完全な意味論ではなく、移行仕様の核だけを切り出したモデルである。
+\end{leanbox}
+
+まず、旧スキーマでは注文行にユーザー名が直接入っているとする。
+新スキーマでは、ユーザー情報と注文情報を分ける。
+表示用の \texttt{OrderView} は、アプリケーションが観測したいクエリ結果である。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+structure OrderOld where
+  orderId : Nat
+  userId : Nat
+  userName : String
+  amount : Nat
+
+deriving Repr, DecidableEq
+
+structure UserRow where
+  userId : Nat
+  userName : String
+
+deriving Repr, DecidableEq
+
+structure OrderRow where
+  orderId : Nat
+  userId : Nat
+  amount : Nat
+
+deriving Repr, DecidableEq
+
+structure SplitRow where
+  user : UserRow
+  order : OrderRow
+
+deriving Repr, DecidableEq
+
+structure OrderView where
+  orderId : Nat
+  userName : String
+  amount : Nat
+
+deriving Repr, DecidableEq
+\end{minted}
+\caption{旧スキーマ、新スキーマ、表示用ビュー}
+\label{lst:ch26-schema-model}
+\end{listing}
+
+この段階では、まだ \texttt{SplitRow} が整合しているとは限らない。
+たとえば、\texttt{user.userId} と \texttt{order.userId} が異なる値でも、型としては作れてしまう。
+そのため、後で \texttt{Consistent} という述語を導入する。
+
+\section{一行の移行と一行のクエリ保存}
+
+旧行を新スキーマへ分割する関数を定義する。
+また、旧行から直接ビューを作る関数と、新しい分割行からビューを作る関数を定義する。
+まず一行だけを見れば、証明したい性質は単純である。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def splitOrder (r : OrderOld) : SplitRow :=
+  { user := { userId := r.userId, userName := r.userName },
+    order := { orderId := r.orderId,
+               userId := r.userId,
+               amount := r.amount } }
+
+def queryOldRow (r : OrderOld) : OrderView :=
+  { orderId := r.orderId,
+    userName := r.userName,
+    amount := r.amount }
+
+def querySplitRow (s : SplitRow) : OrderView :=
+  { orderId := s.order.orderId,
+    userName := s.user.userName,
+    amount := s.order.amount }
+
+theorem split_row_preserves_query (r : OrderOld) :
+    querySplitRow (splitOrder r) = queryOldRow r := by
+  cases r
+  rfl
+\end{minted}
+\caption{一行の移行とクエリ保存}
+\label{lst:ch26-row-preservation}
+\end{listing}
+
+証明は \texttt{cases r} と \texttt{rfl} だけで終わる。
+これは、移行関数とクエリ関数の定義を展開すると、両辺が同じレコードになるからである。
+ここで重要なのは、証明が短いことそのものではない。
+重要なのは、「何を保存したいか」を \texttt{querySplitRow (splitOrder r) = queryOldRow r} という等式として明示した点である。
+
+\begin{warningbox}
+この一行の証明は、重複ユーザーの統合や外部キー制約の完全性を証明しているわけではない。
+証明しているのは、旧行から作ったユーザー部分と注文部分を使って表示用ビューを作ると、旧行から直接作ったビューと一致する、という限定された性質である。
+\end{warningbox}
+
+\section{整合条件を型に持ち上げる}
+
+次に、Pullback 的な整合制約を Lean の述語として表す。
+新スキーマ側のユーザー行と注文行は、同じ \texttt{userId} を指している必要がある。
+この条件を \texttt{Consistent} と呼ぶ。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def Consistent (s : SplitRow) : Prop :=
+  s.user.userId = s.order.userId
+
+def ConsistentSplitRow := { s : SplitRow // Consistent s }
+
+theorem split_consistent (r : OrderOld) :
+    Consistent (splitOrder r) := by
+  cases r
+  rfl
+
+def splitOrderChecked (r : OrderOld) : ConsistentSplitRow :=
+  Subtype.mk (splitOrder r) (split_consistent r)
+
+def queryNewRow (s : ConsistentSplitRow) : OrderView :=
+  { orderId := s.val.order.orderId,
+    userName := s.val.user.userName,
+    amount := s.val.order.amount }
+\end{minted}
+\caption{共通キーによる整合条件}
+\label{lst:ch26-consistency}
+\end{listing}
+
+\texttt{ConsistentSplitRow} は、値 \texttt{s : SplitRow} と、その値が \texttt{Consistent s} を満たす証明をまとめた型である。
+これは、第4章で扱った「条件を満たす値」を使う考え方の応用である。
+DB の言葉で言えば、単なる二つの行の組ではなく、外部キーが一致していることを一緒に持つ行である。
+
+この型を使うと、新スキーマ側のクエリは「整合している行」にだけ適用される。
+実 DB では制約や join 条件がこの役割を担う。
+Lean の小さなモデルでは、述語と部分型がその役割を担う。
+
+\section{リスト全体の DB に持ち上げる}
+
+実務の DB は一行ではない。
+そこで、旧 DB を旧行のリスト、新 DB を整合済み分割行のリストとして表す。
+移行は \texttt{List.map splitOrderChecked} である。
+旧クエリと新クエリも、それぞれ一行クエリをリスト全体へ写す関数として定義する。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def DBV1 := List OrderOld
+
+def DBV2 := List ConsistentSplitRow
+
+def migrateDB (db : DBV1) : DBV2 :=
+  List.map splitOrderChecked db
+
+def queryOld (db : DBV1) : List OrderView :=
+  List.map queryOldRow db
+
+def queryNew (db : DBV2) : List OrderView :=
+  List.map queryNewRow db
+
+theorem checked_row_preserves_query (r : OrderOld) :
+    queryNewRow (splitOrderChecked r) = queryOldRow r := by
+  cases r
+  rfl
+
+theorem query_preserved (db : DBV1) :
+    queryNew (migrateDB db) = queryOld db := by
+  induction db with
+  | nil =>
+      rfl
+  | cons x xs ih =>
+      simp [migrateDB, queryNew, queryOld,
+            checked_row_preserves_query, ih]
+\end{minted}
+\caption{DB 全体の移行とクエリ保存}
+\label{lst:ch26-list-preservation}
+\end{listing}
+
+この定理が、本章の中心である。
+\[
+  \texttt{queryNew (migrateDB db) = queryOld db}
+\]
+という形で、任意の旧 DB \texttt{db} について、移行後に新クエリを実行した結果と、移行前に旧クエリを実行した結果が一致することを述べている。
+
+証明では \texttt{induction db} を使っている。
+空リストの場合は自明である。
+先頭行 \texttt{x} と残り \texttt{xs} の場合は、一行の保存性 \texttt{checked\_row\_preserves\_query} と、帰納法の仮定 \texttt{ih} を使って整理する。
+これは、第24章で扱った「一件の移行をリスト全体へ持ち上げる」考え方と同じである。
+
+\begin{leanbox}
+この証明では SQL エンジンを実装していない。
+代わりに、「このスキーマ変更で保存したいクエリ」を Lean の関数として定義し、その関数の結果が移行前後で一致することを証明している。
+本番 DB のすべてを証明するのではなく、仕様レビューで合意した核を小さく検査する、という方針である。
+\end{leanbox}
+
+\section{サンプルを実行して結果を見る}
+
+証明はすべての入力に対する主張である。
+それとは別に、\texttt{\#eval} で小さな例を実行すると、モデルの意味を確認しやすくなる。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def sampleOld : DBV1 :=
+  [ { orderId := 1001, userId := 10,
+      userName := "Ada", amount := 120 },
+    { orderId := 1002, userId := 20,
+      userName := "Grace", amount := 250 } ]
+
+#eval queryOld sampleOld
+#eval queryNew (migrateDB sampleOld)
+\end{minted}
+\caption{小さなサンプル DB の評価}
+\label{lst:ch26-sample-eval}
+\end{listing}
+
+この二つの \texttt{\#eval} は同じ表示用ビューのリストを返す。
+ただし、\texttt{\#eval} は具体例の確認であり、証明ではない。
+本章の本体は、\texttt{query\_preserved} という定理である。
+\texttt{\#eval} は、読者が定義を読む補助として使う。
+
+\section{この定理が保証していること}
+
+\texttt{query\_preserved} が保証していることは、次のように限定して読むべきである。
+
+\begin{itemize}
+\item 旧 DB を \texttt{migrateDB} で新 DB へ移した場合、\texttt{queryNew} の結果は \texttt{queryOld} の結果と一致する。
+\item 新 DB の各行は、\texttt{ConsistentSplitRow} によって \texttt{userId} の整合性を持つ。
+\item 任意の長さの旧 DB リストについて、この性質が成り立つ。
+\end{itemize}
+
+この定理は、実務レビューで次のような発言に置き換えられる。
+
+\begin{quote}
+この検証モデルでは、旧注文行からユーザー情報と注文情報を分割しても、注文一覧画面が使う \texttt{orderId, userName, amount} の結果は変わらないことを証明している。
+\end{quote}
+
+このように言えると、レビューの焦点が明確になる。
+「移行は安全です」という広すぎる主張ではなく、「このクエリについて、このモデルの前提のもとで結果が保存されます」と言える。
+
+\section{この定理が保証していないこと}
+
+一方で、この定理は多くのことを保証していない。
+ここを曖昧にすると、Lean の証明を過大評価してしまう。
+
+\begin{warningbox}
+本章の Lean モデルは、次の性質を証明していない。
+\begin{itemize}
+\item SQL の実際の実行計画が正しいこと。
+\item インデックス、ロック、トランザクション分離レベルが期待通りであること。
+\item NULL、重複行、照合順序、タイムゾーン、文字コードを含む DB エンジン固有の挙動。
+\item 本番データの全件が移行スクリプトの前提を満たしていること。
+\item 移行処理が途中で失敗したときの復旧手順。
+\item 新スキーマ上で新たに作られる任意のデータが旧クエリと互換であること。
+\end{itemize}
+\end{warningbox}
+
+これは弱点ではなく、境界線である。
+Lean モデルは、仕様の中核を小さく切り出すことで力を発揮する。
+逆に、実 DB 全体の挙動をすべて一つの Lean ファイルで表そうとすると、学習目的にも実務目的にも重くなりすぎる。
+
+\FigurePlaceholder{fig-ch26-lean-boundary.png}{0.90}{Lean モデルで証明する範囲と実 DB で別途確認する範囲}{fig:ch26-lean-boundary}
+
+図\ref{fig:ch26-lean-boundary}では、中央に Lean で証明する小さな核がある。
+その周囲に、SQL 方言、移行バッチ、DB 制約、運用手順、性能検証がある。
+Lean は中央の核を強く確認する。
+周辺の領域は、テスト、レビュー、監視、リハーサル、DB 制約によって補う。
+
+\section{実務へ持ち込むときの手順}
+
+この章の考え方を実務へ持ち込むなら、次の順で進めるとよい。
+
+\begin{enumerate}
+\item 保存したいクエリを一つ選ぶ。
+\item そのクエリの出力型を、表示用ビューや API レスポンス型として書く。
+\item 旧スキーマからその出力型を作る関数を定義する。
+\item 新スキーマから同じ出力型を作る関数を定義する。
+\item 移行関数を定義する。
+\item \texttt{queryNew (migrate old) = queryOld old} の形で定理を書く。
+\item 必要なら、外部キー一致や well-formed 条件を述語または部分型として入れる。
+\item 証明した範囲と、実 DB で別途確認する範囲を設計文書に書く。
+\end{enumerate}
+
+重要なのは、最初からすべてのクエリを対象にしないことである。
+まず一つの重要クエリを選び、移行仕様の核を Lean に移す。
+その小さな成功例が、次のクエリや次のマイグレーションへ広げる足場になる。
+
+\section{レビューで使うチェックリスト}
+
+最後に、DB スキーマ変更をレビューするときの確認項目をまとめる。
+これは Lean コードを書く前にも使える。
+
+\begin{summarybox}
+\begin{itemize}
+\item 保存したいクエリは、自然言語ではなく出力型として明示されているか。
+\item 旧スキーマから出力型を作る関数があるか。
+\item 新スキーマから同じ出力型を作る関数があるか。
+\item 移行関数が、旧スキーマから新スキーマへの変換として定義されているか。
+\item 証明したい性質が \texttt{queryNew (migrate db) = queryOld db} の形になっているか。
+\item join に必要な整合条件、たとえば外部キー一致が述語として明示されているか。
+\item 証明モデルが扱わない SQL 固有の挙動が、別途テストやレビューで扱われているか。
+\end{itemize}
+\end{summarybox}
+
+\section{本章のまとめ}
+
+本章では、DB スキーマ変更をクエリ保存の問題として扱った。
+旧スキーマと新スキーマを小さな Lean の構造体として表し、移行関数とクエリ関数を定義した。
+そして、旧 DB に旧クエリを実行した結果と、移行後 DB に新クエリを実行した結果が一致することを証明した。
+
+\begin{summarybox}
+\begin{itemize}
+\item スキーマ変更の安全性は、「どのクエリ結果を保存するか」を明示して初めて検査しやすくなる。
+\item Pullback 的な見方は、join を共通キーに関する整合条件つきの合流として理解する助けになる。
+\item Lean では、実 DB 全体ではなく、小さな有限モデルで移行仕様の核を表す。
+\item \texttt{queryNew (migrateDB db) = queryOld db} は、クエリ保存を表す基本形である。
+\item Lean の証明は強いが、SQL 方言、NULL、トランザクション、性能、本番データ品質は別途扱う必要がある。
+\end{itemize}
+\end{summarybox}

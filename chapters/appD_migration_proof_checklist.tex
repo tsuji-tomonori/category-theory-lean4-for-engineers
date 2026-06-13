@@ -1,0 +1,594 @@
+% !TEX root = ../main.tex
+\chapter{マイグレーション証明チェックリスト}
+\label{app:migration-proof-checklist}
+
+\begin{chapterabstract}
+本付録は、データ構造、APIレスポンス、設定ファイル、DBスキーマなどを変更するときに、何をLean 4で証明すべきかを決めるための実務チェックリストである。
+本文の各章では、同型、仕様弱化、バッチ移行、自然性、DBクエリ保存を個別に扱った。
+本付録では、それらをレビューで使える順序に並べ直す。
+目的は、マイグレーションを「移せそうか」ではなく、「どの型からどの型へ変換し、どの性質が保存されるか」として記録できるようにすることである。
+\end{chapterabstract}
+
+\begin{learninggoals}
+\item 変更前後の型、変換関数、逆変換、前提条件を分けて記録できる。
+\item 完全同型、片方向互換、制約付き同型、仕様弱化、情報損失ありの移行を区別できる。
+\item Leanで証明すべき性質を、round-trip、バッチ保存、自然性、クエリ保存、実装差分の観点から選べる。
+\item 証明モデルが実装コードの何を保証し、何を保証していないかをレビュー資料に残せる。
+\end{learninggoals}
+
+\section{この付録を使う場面}
+
+\begin{intuitionbox}
+マイグレーション証明で最初に確認することは、証明テクニックではない。
+最初に確認するのは、「何を何へ変換しているのか」と「何が保存されれば安全と言えるのか」である。
+型、関数、前提条件、保存したい性質を分けて書くと、証明すべき対象が小さくなる。
+\end{intuitionbox}
+
+本付録のチェックリストは、次のような変更で使う。
+
+\begin{itemize}
+\item ユーザー、注文、請求、ログなどのレコード型を変更する。
+\item APIレスポンスのwrapper、エラー形式、metadataの持ち方を変更する。
+\item DBテーブルを分割、統合、正規化、非正規化する。
+\item 設定ファイル、JSON、YAML、イベントスキーマをバージョンアップする。
+\item 旧データを新形式で読み込むが、完全なrollbackを保証できるか不明である。
+\item バッチ移行後に件数、キー、集計値、join結果が保存されるかを確認したい。
+\end{itemize}
+
+\begin{softwarebox}
+この付録は、実装前の設計レビュー、移行PRのレビュー、CIに入れるLean定理の選定、移行後の監査資料に使える。
+すべての本番コードをLeanへ移す必要はない。
+代わりに、移行仕様の核だけを小さな検証モデルとして切り出す。
+\end{softwarebox}
+
+\FigurePlaceholder{fig-appD-migration-proof-flow.png}{0.92}{マイグレーション証明チェックの全体フロー}{fig:appD-migration-proof-flow}
+
+図\ref{fig:appD-migration-proof-flow}は、この付録の読み方を表す。
+まず変更前後の型を決め、変換関数と逆変換の有無を確認する。
+次に、情報損失とwell-formed条件を評価し、最後にバッチ移行、業務ロジック、実装差分へ確認範囲を広げる。
+
+\section{最初に書く一枚メモ}
+
+マイグレーション証明を始める前に、次の一枚メモを作る。
+このメモを作れない場合、まだLeanで証明する段階ではない。
+証明する前に、移行仕様そのものを整理する必要がある。
+
+\begin{definitionbox}
+\textbf{マイグレーション証明の一枚メモ}とは、次の五つを同じ場所に書いたものである。
+
+\begin{enumerate}
+\item 変更前の型 \(Old\)
+\item 変更後の型 \(New\)
+\item 旧から新への変換 \(migrate : Old \to New\)
+\item 新から旧への変換、または部分的な逆変換 \(rollback : New \to Old\)
+\item 保存したい性質、または弱めた仕様
+\end{enumerate}
+\end{definitionbox}
+
+\begin{longtable}{@{}p{0.17\linewidth}p{0.32\linewidth}p{0.43\linewidth}@{}}
+\toprule
+項目 & 書くこと & 例 \\
+\midrule
+\endhead
+変更前の型 & 旧スキーマ、旧DTO、旧レスポンス、旧テーブル行 & \texttt{UserV1}, \texttt{OldResponse A}, \texttt{OrderRowV1} \\
+変更後の型 & 新スキーマ、新DTO、新レスポンス、新テーブル行 & \texttt{UserV2}, \texttt{NewResponse A}, \texttt{OrderRowV2} \\
+正方向の変換 & 旧形式を新形式へ移す関数 & \texttt{migrate : UserV1 -> UserV2} \\
+逆方向の変換 & 新形式を旧形式へ戻す関数。存在しない場合は、その理由を書く & \texttt{rollback : UserV2 -> UserV1} \\
+前提条件 & 正常データ、空でない文字列、キー一意性、外部制約など & \texttt{WellFormedNew v} \\
+主張 & 完全復元、片方向復元、正規化後一致、件数保存など & \texttt{rollback (migrate u) = u} \\
+保証しないこと & Leanモデルの外にある制約、性能、DBエンジンの実挙動など & インデックス性能、外部API障害、並行更新 \\
+\bottomrule
+\end{longtable}
+
+\section{チェックリスト本体}
+
+この節は、レビューでそのまま使うためのチェックリストである。
+各項目では、自然言語で答える欄と、Lean上での形を対応させる。
+
+\subsection{1. 変更前後の型は何か}
+
+\begin{softwarebox}
+型を決めるとは、単にクラス名やテーブル名を決めることではない。
+どのフィールドを持ち、どの値を許し、どの不変条件を持つデータとして扱うかを決めることである。
+\end{softwarebox}
+
+\begin{longtable}{@{}p{0.06\linewidth}p{0.32\linewidth}p{0.52\linewidth}@{}}
+\toprule
+確認 & 問い & 完了条件 \\
+\midrule
+\endhead
+\(\square\) & 変更前の型をLeanで名前付きにしたか & \texttt{structure UserV1 where ...} のように、旧形式が独立した型として書かれている。 \\
+\(\square\) & 変更後の型をLeanで名前付きにしたか & \texttt{structure UserV2 where ...} のように、新形式が独立した型として書かれている。 \\
+\(\square\) & 単なる表現差と、意味の差を分けたか & フィールド名変更、ネスト化、単位変更、正規化、情報削除が区別されている。 \\
+\(\square\) & 不変条件を型に含めるか、述語に分けるかを決めたか & \texttt{WellFormedV1 : UserV1 -> Prop} のように、制約の置き場所が明示されている。 \\
+\bottomrule
+\end{longtable}
+
+\begin{leanbox}
+Leanでは、まず本番の巨大な型をそのまま再現しない。
+証明したい性質に必要なフィールドだけを持つ小さな型を作る。
+この小さな型が、証明モデルである。
+\end{leanbox}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+structure UserV1 where
+  id : Nat
+  name : String
+
+deriving Repr
+
+structure Profile where
+  displayName : String
+
+deriving Repr
+
+structure UserV2 where
+  id : Nat
+  profile : Profile
+
+deriving Repr
+\end{minted}
+\caption{変更前後の型を小さく切り出す}
+\label{lst:appD_old_new_types}
+\end{listing}
+
+\subsection{2. 変換関数は何か}
+
+変換関数は、移行仕様の中心である。
+口頭で「移せる」と言うだけでは不十分である。
+Lean上では、旧形式の値を受け取り、新形式の値を返す関数として書く。
+
+\begin{longtable}{@{}p{0.06\linewidth}p{0.32\linewidth}p{0.52\linewidth}@{}}
+\toprule
+確認 & 問い & 完了条件 \\
+\midrule
+\endhead
+\(\square\) & 正方向の変換関数を書いたか & \texttt{migrate : Old -> New} が定義されている。 \\
+\(\square\) & 変換しないフィールドを明示したか & ID、キー、作成日時など、保存されるフィールドがコード上で見える。 \\
+\(\square\) & 新しく作る値の根拠を説明したか & デフォルト値、派生値、外部参照値が区別されている。 \\
+\(\square\) & 変換が失敗しうるかを決めたか & 失敗しないなら \texttt{Old -> New}、失敗しうるなら \texttt{Old -> Option New} や \texttt{Old -> Except E New} を使う。 \\
+\bottomrule
+\end{longtable}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def migrateUser : UserV1 -> UserV2 :=
+  fun u =>
+    { id := u.id
+      profile := { displayName := u.name } }
+\end{minted}
+\caption{正方向の移行関数}
+\label{lst:appD_migrate_function}
+\end{listing}
+
+\subsection{3. 逆変換は存在するか}
+
+\begin{warningbox}
+\texttt{Old -> New} と \texttt{New -> Old} の二つの関数があるだけでは、同型ではない。
+同型と言うには、変換して戻したときに元に戻ることを証明する必要がある。
+戻せない場合は、同型ではなく、片方向互換または仕様弱化として扱う。
+\end{warningbox}
+
+\begin{longtable}{@{}p{0.06\linewidth}p{0.32\linewidth}p{0.52\linewidth}@{}}
+\toprule
+確認 & 問い & 完了条件 \\
+\midrule
+\endhead
+\(\square\) & 逆変換を書けるか & \texttt{rollback : New -> Old} が定義できる。 \\
+\(\square\) & 逆変換が全入力で定義できるか & すべての \texttt{New} に対して戻せるか、well-formedな \texttt{New} に限るかを決めている。 \\
+\(\square\) & 戻せない新形式の値があるか & 新形式だけが持つ状態、任意の分割、外部生成IDなどが列挙されている。 \\
+\(\square\) & 逆変換が失敗しうるか & \texttt{New -> Option Old} にする必要があるかを判断している。 \\
+\bottomrule
+\end{longtable}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def rollbackUser : UserV2 -> UserV1 :=
+  fun u =>
+    { id := u.id
+      name := u.profile.displayName }
+\end{minted}
+\caption{逆方向の変換関数}
+\label{lst:appD_rollback_function}
+\end{listing}
+
+\subsection{4. 情報損失はあるか}
+
+情報損失がある移行を、完全同型として扱ってはいけない。
+情報損失があるかどうかは、戻せるかどうかだけでなく、戻した値が業務上同じ意味を持つかどうかでも判断する。
+
+\begin{definitionbox}
+本書では、\textbf{情報損失}を次のように読む。
+旧形式の値から新形式へ移した後、旧形式で区別できていた情報を復元できないなら、その移行は情報損失を持つ。
+ただし、業務仕様としてその区別を不要にした場合は、完全復元ではなく仕様弱化として証明対象を選び直す。
+\end{definitionbox}
+
+\begin{longtable}{@{}p{0.20\linewidth}p{0.34\linewidth}p{0.40\linewidth}@{}}
+\toprule
+移行の種類 & 典型例 & Leanで狙う性質 \\
+\midrule
+\endhead
+表現変更だけ & フィールド名変更、ネスト化、順序の変更 & 両方向round-trip \\
+旧から新へ拡張 & 新フィールドに固定デフォルトを入れる & 片方向round-trip、またはデフォルト条件付きround-trip \\
+情報の分割 & \texttt{fullName} を \texttt{firstName} と \texttt{lastName} に分ける & well-formed条件付き復元、または表示文字列の互換性 \\
+情報の削除 & 詳細ログから公開ログを作る & 完全復元ではなく、公開仕様の保存、単調性、安全な抽象化 \\
+集約 & 複数明細から合計だけを残す & 合計保存、個別明細の復元不可を明示 \\
+\bottomrule
+\end{longtable}
+
+\subsection{5. well-formed条件は必要か}
+
+すべての値を許す型で証明できない場合でも、業務上正しい値に限れば証明できることがある。
+このとき必要なのがwell-formed条件である。
+
+\begin{intuitionbox}
+well-formed条件は、「この形の値だけを本番データとして扱う」という約束である。
+たとえば、空でないID、重複しないキー、分割可能な氏名、対応する外部キーが存在する行などが該当する。
+\end{intuitionbox}
+
+\begin{longtable}{@{}p{0.06\linewidth}p{0.32\linewidth}p{0.52\linewidth}@{}}
+\toprule
+確認 & 問い & 完了条件 \\
+\midrule
+\endhead
+\(\square\) & 型だけでは表せない制約があるか & 空文字禁止、キー一意性、外部キー整合性などが列挙されている。 \\
+\(\square\) & 制約を述語として書いたか & \texttt{WellFormedOld : Old -> Prop} や \texttt{WellFormedNew : New -> Prop} がある。 \\
+\(\square\) & 移行がwell-formed性を保存するか & \texttt{WellFormedOld x -> WellFormedNew (migrate x)} を証明対象にしている。 \\
+\(\square\) & 条件付き復元の形を決めたか & \texttt{h : WellFormedNew y} を仮定して復元性を主張する。 \\
+\bottomrule
+\end{longtable}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def HasSameId (u1 : UserV1) (u2 : UserV2) : Prop :=
+  u1.id = u2.id
+
+theorem migrate_preserves_id (u : UserV1) :
+    HasSameId u (migrateUser u) := by
+  rfl
+\end{minted}
+\caption{well-formed条件を述語として分ける}
+\label{lst:appD_wellformed}
+\end{listing}
+
+\subsection{6. 証明したい性質はどの分類か}
+
+証明したい性質を分類すると、Leanで書く定理の形が決まる。
+分類しないまま始めると、完全同型を証明しようとして失敗し、その理由が仕様の問題なのか証明力の問題なのか分からなくなる。
+
+\begin{longtable}{@{}p{0.18\linewidth}p{0.36\linewidth}p{0.40\linewidth}@{}}
+\toprule
+分類 & 意味 & 定理の形 \\
+\midrule
+\endhead
+完全同型 & 新旧が同じ情報を持つ & \texttt{rollback (migrate x) = x} と \texttt{migrate (rollback y) = y} \\
+片方向互換 & 旧データは新形式へ安全に移せる & \texttt{rollback (migrate x) = x} だけ、または旧仕様の保存 \\
+制約付き同型 & well-formedな値だけ戻せる & \texttt{WellFormed y -> migrate (rollback y) = y} \\
+仕様弱化 & 完全復元ではなく、観測可能な性質だけを保存する & \texttt{observeNew (migrate x) = observeOld x} \\
+安全な抽象化 & 詳細情報を公開可能な形へ落とす & \texttt{SafePublic (abstract x)}、単調性、非漏洩性 \\
+\bottomrule
+\end{longtable}
+
+\begin{leanbox}
+証明対象は、強いほどよいとは限らない。
+実際に成り立たない完全同型を主張するより、業務上必要な観測結果だけを保存する定理の方が正確である。
+\end{leanbox}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+theorem rollback_after_migrate (u : UserV1) :
+    rollbackUser (migrateUser u) = u := by
+  cases u
+  rfl
+
+theorem migrate_after_rollback (u : UserV2) :
+    migrateUser (rollbackUser u) = u := by
+  cases u with
+  | mk id profile =>
+    cases profile
+    rfl
+\end{minted}
+\caption{完全同型のround-trip証明}
+\label{lst:appD_roundtrip}
+\end{listing}
+
+\subsection{7. バッチ化したとき性質は保存されるか}
+
+1件の移行が安全でも、バッチ移行で必要な性質が自動的にすべて得られるわけではない。
+件数、順序、キー集合、重複の有無、エラー件数、集計値など、バッチ固有の性質を確認する。
+
+\begin{longtable}{@{}p{0.06\linewidth}p{0.32\linewidth}p{0.52\linewidth}@{}}
+\toprule
+確認 & 問い & 完了条件 \\
+\midrule
+\endhead
+\(\square\) & バッチ移行は \texttt{List.map migrate} で表せるか & 各要素を独立に変換するだけなら \texttt{List.map} を使う。 \\
+\(\square\) & 件数は保存されるか & \texttt{length (map migrate xs) = length xs} を証明または既存定理で説明する。 \\
+\(\square\) & 順序は保存されるか & \texttt{List.map} なら順序保存が期待できる。ソートやフィルタが入る場合は別仕様にする。 \\
+\(\square\) & キーの一意性は保存されるか & ID保存と旧キー一意性から、新キー一意性が導けるかを確認する。 \\
+\(\square\) & 失敗する要素の扱いを決めたか & 全体を失敗させるか、成功分だけ残すか、エラー一覧を返すかを決める。 \\
+\bottomrule
+\end{longtable}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def migrateUsers (xs : List UserV1) : List UserV2 :=
+  xs.map migrateUser
+
+theorem migrateUsers_length (xs : List UserV1) :
+    (migrateUsers xs).length = xs.length := by
+  unfold migrateUsers
+  simp
+\end{minted}
+\caption{リスト全体への移行}
+\label{lst:appD_batch_migration}
+\end{listing}
+
+\subsection{8. 業務ロジックとの順序を入れ替えてもよいか}
+
+API adapterやレスポンスwrapperの変更では、変換と業務ロジックの順序が重要になる。
+先に移行してから業務ロジックを適用しても、先に業務ロジックを適用してから移行しても同じなら、adapterは業務ロジックに干渉していないと言える。
+
+\begin{definitionbox}
+本付録では、\textbf{順序を入れ替えてもよい}とは、二つの処理の合成結果が等しいことを意味する。
+圏論では可換図式や自然性として現れる。
+Leanでは、二つの式の等式として書く。
+\end{definitionbox}
+
+\begin{longtable}{@{}p{0.06\linewidth}p{0.32\linewidth}p{0.52\linewidth}@{}}
+\toprule
+確認 & 問い & 完了条件 \\
+\midrule
+\endhead
+\(\square\) & 変換前に適用する業務ロジックは何か & \texttt{businessOld : Old -> Old'} などの関数として名前が付いている。 \\
+\(\square\) & 変換後に対応する業務ロジックは何か & \texttt{businessNew : New -> New'} などの関数として名前が付いている。 \\
+\(\square\) & 二つの経路は同じ型へ到達するか & 等式の左右の型が一致している。 \\
+\(\square\) & 順序交換は全入力で必要か & 全入力、成功ケースのみ、well-formed入力のみのどれかを決めている。 \\
+\bottomrule
+\end{longtable}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def renameV1 (u : UserV1) (s : String) : UserV1 :=
+  { u with name := s }
+
+def renameV2 (u : UserV2) (s : String) : UserV2 :=
+  { u with profile := { displayName := s } }
+
+theorem migrate_rename_commutes (u : UserV1) (s : String) :
+    migrateUser (renameV1 u s) = renameV2 (migrateUser u) s := by
+  cases u
+  rfl
+\end{minted}
+\caption{移行と業務ロジックの可換性}
+\label{lst:appD_commute_business}
+\end{listing}
+
+\subsection{9. DBやクエリの結果は保存されるか}
+
+DBスキーマ変更では、行の形を移せるだけでは不十分である。
+本番で必要なクエリ結果が保存されるかを確認する必要がある。
+ただし、実DBエンジン全体をLeanで完全に再現するのではなく、小さな有限モデルで必要な性質を表す。
+
+\begin{longtable}{@{}p{0.06\linewidth}p{0.32\linewidth}p{0.52\linewidth}@{}}
+\toprule
+確認 & 問い & 完了条件 \\
+\midrule
+\endhead
+\(\square\) & 保存したいクエリを選んだか & すべてのSQLではなく、移行の安全性に関わる代表クエリを選ぶ。 \\
+\(\square\) & クエリを関数としてモデル化したか & \texttt{queryOld : OldDB -> Result} と \texttt{queryNew : NewDB -> Result} を用意する。 \\
+\(\square\) & 移行後のDBを作る関数を書いたか & \texttt{migrateDB : OldDB -> NewDB} がある。 \\
+\(\square\) & クエリ保存の等式を書いたか & \texttt{queryNew (migrateDB db) = queryOld db} を定理として書く。 \\
+\(\square\) & モデル外のDB仕様を明示したか & NULL、トランザクション、インデックス、照合順序などを保証外として記録する。 \\
+\bottomrule
+\end{longtable}
+
+\begin{leanbox}
+DB移行のLeanモデルでは、テーブルをリスト、クエリを関数、整合条件を述語として表すことから始める。
+実DBの全機能を形式化するのではなく、保存したいクエリ結果だけを切り出す。
+\end{leanbox}
+
+\subsection{10. 証明モデルと実装コードの差分はどこか}
+
+Leanで証明したことは、Leanで書いたモデルについての事実である。
+したがって、証明モデルと本番実装がずれていれば、証明の実務的な意味は弱くなる。
+証明した範囲と、証明していない範囲を必ず書く。
+
+\begin{warningbox}
+「Leanで証明済み」と言うときは、何が証明済みなのかを限定して書く。
+たとえば、「Leanモデル上では、\texttt{rollback (migrate u) = u} が全 \texttt{UserV1} について成立する」と書く。
+「本番移行が完全に安全」とだけ書くと、外部API、DB制約、パーサ、並行実行、運用手順まで保証したように読めてしまう。
+\end{warningbox}
+
+\begin{longtable}{@{}p{0.06\linewidth}p{0.32\linewidth}p{0.52\linewidth}@{}}
+\toprule
+確認 & 問い & 完了条件 \\
+\midrule
+\endhead
+\(\square\) & Leanモデルに含めたフィールドを列挙したか & 証明対象のフィールドと、無視したフィールドが分かる。 \\
+\(\square\) & 本番コードの変換処理と対応しているか & 実装関数、PR、設計書へのリンクを記録している。 \\
+\(\square\) & パース、シリアライズ、DB I/Oを保証外にしたか & 外部境界のテストが別に必要だと明記している。 \\
+\(\square\) & 証明が壊れたときの扱いを決めたか & 仕様変更、モデル変更、実装バグのどれかとしてレビューする方針がある。 \\
+\(\square\) & CIに入れるかを決めたか & \texttt{lake build} で検査するか、設計資料用に留めるかが決まっている。 \\
+\bottomrule
+\end{longtable}
+
+\section{証明タイプ別テンプレート}
+
+この節では、レビュー時にそのまま埋められる形で、証明タイプ別のテンプレートをまとめる。
+
+\subsection{完全同型テンプレート}
+
+\begin{definitionbox}
+完全同型として扱うのは、変更前後で情報が失われず、両方向のround-tripが成り立つ場合である。
+\end{definitionbox}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+-- Old, New を具体的な型に置き換える。
+-- migrate : Old -> New
+-- rollback : New -> Old
+
+theorem rollback_migrate_id (x : Old) :
+    rollback (migrate x) = x := by
+  -- 型と定義に応じて cases, rfl, simp などを使う。
+  sorry
+
+theorem migrate_rollback_id (y : New) :
+    migrate (rollback y) = y := by
+  -- すべての New に対して戻せる場合だけ成立する。
+  sorry
+\end{minted}
+\caption{完全同型のテンプレート}
+\label{lst:appD_template_iso}
+\end{listing}
+
+このテンプレート内の\texttt{sorry}は、読者が自分のプロジェクトで置き換える穴である。
+本書本文では原則として\texttt{sorry}を残さないが、ここではレビュー用テンプレートとして、証明を書く場所を明示している。
+
+\subsection{片方向互換テンプレート}
+
+片方向互換では、旧データを新形式へ移しても旧仕様を再現できることを示す。
+すべての新形式を旧形式へ戻せるとは限らない。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+-- 旧データを移して戻すと、旧データに戻る。
+theorem old_roundtrip (x : Old) :
+    rollback (migrate x) = x := by
+  sorry
+
+-- または、旧仕様として観測できる値だけが保存される。
+theorem old_observation_preserved (x : Old) :
+    observeNew (migrate x) = observeOld x := by
+  sorry
+\end{minted}
+\caption{片方向互換のテンプレート}
+\label{lst:appD_template_one_way}
+\end{listing}
+
+\subsection{制約付き同型テンプレート}
+
+制約付き同型では、すべての値ではなく、well-formedな値に限って復元性を主張する。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+-- WellFormedNew y は、新形式の値 y が業務上正しい形であること。
+theorem migrate_rollback_on_wellformed
+    (y : New) (h : WellFormedNew y) :
+    migrate (rollback y) = y := by
+  sorry
+
+-- 旧形式から移した値が、新形式のwell-formed条件を満たすこと。
+theorem migrate_preserves_wellformed
+    (x : Old) (h : WellFormedOld x) :
+    WellFormedNew (migrate x) := by
+  sorry
+\end{minted}
+\caption{制約付き同型のテンプレート}
+\label{lst:appD_template_wellformed}
+\end{listing}
+
+\subsection{仕様弱化テンプレート}
+
+完全復元が成り立たない場合は、業務上必要な観測だけを保存する。
+たとえば、詳細ログを公開ログへ落とす場合、詳細ログそのものは戻せない。
+しかし、公開してよい形式であることや、公開表示が期待通りであることは証明できる。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+-- normalizeOld と normalizeNew は、比較したい観測結果に落とす関数。
+theorem normalized_observation_preserved (x : Old) :
+    normalizeNew (migrate x) = normalizeOld x := by
+  sorry
+
+-- 情報を落とす変換なら、安全性述語を証明対象にする。
+theorem abstraction_is_safe (x : Old) :
+    SafePublic (abstract x) := by
+  sorry
+\end{minted}
+\caption{仕様弱化のテンプレート}
+\label{lst:appD_template_weakening}
+\end{listing}
+
+\section{レビュー用ワークシート}
+
+次の表は、設計レビューまたはPRレビューに貼り付けるためのワークシートである。
+チェック欄は紙面やMarkdownに転記しやすいように、単純な形にしている。
+
+\begin{longtable}{@{}p{0.045\linewidth}p{0.20\linewidth}p{0.28\linewidth}p{0.31\linewidth}@{}}
+\toprule
+確認 & レビュー項目 & 記入内容 & Leanでの対応 \\
+\midrule
+\endhead
+\(\square\) & 変更前の型 & 旧スキーマ名、主要フィールド、不変条件 & \texttt{Old}、\texttt{WellFormedOld} \\
+\(\square\) & 変更後の型 & 新スキーマ名、主要フィールド、不変条件 & \texttt{New}、\texttt{WellFormedNew} \\
+\(\square\) & 正方向変換 & 旧から新へ移す仕様 & \texttt{migrate : Old -> New} \\
+\(\square\) & 逆方向変換 & 全域か、部分的か、存在しないか & \texttt{rollback : New -> Old} または \texttt{New -> Option Old} \\
+\(\square\) & 情報損失 & 削除、集約、分割、外部生成値の有無 & 完全同型か仕様弱化かを選ぶ \\
+\(\square\) & 前提条件 & 正常データ、キー制約、入力制約 & \texttt{WellFormed}述語 \\
+\(\square\) & round-trip & どちら向きに戻せるか & \texttt{rollback (migrate x) = x} など \\
+\(\square\) & バッチ性質 & 件数、順序、キー、集計値 & \texttt{List.map}、長さ保存、全要素性質 \\
+\(\square\) & 業務ロジックとの可換性 & adapterの位置を変えてよいか & \texttt{migrate (businessOld x) = businessNew (migrate x)} \\
+\(\square\) & DBクエリ保存 & 保存したい代表クエリ & \texttt{queryNew (migrateDB db) = queryOld db} \\
+\(\square\) & 実装差分 & 証明モデルに含めない処理 & 保証外の明示、別テストへの接続 \\
+\(\square\) & CI運用 & 証明をいつ検査するか & \texttt{lake build}、レビュー手順 \\
+\bottomrule
+\end{longtable}
+
+\section{危険信号}
+
+次のいずれかに該当する場合、証明を書く前に仕様を見直す。
+
+\begin{warningbox}
+\begin{itemize}
+\item 「互換性がある」という言葉だけで、どの性質が保存されるかが書かれていない。
+\item 逆変換が存在すると言っているが、戻せない新形式の値がある。
+\item 情報を削除しているのに、完全なround-tripを主張している。
+\item well-formed条件が本番データの暗黙の約束になっており、Lean上にも設計書にも書かれていない。
+\item 1件の移行だけを確認し、バッチ時の件数、キー、失敗件数を確認していない。
+\item adapterを入れる位置を変えているが、業務ロジックとの可換性を確認していない。
+\item Leanモデルのフィールドが本番移行コードと対応していない。
+\item 「証明済み」と書いているが、証明した範囲と保証外の範囲が分かれていない。
+\end{itemize}
+\end{warningbox}
+
+\section{証明済みと書くための文例}
+
+最後に、設計書やPRに書ける文例を示す。
+過度に強い言い方を避け、Leanモデル上の保証として範囲を限定する。
+
+\begin{softwarebox}
+\textbf{完全同型の場合。}
+Leanモデル上の\texttt{UserV1}と\texttt{UserV2}について、\texttt{rollbackUser (migrateUser u) = u} と \texttt{migrateUser (rollbackUser v) = v} を証明した。
+したがって、モデル化したフィールド \texttt{id} と \texttt{displayName} については、移行は情報を失わない。
+パース、DB I/O、既存本番データの全件well-formed性は別途テストと移行前検査で確認する。
+\end{softwarebox}
+
+\begin{softwarebox}
+\textbf{仕様弱化の場合。}
+この移行は完全同型ではない。
+旧形式で保持していた詳細情報は新形式から復元できない。
+代わりに、業務上必要な観測値について \texttt{normalizeNew (migrate x) = normalizeOld x} をLeanモデル上で証明した。
+そのため、本PRで保証するのは完全復元ではなく、正規化後の表示互換性である。
+\end{softwarebox}
+
+\begin{softwarebox}
+\textbf{バッチ移行の場合。}
+1件の移行関数\texttt{migrateUser}を\texttt{List.map}でリスト全体へ持ち上げるモデルを作った。
+Leanモデル上では、移行前後でリスト長が保存されることを証明した。
+重複キー、外部キー整合性、失敗レコードの扱いは、別の定理または移行前後の検査項目として管理する。
+\end{softwarebox}
+
+\section{本付録のまとめ}
+
+\begin{summarybox}
+\begin{itemize}
+\item マイグレーション証明は、変更前後の型、変換関数、逆変換、前提条件、保存したい性質を分けることから始まる。
+\item 完全同型、片方向互換、制約付き同型、仕様弱化、情報損失ありの移行を混同しない。
+\item Leanでは、round-trip、well-formed保存、バッチ保存、業務ロジックとの可換性、クエリ保存を小さな定理として表す。
+\item 証明モデルは本番実装そのものではない。証明した範囲と保証外の範囲を、設計書やPRに明示する。
+\item チェックリストは、証明を書くためだけでなく、移行仕様の曖昧さを見つけるためにも使える。
+\end{itemize}
+\end{summarybox}

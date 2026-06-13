@@ -35,4 +35,8 @@
 *.swp
 *.swo
 
+# Python cache files
+__pycache__/
+*.py[cod]
+
 _minted-main/*

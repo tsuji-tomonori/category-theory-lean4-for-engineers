@@ -1,0 +1,398 @@
+% !TEX root = ../main.tex
+\chapter{ケーススタディ：User スキーマの lossless migration}
+\label{chap:ch22_user_schema_lossless_migration}
+
+\begin{chapterabstract}
+本章では、\texttt{UserV1} から \texttt{UserV2} へのスキーマ変更を、情報を失わない移行として扱う。
+フィールド名の変更、ネスト構造の導入、関連フィールドのグルーピングは、見た目には大きな変更に見える。
+しかし、旧形式から新形式へ移し、さらに旧形式へ戻したときに元の値へ戻るなら、その範囲では情報は失われていない。
+逆向きにも、新形式から旧形式へ戻してから新形式へ戻したときに元の値へ戻るなら、二つのスキーマは同じ情報を別の形で表していると言える。
+この性質を Lean 4 では round-trip law として書き、機械的に検査する。
+\end{chapterabstract}
+
+\begin{learninggoals}
+\item \texttt{UserV1} と \texttt{UserV2} の違いを、情報の違いと表現の違いに分けて説明できる。
+\item \texttt{migrate : UserV1 -> UserV2} と \texttt{rollback : UserV2 -> UserV1} を Lean で定義できる。
+\item \texttt{rollback (migrate u) = u} と \texttt{migrate (rollback v) = v} を round-trip 性質として読める。
+\item lossless migration と、単なる片方向変換やデフォルト値付き移行を区別できる。
+\item Lean の証明を CI や設計レビューに入れるときの境界線を説明できる。
+\end{learninggoals}
+
+\section{この章を読む理由}
+
+ユーザー情報のスキーマは、長く運用されるサービスほど変わりやすい。
+最初は単純なフラットなレコードだったものが、後からプロフィール、連絡先、監査情報、権限情報などに分かれる。
+API のレスポンス形式も、初期は小さく始まり、後から用途ごとのまとまりを持つ。
+
+このような変更では、実装者はよく「同じ情報を移しているだけ」と言う。
+しかし、その言葉だけでは安全性は確認できない。
+どのフィールドがどこへ移ったのか。
+名前を変えただけなのか。
+複数の値をまとめただけなのか。
+新しい値を補っていないか。
+どこかで正規化や切り捨てをしていないか。
+これらを明示しないと、移行レビューは雰囲気に頼ることになる。
+
+\begin{intuitionbox}
+lossless migration とは、「箱の中身を別の箱へ詰め替えるが、中身は一つも捨てない」変更である。
+箱のラベルや仕切りは変わってよい。
+しかし、戻したときに元の中身が完全に再現できなければならない。
+Lean では、この「戻したときに完全に再現できる」を等式として書く。
+\end{intuitionbox}
+
+\FigurePlaceholder{fig-ch22-lossless-migration-overview.png}{0.90}{\texttt{UserV1} と \texttt{UserV2} を相互変換する lossless migration の全体像}{fig:ch22-lossless-migration-overview}
+
+\section{ソフトウェア上の問題}
+
+本章の例では、旧スキーマ \texttt{UserV1} を次のようなフラットな構造として考える。
+
+\begin{itemize}
+\item \texttt{id}: ユーザーの識別子
+\item \texttt{name}: 表示名
+\item \texttt{email}: メールアドレス
+\item \texttt{emailVerified}: メール確認済みかどうか
+\item \texttt{createdAt}: 作成時刻を表す簡略化した数値
+\end{itemize}
+
+新スキーマ \texttt{UserV2} では、情報のまとまりを明示する。
+識別子は \texttt{userId} へ名前を変える。
+表示名は \texttt{Profile} に入れる。
+メールアドレスと確認状態は \texttt{Contact} に入れる。
+作成時刻は \texttt{Audit} に入れる。
+
+\begin{softwarebox}
+ここで行っているのは、業務上の情報を変えることではない。
+フィールドの配置と名前を変え、関連する値を小さな構造体にまとめているだけである。
+そのため、本当にすべての値をそのまま移しているなら、旧形式と新形式は同じ情報を持つ。
+本章では、この「同じ情報を持つ」を二つの round-trip 証明として扱う。
+\end{softwarebox}
+
+\begin{table}[htbp]
+\centering
+\caption{\texttt{UserV1} から \texttt{UserV2} へのフィールド対応}
+\label{tab:ch22-field-mapping}
+\begin{tabular}{lll}
+\toprule
+旧スキーマ & 新スキーマ & 変更の種類 \\
+\midrule
+\texttt{id} & \texttt{userId} & フィールド名変更 \\
+\texttt{name} & \texttt{profile.displayName} & ネスト構造への移動 \\
+\texttt{email} & \texttt{contact.emailAddress} & ネスト構造への移動と名前変更 \\
+\texttt{emailVerified} & \texttt{contact.verified} & 関連値のグルーピング \\
+\texttt{createdAt} & \texttt{audit.createdAt} & 監査情報へのグルーピング \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\Cref{tab:ch22-field-mapping} は、各フィールドがどこへ移ったかを示している。
+表の右端に注目すると、今回の変更は、分割、結合、正規化、削除ではない。
+すべての値が一対一に対応している。
+これが lossless migration として扱うための出発点である。
+
+\section{圏論での読み方：同型としてのスキーマ変更}
+
+圏論では、情報を失わない相互変換を同型として見る。
+本章では、対象をデータ型、射を変換関数として読む。
+すると、\texttt{UserV1} と \texttt{UserV2} が同型であるとは、次の四つがあることを意味する。
+
+\begin{definitionbox}
+\textbf{スキーマ同型}とは、二つのスキーマ \(A\) と \(B\) について、次のデータがあることである。
+\begin{itemize}
+\item \(A\) から \(B\) への変換 \(\mathit{to}\)
+\item \(B\) から \(A\) への変換 \(\mathit{from}\)
+\item 任意の \(a : A\) について \(\mathit{from}(\mathit{to}(a)) = a\)
+\item 任意の \(b : B\) について \(\mathit{to}(\mathit{from}(b)) = b\)
+\end{itemize}
+本章の名前では、\(\mathit{to}\) が \texttt{migrate}、\(\mathit{from}\) が \texttt{rollback} に対応する。
+\end{definitionbox}
+
+\FigurePlaceholder{fig-ch22-round-trip-laws.png}{0.90}{両方向の round-trip law が同型性を支える}{fig:ch22-round-trip-laws}
+
+ここで大事なのは、変換関数が二つ存在するだけでは不十分だという点である。
+\texttt{migrate} と \texttt{rollback} を実装できても、それらが互いの逆になっていなければ同型ではない。
+実務では「戻す関数もあります」と言うだけで安全に見えることがある。
+しかし、戻した結果が常に元の値と一致することを確認して初めて、lossless と言える。
+
+\section{Lean 4 でスキーマを定義する}
+
+まず、Lean 上に小さなモデルを作る。
+現実のユーザー情報には、UUID、メール形式、タイムゾーン、監査ログ、外部認証 ID などが関わる。
+本章では、round-trip の核心を見やすくするため、識別子や時刻を \texttt{Nat}、文字列を \texttt{String}、確認状態を \texttt{Bool} で表す。
+
+\begin{leanbox}
+このモデルは、本番 DB の完全な写しではない。
+証明したい性質、つまり「フィールドを落とさず対応先へ移していること」を確認するための小さな検証モデルである。
+複雑な型を使う前に、小さな構造体で移行の骨格を固定する。
+\end{leanbox}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+namespace Chapter22
+
+structure UserV1 where
+  id : Nat
+  name : String
+  email : String
+  emailVerified : Bool
+  createdAt : Nat
+  deriving Repr, DecidableEq
+
+structure Profile where
+  displayName : String
+  deriving Repr, DecidableEq
+
+structure Contact where
+  emailAddress : String
+  verified : Bool
+  deriving Repr, DecidableEq
+
+structure Audit where
+  createdAt : Nat
+  deriving Repr, DecidableEq
+
+structure UserV2 where
+  userId : Nat
+  profile : Profile
+  contact : Contact
+  audit : Audit
+  deriving Repr, DecidableEq
+\end{minted}
+\caption{旧スキーマと新スキーマの定義}
+\label{lst:ch22-schema-defs}
+\end{listing}
+
+\texttt{deriving Repr} は、\texttt{\#eval} で値を表示しやすくするために付けている。
+\texttt{deriving DecidableEq} は、値の等しさを計算で確認したい場面にも備えるためである。
+ただし、本章の中心は、テスト的な比較ではなく、すべての入力に対する定理である。
+
+\section{\texttt{migrate} を定義する}
+
+次に、旧スキーマから新スキーマへ移す関数を定義する。
+ここでは、値を加工しない。
+文字列を trim しない。
+メールアドレスを小文字化しない。
+時刻を変換しない。
+単に、対応する場所へ値を置くだけである。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def migrate (u : UserV1) : UserV2 :=
+  { userId := u.id
+    profile := { displayName := u.name }
+    contact :=
+      { emailAddress := u.email
+        verified := u.emailVerified }
+    audit := { createdAt := u.createdAt } }
+
+#eval migrate
+  { id := 1
+    name := "Ada"
+    email := "ada@example.com"
+    emailVerified := true
+    createdAt := 1000 }
+\end{minted}
+\caption{旧スキーマから新スキーマへの移行}
+\label{lst:ch22-migrate}
+\end{listing}
+
+この関数の型は \texttt{UserV1 -> UserV2} である。
+ソフトウェア的には、旧 DTO から新 DTO への adapter と読める。
+圏論的には、\texttt{UserV1} という対象から \texttt{UserV2} という対象への射として読める。
+
+\begin{warningbox}
+この段階では、まだ lossless だとは言えない。
+\texttt{migrate} は片方向の変換でしかない。
+値をすべて移しているように見えても、逆向きに戻して本当に一致することをまだ証明していない。
+\end{warningbox}
+
+\section{\texttt{rollback} を定義する}
+
+逆向きの変換も定義する。
+\texttt{rollback} は、新スキーマの各ネスト構造から値を取り出し、旧スキーマのフラットなフィールドへ戻す。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def rollback (v : UserV2) : UserV1 :=
+  { id := v.userId
+    name := v.profile.displayName
+    email := v.contact.emailAddress
+    emailVerified := v.contact.verified
+    createdAt := v.audit.createdAt }
+\end{minted}
+\caption{新スキーマから旧スキーマへの逆変換}
+\label{lst:ch22-rollback}
+\end{listing}
+
+\texttt{rollback} が存在するだけなら、単に \texttt{UserV2 -> UserV1} の関数があるというだけである。
+たとえば、\texttt{name} に常に空文字を入れるような \texttt{rollback} も、型だけ見れば定義できてしまう。
+したがって、次に必要なのは round-trip の証明である。
+
+\section{証明する性質を選ぶ}
+
+このケースで証明したい性質は二つある。
+
+\begin{align*}
+\texttt{rollback (migrate u)} &= \texttt{u} \\
+\texttt{migrate (rollback v)} &= \texttt{v}
+\end{align*}
+
+一つ目は、旧データを新形式へ移し、旧形式へ戻すと、元の旧データに一致することを言う。
+これは、既存データの移行にとって特に重要である。
+二つ目は、新データを旧形式へ戻し、再び新形式へ移すと、元の新データに一致することを言う。
+これは、新スキーマ全体が旧スキーマと同じ情報だけからできていることを表す。
+
+\begin{definitionbox}
+\textbf{両方向 round-trip} は、片方だけの互換性より強い性質である。
+\texttt{rollback (migrate u) = u} だけなら、旧データを安全に新形式へ移せることを示す。
+しかし、\texttt{migrate (rollback v) = v} も成り立つとき、新スキーマ側にも余分な情報や戻せない自由度がないことを示せる。
+\end{definitionbox}
+
+\section{Lean で round-trip を証明する}
+
+証明方針は単純である。
+\texttt{UserV1} の値 \texttt{u} をフィールドに分解する。
+すると、\texttt{migrate} は各フィールドを対応先へ置き、\texttt{rollback} はそれを元の場所へ戻す。
+最終的に左右の式は同じ構造体リテラルになるので、\texttt{rfl} で閉じられる。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+theorem rollback_migrate (u : UserV1) :
+    rollback (migrate u) = u := by
+  cases u
+  rfl
+\end{minted}
+\caption{旧から新へ移して戻す round-trip 証明}
+\label{lst:ch22-rollback-migrate}
+\end{listing}
+
+\texttt{cases u} は、\texttt{u} をそのフィールドに分解する。
+分解後、Lean は \texttt{migrate} と \texttt{rollback} の定義を展開できる。
+左右が同じ形になったので、\texttt{rfl}、つまり反射律で証明できる。
+
+新から旧へ戻して再び新へ移す証明では、\texttt{UserV2} の中に \texttt{Profile}、\texttt{Contact}、\texttt{Audit} が入っている。
+そのため、外側の \texttt{UserV2} だけでなく、内側の構造体も分解する。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+theorem migrate_rollback (v : UserV2) :
+    migrate (rollback v) = v := by
+  cases v with
+  | mk userId profile contact audit =>
+    cases profile with
+    | mk displayName =>
+      cases contact with
+      | mk emailAddress verified =>
+        cases audit with
+        | mk createdAt =>
+          rfl
+\end{minted}
+\caption{新から旧へ戻して再び新へ移す round-trip 証明}
+\label{lst:ch22-migrate-rollback}
+\end{listing}
+
+この証明が少し長く見えるのは、新スキーマがネストしているためである。
+ただし、行っていることは難しくない。
+各構造体をフィールドへ展開し、定義を計算した結果、同じ値に戻ることを Lean に確認させている。
+
+\begin{leanbox}
+この章の証明では、外部ライブラリの高度な圏論 API を使っていない。
+同型という考え方は圏論の語彙だが、Lean 上ではまず構造体、関数、等式、\texttt{cases}、\texttt{rfl} だけで十分に表現できる。
+これにより、実務の移行仕様に近い形で検証できる。
+\end{leanbox}
+
+\section{同型を小さな構造体としてまとめる}
+
+二つの round-trip 定理がそろったら、それらを一つの値としてまとめられる。
+これは、第6章で扱った「同型を構造体として持つ」考え方の実務版である。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+structure SchemaIso (A B : Type) where
+  to : A -> B
+  from : B -> A
+  from_to : forall a, from (to a) = a
+  to_from : forall b, to (from b) = b
+
+def userSchemaIso : SchemaIso UserV1 UserV2 :=
+  { to := migrate
+    from := rollback
+    from_to := rollback_migrate
+    to_from := migrate_rollback }
+\end{minted}
+\caption{スキーマ同型を表す小さな構造体}
+\label{lst:ch22-schema-iso}
+\end{listing}
+
+\texttt{userSchemaIso} は、単なる設計メモではない。
+\texttt{migrate} と \texttt{rollback} に加えて、二つの法則そのものを持つ値である。
+この形にしておくと、「この変換は同型として扱える」という主張を、関数と証明の組として受け渡せる。
+
+\section{lossless でなくなる典型例}
+
+本章の例は、あえて lossless になるように設計している。
+しかし、実務では似た見た目でも lossless ではない変更が多い。
+たとえば、次の変更は注意が必要である。
+
+\begin{itemize}
+\item \texttt{name} を \texttt{firstName} と \texttt{lastName} に分ける。
+\item \texttt{email} を常に小文字化して保存する。
+\item \texttt{createdAt} を日単位へ丸める。
+\item \texttt{UserV2} に \texttt{timezone} のような新しい必須フィールドを追加する。
+\item 旧スキーマの値を削除し、新スキーマではデフォルト値で補う。
+\end{itemize}
+
+これらは、戻せる場合もあるが、常に戻せるとは限らない。
+たとえば、\texttt{timezone} を新しく追加し、旧データからは常に \texttt{"UTC"} を入れるとする。
+このとき、旧データから新データへの移行はできる。
+しかし、任意の \texttt{UserV2} が \texttt{timezone = "UTC"} とは限らない。
+そのため、\texttt{migrate (rollback v) = v} は一般には成り立たない。
+
+\begin{warningbox}
+「旧データを新データへ移せる」ことと、「新旧スキーマが同じ情報を表す」ことは違う。
+前者は片方向互換であり、後者は両方向 round-trip を必要とする。
+本章の Lean 証明は、この二つを混同しないための安全装置である。
+\end{warningbox}
+
+\section{CI に入れる場合の境界線}
+
+Lean の証明を CI に入れると、スキーマ移行の設計変更に対するセンサーとして使える。
+たとえば、\texttt{migrate} の対応先フィールドを間違えたり、\texttt{rollback} で別の値を返したりすると、round-trip 定理が壊れる。
+この失敗は、テストの失敗と同じようにレビューのきっかけになる。
+
+\FigurePlaceholder{fig-ch22-ci-boundary.png}{0.90}{CI に入れる Lean 証明と本番システムの境界線}{fig:ch22-ci-boundary}
+
+ただし、CI に入れた Lean 証明が保証するのは、Lean でモデル化した範囲である。
+現実のシステムには、JSON encoder、ORM、DB 制約、NULL、文字コード、時刻フォーマット、外部 API、並行実行、ロールバック手順などがある。
+本章の証明だけで、それらすべてが正しいとは言えない。
+
+\begin{softwarebox}
+実務では、次のように役割を分けるとよい。
+Lean は、移行仕様の核であるフィールド対応と round-trip 性質を検査する。
+ユニットテストは、実装言語の encoder、decoder、DB mapper が Lean モデルと同じ対応をしているかを確認する。
+結合テストやリハーサルは、実 DB、データ量、インデックス、運用手順を確認する。
+\end{softwarebox}
+
+CI に置くファイル名は、たとえば \texttt{lean/ch22\_user\_schema\_lossless\_migration.lean} とする。
+定理名は、仕様項目に対応させるとよい。
+\texttt{rollback\_migrate} は「旧データを移して戻すと元に戻る」。
+\texttt{migrate\_rollback} は「新データを戻して再移行すると元に戻る」。
+レビューでは、この二つの定理が何を保証し、何を保証しないかを明記する。
+
+\section{次章への接続}
+
+本章では、すべての情報が一対一に対応する移行を扱った。
+次章では、この前提が崩れる。
+たとえば、\texttt{fullName} を \texttt{firstName} と \texttt{lastName} に分割する場合、入力によっては元の形へ完全には戻せない。
+そのときは、無理に同型として扱うのではなく、well-formed 条件や正規化後の一致へ仕様を弱める必要がある。
+
+\section{本章のまとめ}
+
+\begin{summarybox}
+\begin{itemize}
+\item lossless migration は、旧形式と新形式が同じ情報を別の構造で持つ変更である。
+\item \texttt{migrate} と \texttt{rollback} があるだけでは同型ではない。
+\item \texttt{rollback (migrate u) = u} と \texttt{migrate (rollback v) = v} の二つを証明して初めて、両方向の情報保存を主張できる。
+\item Lean では、構造体、関数、\texttt{cases}、\texttt{rfl} だけで小さな round-trip 証明を書ける。
+\item CI に入れる場合は、Lean が保証するモデル上の性質と、本番システムで別途確認すべき性質を分けて書く必要がある。
+\end{itemize}
+\end{summarybox}

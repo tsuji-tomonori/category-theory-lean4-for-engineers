@@ -1,0 +1,291 @@
+% !TEX root = ../main.tex
+\chapter{トポス・型理論・仕様言語への橋渡し}
+\label{chap:ch33-topos-type-theory-spec-languages}
+
+\begin{chapterabstract}
+本章では、トポス、型理論、仕様言語を、ソフトウェアエンジニアが次の学習へ進むための地図として眺める。ここでの目的は、トポス理論を厳密に展開することではない。むしろ、これまで本書で扱ってきた型、関数、命題、証明、仕様DSL、可換性、不変条件が、より大きな文脈ではどのようにつながるのかを確認することである。
+
+トポスは、非常に粗く言えば「集合のように振る舞うが、その内部で論理を語れる世界」である。この見方は、Leanの型理論、仕様言語、モデル検査、ドメイン固有言語を考えるときの背景になる。本章では、Leanで小さな仕様DSLを作り、構文と意味論を分ける例を示す。これはトポスそのものの形式化ではなく、「世界の内部で仕様を読む」という考え方を体験するための最小モデルである。
+\end{chapterabstract}
+
+\begin{learninggoals}
+  \item トポスを「集合のように振る舞う世界」として直感的に説明できる。
+  \item 内部言語を「ある世界の中で使える論理」として読める。
+  \item Leanの\texttt{Type}、\texttt{Prop}、証明が、型理論と仕様記述にどう関係するかを再確認できる。
+  \item 仕様言語やDSLを、構文と意味論の組として捉えられる。
+  \item 本書でトポス理論を深追いしない理由と、次に学ぶべき方向を説明できる。
+\end{learninggoals}
+
+\section{この章の位置づけ}
+
+第31章では、随伴を「自由に作ること」と「構造を忘れること」の対応として眺めた。第32章では、米田の補題を「対象は、それに対する観測方法によって特徴づけられる」という直感として扱った。本章では、その先にあるトポス、型理論、仕様言語への入口を作る。
+
+ただし、ここで扱う内容は発展的な地図である。本章を読んだからといって、トポス理論をすぐに実務コードへ適用できるわけではない。重要なのは、これまで学んだ「型としての対象」「関数としての射」「命題としての仕様」「証明としての保証」が、より大きな理論の中で自然な位置を持つことを知ることである。
+
+\begin{intuitionbox}
+本章でのトポスの見方は、「データ、変換、論理を同じ世界の中で語れる場所」である。たとえば、ある仕様DSLの中では、通常のプログラミング言語とは違う形で「真」「かつ」「ならば」「存在する」を解釈することがある。そのような「その世界の中での論理」を考える入口が、内部言語という考え方である。
+\end{intuitionbox}
+
+\FigurePlaceholder{fig-ch33-bridge-map.png}{0.92}{トポス、型理論、仕様言語への橋渡し。中央に「世界の中で論理を語る」という視点を置き、左に圏論、右にLeanと型理論、下に仕様DSLとモデル検査を配置する。}{fig:ch33-bridge-map}
+
+\section{トポスを「集合のように振る舞う世界」として眺める}
+
+集合の世界では、値の集まりを考え、その間の関数を考える。たとえば、\texttt{User}という型をユーザーの集合のように見て、\texttt{User -> Bool}をユーザーに関する判定と見ることができる。本書の前半では、この「型と関数の世界」を圏論の入口として使ってきた。
+
+トポスは、この集合の世界に似た性質を持ちながら、より一般的な「世界」を扱うための概念である。そこでは、対象があり、射があり、積や余積のような構成があり、さらにその世界の内部で命題や論理を語ることができる。
+
+\begin{definitionbox}
+本章での作業用の言い方として、トポスを次のように読む。
+
+\medskip
+
+\emph{トポスとは、集合の圏に似た構造を持ち、その内部で論理を語れる圏である。}
+
+\medskip
+
+これは正式な定義ではない。正式には、有限極限、指数対象、部分対象分類子などを用いて定義する。しかし本章では、これらの技術的条件を展開しない。ここでは「データの世界」と「その世界の論理」が一緒に扱える、という直感に絞る。
+\end{definitionbox}
+
+\begin{softwarebox}
+ソフトウェアで近い感覚を探すなら、「あるDSLの中でだけ意味を持つ式」を考えるとよい。たとえば、アクセス制御DSLでは、\texttt{isAdmin}、\texttt{hasQuota}、\texttt{sameTenant}のような式がある。これらは通常の\texttt{Bool}式にコンパイルされるかもしれないが、DSLの利用者はまず「そのDSLの世界の中で真かどうか」を考える。
+\end{softwarebox}
+
+次の表は、集合、型、仕様DSLを並べたものである。厳密な同一視ではなく、読み替えのための対応表として見る。
+
+\begin{center}
+\begin{tabular}{@{}p{0.16\linewidth}p{0.18\linewidth}p{0.18\linewidth}p{0.38\linewidth}@{}}
+\toprule
+視点 & 値・対象 & 変換・射 & 論理の読み方 \\
+\midrule
+集合の世界 & 集合 & 関数 & 部分集合や述語として命題を読む \\
+Leanの型理論 & \texttt{Type}の要素 & 関数 & \texttt{Prop}と証明として仕様を読む \\
+仕様DSL & 状態空間 & 状態変換・評価関数 & DSL式を意味論で命題に解釈する \\
+トポス的な見方 & ある世界の対象 & その世界の射 & その世界の内部言語で命題を読む \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{内部言語という考え方}
+
+内部言語とは、ある圏や世界の外側から構造を説明するのではなく、その世界の中で使える言葉として論理を読む考え方である。
+
+たとえば、マルチテナントのSaaSを考える。外側から見ると、システム全体には多数のテナント、権限、ユーザー、設定がある。しかし、あるテナントの内部で仕様を書くときには、「現在のテナントで見えるユーザー」「現在の権限で可能な操作」「現在の設定で有効な機能」だけを使って論理を組み立てることがある。
+
+\begin{intuitionbox}
+内部言語は、「どの世界にいるつもりで話しているか」を明確にする考え方である。外側からは同じデータでも、テナント、時刻、権限、設定、抽象化レベルが変わると、語れる命題や成り立つ命題が変わることがある。
+\end{intuitionbox}
+
+\FigurePlaceholder{fig-ch33-internal-language.png}{0.90}{外部から見た世界と内部言語。外側には複数の文脈があり、それぞれの内側に、その文脈でだけ使える論理や仕様があることを示す。}{fig:ch33-internal-language}
+
+ここで重要なのは、「真偽は常に一つの固定された\texttt{Bool}だけで表される」と考えないことである。もちろん、最終的な実装では\texttt{Bool}やエラー値として判定することが多い。しかし仕様設計の段階では、どの文脈で何を真とみなすのかを分けておく必要がある。
+
+\begin{warningbox}
+内部言語という言葉を聞くと、「新しいプログラミング言語を作る」という話に見えるかもしれない。しかし本章で大事なのは、言語実装ではなく、仕様をどの世界の中で読むかである。たとえば、本番環境、検証モデル、抽象化された状態空間では、同じ日本語の仕様でも意味が少しずつ異なる。
+\end{warningbox}
+
+\section{型理論との接続}
+
+Leanでは、型、値、命題、証明が密接に結びついている。\texttt{Nat}や\texttt{String}のような型は値の形を表す。\texttt{Prop}は証明の対象となる命題を表す。そして、ある命題の証明は、その命題を満たす構成物として扱われる。
+
+この見方は、型理論の基本的な発想につながる。型理論では、命題を型のように扱い、その命題の証明をその型の値のように扱う。この対応は、Leanで仕様を書くときの実務感覚にも現れている。
+
+\begin{leanbox}
+次のLeanコードでは、アップロード可能性を\texttt{Prop}として定義する。ここで\texttt{CanUpload u}は、\texttt{u}に関する仕様である。証明\texttt{uploadPolicy\_requires\_active}は、その仕様から「ユーザーが有効である」という性質を取り出している。
+\end{leanbox}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+namespace Chapter33
+
+structure UserCtx where
+  userId : Nat
+  active : Bool
+  quota : Nat
+deriving Repr, DecidableEq
+
+def CanUpload (u : UserCtx) : Prop :=
+  And (u.active = true) (0 < u.quota)
+
+def uploadPolicy (u : UserCtx) : Prop :=
+  CanUpload u
+
+theorem uploadPolicy_requires_active (u : UserCtx) :
+    uploadPolicy u -> u.active = true := by
+  intro h
+  exact h.left
+\end{minted}
+\caption{文脈に依存する仕様を命題として書く}
+\label{lst:ch33_user_policy}
+\end{listing}
+
+この例は、トポス理論の形式化ではない。しかし「文脈\texttt{UserCtx}の上で命題を読む」という練習になっている。仕様は単なる文字列ではなく、ある状態や文脈の上で真偽を持つ命題として扱われる。
+
+\begin{softwarebox}
+実務では、\texttt{CanUpload}のような述語は、設計文書に書かれた「有効なユーザーで、残量がある場合だけアップロードできる」という仕様の核に対応する。この核をLeanで表すと、仕様から何が導けるかを機械的に確認できる。
+\end{softwarebox}
+
+\section{仕様言語・DSL・モデル検査との距離感}
+
+仕様言語やDSLを設計するとき、重要なのは「構文」と「意味論」を分けることである。構文とは、ユーザーが書ける式の形である。意味論とは、その式が状態や文脈に対して何を意味するかである。
+
+たとえば、アクセス制御DSLには、次のような構文があるかもしれない。
+
+\begin{itemize}
+  \item 常に真である式
+  \item ユーザーが有効であることを表す式
+  \item 残りクォータが一定以上あることを表す式
+  \item 二つの式を「かつ」で結ぶ式
+\end{itemize}
+
+Leanでは、これを小さな帰納型として定義できる。そして、その構文を\texttt{UserCtx -> Prop}へ解釈する関数を与えると、DSLの式に意味が与えられる。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+inductive Spec where
+  | truth : Spec
+  | isActive : Spec
+  | hasQuota : Nat -> Spec
+  | and : Spec -> Spec -> Spec
+deriving Repr, DecidableEq
+
+def holds (s : Spec) (u : UserCtx) : Prop :=
+  match s with
+  | Spec.truth => True
+  | Spec.isActive => u.active = true
+  | Spec.hasQuota n => n <= u.quota
+  | Spec.and p q => And (holds p u) (holds q u)
+
+def uploadDSL : Spec :=
+  Spec.and Spec.isActive (Spec.hasQuota 1)
+
+theorem uploadDSL_means_active (u : UserCtx) :
+    holds uploadDSL u -> u.active = true := by
+  intro h
+  exact h.left
+\end{minted}
+\caption{小さな仕様DSLとその意味論}
+\label{lst:ch33_spec_dsl}
+\end{listing}
+
+このコードでは、\texttt{Spec}がDSLの構文であり、\texttt{holds}が意味論である。\texttt{uploadDSL}はDSL上の式であり、\texttt{holds uploadDSL u}は、その式が文脈\texttt{u}で成り立つというLeanの命題である。
+
+\begin{intuitionbox}
+DSLの式は、まだ仕様そのものではない。式に意味論を与えて初めて、「この状態で成り立つ」「この状態では成り立たない」と言える。これは、内部言語の素朴なミニチュアとして読める。
+\end{intuitionbox}
+
+モデル検査との距離感もここで整理できる。モデル検査は、有限個または抽象化された状態を網羅的に探索し、仕様が破れる状態がないかを調べる技術である。一方、Leanによる証明は、探索というより、命題に対する証明を構成する作業である。
+
+\begin{center}
+\begin{tabular}{@{}p{0.16\linewidth}p{0.38\linewidth}p{0.38\linewidth}@{}}
+\toprule
+道具 & 得意なこと & 注意点 \\
+\midrule
+Lean & 任意の入力に対する一般的な性質を証明する & モデル化と証明に人間の設計判断が必要 \\
+仕様DSL & ドメインの人が読める形で制約を記述する & 構文だけでは不十分で、意味論が必要 \\
+モデル検査 & 有限状態や抽象状態を網羅的に探索する & 状態空間の切り方や抽象化に依存する \\
+型システム & 不正な形の値や組み合わせを事前に排除する & 業務仕様のすべてを型だけで表せるとは限らない \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\FigurePlaceholder{fig-ch33-spec-dsl-loop.png}{0.92}{仕様DSLの構文、意味論、検査の関係。DSL式を状態空間上の命題へ解釈し、Leanの証明またはモデル検査で確認する流れを示す。}{fig:ch33-spec-dsl-loop}
+
+\section{仕様言語を構文と意味論の組として見る}
+
+前節の例を、もう少し一般的に書くと、仕様言語は「状態の型」「式の型」「式を状態上の命題へ解釈する関数」の組として見ることができる。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+structure SpecLang where
+  State : Type
+  Formula : Type
+  Semantics : Formula -> State -> Prop
+
+def UserSpecLang : SpecLang where
+  State := UserCtx
+  Formula := Spec
+  Semantics := holds
+
+def refines {A : Type} (p q : A -> Prop) : Prop :=
+  forall x, p x -> q x
+
+theorem and_refines_left {A : Type} (p q : A -> Prop) :
+    refines (fun x => And (p x) (q x)) p := by
+  intro x h
+  exact h.left
+\end{minted}
+\caption{仕様言語を構文と意味論の組として表す}
+\label{lst:ch33_spec_lang}
+\end{listing}
+
+\texttt{SpecLang}は非常に小さなモデルである。それでも、重要な構図は入っている。
+
+\begin{itemize}
+  \item \texttt{State}は、仕様を評価する対象となる世界である。
+  \item \texttt{Formula}は、その世界について語るための式である。
+  \item \texttt{Semantics}は、式を状態上の命題へ変換する。
+\end{itemize}
+
+\texttt{refines}は、「強い仕様が弱い仕様を含意する」という関係を表す。たとえば、「有効で、かつ残量がある」という仕様は、「有効である」という仕様より強い。このように、仕様間の関係を命題として扱えるようになると、仕様DSLは単なる設定ファイルではなく、検査可能な言語に近づく。
+
+\begin{softwarebox}
+DSLを設計するときは、構文を先に増やしすぎない方がよい。まず、「その式はどの状態に対して何を意味するのか」を定める。意味論が決まれば、テストで確認する部分、Leanで証明する部分、モデル検査で探索する部分を分けやすくなる。
+\end{softwarebox}
+
+\section{本書の範囲外にする理由}
+
+トポス理論は、型理論、論理、幾何、圏論を結ぶ強力な理論である。しかし本書では、トポス理論そのものを本格的には扱わない。理由は三つある。
+
+第一に、前提となる圏論が重い。正式な定義には、有限極限、指数対象、部分対象分類子などが必要になる。これらを丁寧に説明するには、本書の実務入門という目的から大きく外れる。
+
+第二に、すぐにLeanコードで実務仕様を証明する道具として使うには抽象度が高い。本書の中心は、マイグレーションのround-trip、API adapterの自然性、リファクタリングの等式、不変条件保存などである。これらは、トポス理論を知らなくても、小さなLeanモデルで十分に始められる。
+
+第三に、トポスの内部言語を本格的に扱うには、論理体系そのものの違いを理解する必要がある。古典論理と直観主義論理の違い、部分対象の扱い、sheafの直感などが必要になる。これは非常に面白いが、本書の初版では後続学習への橋渡しに留める。
+
+\begin{warningbox}
+「本章で扱わない」は、「重要でない」という意味ではない。むしろ、トポスと内部言語は、型理論や仕様言語を深く理解するための重要な背景である。ただし、実務で最初に必要なのは、仕様を型、関数、述語、定理に分け、小さく検査できる形へ落とす力である。
+\end{warningbox}
+
+本章で範囲外にするものを明示しておく。
+
+\begin{itemize}
+  \item トポスの正式な公理化
+  \item 部分対象分類子の詳細
+  \item sheafと幾何的意味
+  \item トポスの内部言語の完全な証明論
+  \item 依存型理論の意味論の本格展開
+  \item 時相論理やモデル検査アルゴリズムの実装
+  \item 実装言語から仕様DSLやLean定理を自動生成する仕組み
+\end{itemize}
+
+\section{実務への読み替え}
+
+本章の考え方は、すぐに「トポスを使って設計する」という話ではない。実務への読み替えは、次のような問いとして現れる。
+
+\begin{itemize}
+  \item いま書いている仕様は、どの状態空間の上で評価されるのか。
+  \item 仕様の構文と意味論は分かれているか。
+  \item その仕様は\texttt{Bool}で検査するのか、\texttt{Prop}として証明するのか。
+  \item すべての入力について証明したいのか、有限状態を探索したいのか。
+  \item 仕様を強める、弱める、抽象化する、という関係を明示できているか。
+\end{itemize}
+
+\begin{summarybox}
+トポス、型理論、仕様言語を結ぶ共通の視点は、「ある世界の中で、対象・変換・論理を一緒に扱う」という点にある。Leanでは、その最小形として、型、関数、命題、証明を扱える。仕様DSLでは、構文と意味論を分けることで、ドメインの言葉を検査可能な命題へ接続できる。
+\end{summarybox}
+
+\section{次に進むための地図}
+
+本章の後に進む道は、大きく三つある。
+
+一つ目は、Leanと型理論を深める道である。命題を型として扱い、証明を構成として扱う感覚を強めると、仕様をLeanへ移す力が上がる。依存型、帰納型、再帰、型クラス、証明自動化などが次の題材になる。
+
+二つ目は、圏論と categorical logic を深める道である。随伴、極限、指数対象、部分対象分類子、トポス、内部言語へ進むと、論理と圏論の対応がより明確になる。
+
+三つ目は、形式手法と仕様言語へ進む道である。状態機械、時相論理、モデル検査、抽象解釈、契約ベース設計などを学ぶと、Leanだけではなく、複数の検証手法を使い分ける判断ができるようになる。
+
+次章では、本書で自作してきた小さな定義から、Mathlibの\texttt{CategoryTheory}へ進むための橋渡しを行う。本章が「理論全体の地図」だとすれば、次章は「既存ライブラリへ移るための実装上の地図」である。
+
+\begin{summarybox}
+本章では、トポスを「集合のように振る舞い、その内部で論理を語れる世界」として眺めた。内部言語は、どの世界の中で仕様を読んでいるのかを明確にする考え方である。Leanの\texttt{Type}、\texttt{Prop}、証明は、その最小の実験場になる。仕様DSLは、構文と意味論を分けることで、ドメインの言葉を検査可能な命題へ接続する。本章ではトポス理論を本格展開しないが、型理論、仕様言語、形式手法へ進むための背景として位置づけた。
+\end{summarybox}

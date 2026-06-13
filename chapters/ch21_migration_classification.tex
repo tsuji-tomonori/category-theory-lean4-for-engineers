@@ -1,0 +1,370 @@
+% !TEX root = ../main.tex
+\chapter{マイグレーションを数学的に分類する}
+\label{chap:ch21-migration-classification}
+
+\begin{chapterabstract}
+本章では、データやAPIのマイグレーションを「作業手順」ではなく「型の間の変換」として捉える。移行には、情報をまったく失わないもの、旧形式を新形式で扱えるだけのもの、情報を意図的に捨てるもの、条件を満たすデータだけ戻せるものがある。これらを同じ「互換性」という言葉でまとめてしまうと、レビューで何を確認すべきかが曖昧になる。
+
+ここでは、完全同型、片方向互換、情報損失ありの移行、制約付き同型、仕様弱化という五つの分類を導入する。そして Lean 4 で、移行関数、逆変換、round-trip 性質、well-formed 条件を小さく表す方法を確認する。
+\end{chapterabstract}
+
+\begin{learninggoals}
+\item マイグレーションを型と関数として読めるようになる。
+\item 完全同型、片方向互換、lossy migration、制約付き同型、仕様弱化を区別できる。
+\item \texttt{rollback (migrate x) = x} のような round-trip 性質を、証明すべき仕様として切り出せる。
+\item well-formed 条件が必要になる場面を説明できる。
+\item 実務の移行レビューで「何を Lean で証明すべきか」を選べるようになる。
+\end{learninggoals}
+
+\section{この章を読む理由}
+
+ソフトウェア開発では、マイグレーションという言葉が広く使われる。DBスキーマを変える。APIレスポンスの形を変える。設定ファイルの形式を変える。ログの保存形式を変える。古いバージョンのデータを新しいバージョンで読み込めるようにする。これらはすべて、ある形式のデータを別の形式へ移す作業である。
+
+しかし、実務上の会話では、次のような表現が混ざりやすい。
+
+\begin{itemize}
+\item 「旧データを新形式に移せる」
+\item 「新旧は互換である」
+\item 「ロールバックできる」
+\item 「情報は失われない」
+\item 「一部のデータだけなら戻せる」
+\item 「表示上は同じなので問題ない」
+\end{itemize}
+
+これらは似ているが、同じ主張ではない。旧データを新形式に変換できることと、新形式から旧形式へ完全に戻せることは違う。表示が同じであることと、内部データが同じであることも違う。ロールバック処理が実装されていることと、ロールバック後に必ず元の値に戻ることも違う。
+
+\begin{intuitionbox}
+マイグレーションを安全に扱う第一歩は、「移せるか」ではなく「何が保存されるか」と問うことである。保存されるものが完全な情報なら同型に近い。保存されるものが一部の性質だけなら、仕様を弱めている。保存されるものが旧データの読み込み可能性だけなら、片方向互換である。
+\end{intuitionbox}
+
+本章の目的は、マイグレーションを一律に安全・危険と判定することではない。どの種類の安全性を主張しているのかを分類し、それぞれに対応する証明義務を明確にすることである。
+
+\FigurePlaceholder{fig-ch21-migration-taxonomy.png}{0.92}{マイグレーションを、完全同型、片方向互換、情報損失、制約付き同型、仕様弱化へ分類する概念地図}{fig:ch21-migration-taxonomy}
+
+\section{マイグレーションを型と関数として見る}
+
+まず、マイグレーションを最小限の形で表そう。旧形式を \texttt{Old}、新形式を \texttt{New} とする。旧形式から新形式への移行は、関数として次のように読める。
+
+\[
+\texttt{migrate} : \texttt{Old} \to \texttt{New}
+\]
+
+新形式から旧形式へ戻す処理があるなら、それも関数である。
+
+\[
+\texttt{rollback} : \texttt{New} \to \texttt{Old}
+\]
+
+この二つの関数があるだけでは、まだ安全性は分からない。重要なのは、それらを合成したときに何が起きるかである。
+
+\begin{softwarebox}
+\texttt{migrate} は「移行スクリプト」や「adapter」に対応する。\texttt{rollback} は「逆向きの変換」や「旧API互換層」に対応する。ただし、関数が存在するだけでは不十分である。証明したいのは、関数を通した結果が期待した性質を保存することである。
+\end{softwarebox}
+
+ここで使う基本的な見方は、これまでの章で扱った「型と関数の世界」である。型はデータ形式であり、関数は変換である。マイグレーションの分類とは、変換と逆変換の組み合わせがどの法則を満たすかを調べることだと言える。
+
+\begin{definitionbox}
+本章では、旧形式を \texttt{Old}、新形式を \texttt{New} と書く。\texttt{migrate : Old -> New} は旧形式から新形式への変換であり、\texttt{rollback : New -> Old} は新形式から旧形式への変換である。証明したい性質は、これらの関数を合成した結果に対する等式や条件として表す。
+\end{definitionbox}
+
+\section{完全同型：情報を失わない変更}
+
+もっとも強い分類は、完全同型である。これは、旧形式と新形式が見た目は違っても、持っている情報が同じであることを意味する。
+
+たとえば、次のような変更を考える。
+
+\begin{itemize}
+\item フィールド名を \texttt{name} から \texttt{displayName} に変える。
+\item 平坦なレコードをネストしたレコードに変える。
+\item \texttt{firstName} と \texttt{lastName} を \texttt{profile} オブジェクトの中へ移す。
+\end{itemize}
+
+これらは、形は変わっている。しかし、すべての情報を保存しており、機械的に戻せるなら、完全同型として扱える。
+
+\begin{definitionbox}
+\textbf{完全同型}とは、\texttt{migrate : Old -> New} と \texttt{rollback : New -> Old} があり、両方向の round-trip が成り立つ移行である。すなわち、任意の旧データ \texttt{x} と任意の新データ \texttt{y} について、次が成り立つ。
+\[
+\texttt{rollback}(\texttt{migrate}(x)) = x
+\]
+\[
+\texttt{migrate}(\texttt{rollback}(y)) = y
+\]
+この二つが両方あるとき、旧形式と新形式は情報の量として同じだと見なせる。
+\end{definitionbox}
+
+\begin{warningbox}
+\texttt{Old -> New} と \texttt{New -> Old} の二つの関数があるだけでは、完全同型ではない。必要なのは、変換して戻したときに本当に元に戻るという法則である。実装上の「ロールバック関数がある」と、数学的な「ロールバックが正しい」は別の主張である。
+\end{warningbox}
+
+Lean では、完全同型の形を小さな構造体として表せる。ここでは Mathlib の高度な圏論ライブラリは使わず、最小限の構造を自分で定義する。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+structure EquivLike (A B : Type) where
+  toFun : A -> B
+  invFun : B -> A
+  left_inv : (a : A) -> invFun (toFun a) = a
+  right_inv : (b : B) -> toFun (invFun b) = b
+\end{minted}
+\caption{完全同型を表す最小構造}
+\label{lst:ch21-equivlike}
+\end{listing}
+
+\begin{leanbox}
+\texttt{EquivLike A B} は、\texttt{A} と \texttt{B} の間に情報を失わない相互変換があることを表すミニ定義である。\texttt{toFun} が移行、\texttt{invFun} が逆変換、\texttt{left\_inv} と \texttt{right\_inv} が二つの round-trip 証明である。
+\end{leanbox}
+
+次の例では、ユーザー名のフィールド名を変えるだけの移行を考える。これは情報を落としていないので、両方向の round-trip が成り立つ。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+structure UserV1 where
+  id : Nat
+  name : String
+  deriving DecidableEq, Repr
+
+structure UserV2 where
+  id : Nat
+  profileName : String
+  deriving DecidableEq, Repr
+
+def migrateUser (u : UserV1) : UserV2 :=
+  { id := u.id, profileName := u.name }
+
+def rollbackUser (v : UserV2) : UserV1 :=
+  { id := v.id, name := v.profileName }
+
+theorem user_left_roundtrip (u : UserV1) :
+    rollbackUser (migrateUser u) = u := by
+  cases u
+  rfl
+
+theorem user_right_roundtrip (v : UserV2) :
+    migrateUser (rollbackUser v) = v := by
+  cases v
+  rfl
+\end{minted}
+\caption{フィールド名変更は完全同型として証明できる}
+\label{lst:ch21-user-roundtrip}
+\end{listing}
+
+この例で Lean が確認しているのは、個別のテストデータではない。任意の \texttt{UserV1} と任意の \texttt{UserV2} について、変換して戻すと元の値に戻る、という一般的な主張である。
+
+\FigurePlaceholder{fig-ch21-roundtrip-laws.png}{0.88}{完全同型では、旧形式から新形式へ移して戻す経路と、新形式から旧形式へ戻して移す経路の両方が恒等変換になる}{fig:ch21-roundtrip-laws}
+
+\section{片方向互換：旧データを新形式で扱える}
+
+次に、片方向互換を考える。これは、旧形式から新形式へは安全に移せるが、新形式のすべてを旧形式へ完全には戻せない状況である。
+
+典型例は、フィールド追加である。たとえば旧形式には \texttt{token} だけがあり、新形式には \texttt{token} に加えて \texttt{issuedAt} があるとする。旧データを新形式に移すときは、\texttt{issuedAt} にデフォルト値を入れればよい。しかし、新形式の任意の \texttt{issuedAt} を旧形式に戻すと、その時刻情報は失われる。
+
+\begin{softwarebox}
+片方向互換は、後方互換性の議論でよく現れる。旧クライアントや旧データを新システムで扱えることは重要である。しかし、それは「新形式の全データを旧形式へ戻せる」ことまでは意味しない。
+\end{softwarebox}
+
+Lean では、旧形式から新形式へ移して戻る片方向だけを証明できる。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+structure OldToken where
+  token : String
+  deriving DecidableEq, Repr
+
+structure NewToken where
+  token : String
+  issuedAt : Nat
+  deriving DecidableEq, Repr
+
+def oldToNew (o : OldToken) : NewToken :=
+  { token := o.token, issuedAt := 0 }
+
+def newToOld (n : NewToken) : OldToken :=
+  { token := n.token }
+
+theorem old_roundtrip (o : OldToken) :
+    newToOld (oldToNew o) = o := by
+  cases o
+  rfl
+\end{minted}
+\caption{フィールド追加による片方向互換}
+\label{lst:ch21-one-way}
+\end{listing}
+
+この証明は、「旧データは新形式へ移しても旧形式として回収できる」ことを示している。だが、逆向きの \texttt{oldToNew (newToOld n) = n} は一般には成り立たない。なぜなら \texttt{newToOld} は \texttt{issuedAt} を捨てるからである。
+
+\begin{warningbox}
+片方向互換を完全同型と呼んではいけない。旧データを新形式で扱えることは、実務上とても有用である。しかし「いつでも戻せる」「情報は失われない」と言うには、逆向きの round-trip も必要である。
+\end{warningbox}
+
+\section{情報損失あり：戻せない変更}
+
+三つ目は、情報損失ありの移行である。これは、変換の途中で意図的に、または構造上避けられず、情報を捨てる移行である。
+
+たとえば、ログを匿名化して公開ログを作る場合を考える。内部ログには \texttt{userId} と \texttt{message} がある。公開ログには \texttt{message} だけを残す。この変換は必要なことが多い。しかし、公開ログから元の \texttt{userId} を復元することはできない。
+
+\begin{definitionbox}
+\textbf{情報損失ありの移行}とは、旧形式から新形式への変換によって、旧形式に含まれていた情報の一部が新形式から観測できなくなる移行である。情報を落とすこと自体が悪いのではない。問題は、情報を落としているにもかかわらず、完全復元できるかのように扱うことである。
+\end{definitionbox}
+
+Lean では、完全復元を証明するのではなく、保存される性質だけを証明する。次の例では、匿名化後もメッセージ本文は保存されるが、ユーザーIDは保存されない。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+structure PrivateLog where
+  userId : Nat
+  message : String
+  deriving DecidableEq, Repr
+
+structure PublicLog where
+  message : String
+  deriving DecidableEq, Repr
+
+def anonymize (l : PrivateLog) : PublicLog :=
+  { message := l.message }
+
+def SamePublicView (x y : PrivateLog) : Prop :=
+  anonymize x = anonymize y
+
+theorem anonymize_preserves_message (l : PrivateLog) :
+    (anonymize l).message = l.message := by
+  rfl
+
+theorem different_users_can_have_same_public_view (msg : String) :
+    SamePublicView { userId := 1, message := msg }
+                   { userId := 2, message := msg } := by
+  rfl
+\end{minted}
+\caption{匿名化は情報損失を伴うが、保存される性質は証明できる}
+\label{lst:ch21-lossy-log}
+\end{listing}
+
+最後の定理は、異なる \texttt{userId} を持つ二つの内部ログが、同じ公開ログになりうることを示している。これは、匿名化が同型ではないことを理解するための小さな証拠である。
+
+\begin{intuitionbox}
+情報損失ありの移行では、「元に戻る」ではなく、「何が保存されるか」を証明する。匿名化なら、公開してよい情報だけが残ること、秘匿したい情報が観測できないこと、表示上必要なメッセージが保存されることなどが証明候補になる。
+\end{intuitionbox}
+
+\section{制約付き同型：well-formed なデータだけ戻せる}
+
+四つ目は、制約付き同型である。これは、すべての新データについては戻せないが、ある条件を満たす新データだけなら戻せるという状況である。
+
+先ほどの \texttt{NewToken} の例に戻ろう。任意の \texttt{NewToken} については、旧形式へ戻して再び新形式へ移したとき、元の \texttt{issuedAt} は復元されない。しかし、\texttt{issuedAt = 0} という条件を満たす新データに限れば、戻して移しても元に戻る。
+
+このような条件を、本章では \textbf{well-formed 条件} と呼ぶ。well-formed とは、「この変換にとって正しい形をしている」という意味である。
+
+\begin{definitionbox}
+\textbf{制約付き同型}とは、すべての値ではなく、well-formed 条件を満たす値の範囲で round-trip が成り立つ移行である。Lean では、条件を述語として定義し、その条件を仮定にした定理を書く。
+\end{definitionbox}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def IsDefaultIssuedAt (n : NewToken) : Prop :=
+  n.issuedAt = 0
+
+theorem new_roundtrip_when_default
+    (n : NewToken) (h : IsDefaultIssuedAt n) :
+    oldToNew (newToOld n) = n := by
+  cases n with
+  | mk token issuedAt =>
+      unfold IsDefaultIssuedAt at h
+      simp at h
+      cases h
+      rfl
+\end{minted}
+\caption{well-formed 条件を仮定した round-trip}
+\label{lst:ch21-conditional-roundtrip}
+\end{listing}
+
+この定理は、無条件の復元ではない。\texttt{IsDefaultIssuedAt n} という仮定がある。つまり、\texttt{issuedAt} がデフォルト値である新データだけなら、旧形式に戻して再び新形式へ移しても元に戻る。
+
+\begin{softwarebox}
+制約付き同型は、実務では「この移行ツールで作ったデータだけなら戻せる」「正規化済みデータだけなら復元できる」「バージョン番号が特定範囲なら互換である」といった形で現れる。重要なのは、条件を口頭で済ませず、仕様として明示することである。
+\end{softwarebox}
+
+\section{仕様弱化：完全復元ではなく、必要な性質だけを保存する}
+
+五つ目は、仕様弱化である。これは、完全な復元を諦め、実務上必要な性質だけを保存する形に仕様を調整することである。
+
+たとえば、氏名の扱いを考える。旧形式に \texttt{fullName : String} があり、新形式に \texttt{firstName : String} と \texttt{lastName : String} があるとする。この移行は、文化圏、ミドルネーム、スペース、表記ゆれの問題を含む。すべての文字列について完全復元を証明するのは現実的ではない。
+
+この場合、証明対象を変える。たとえば次のような弱い仕様にする。
+
+\begin{itemize}
+\item well-formed な入力だけを対象にする。
+\item 正規化後の表示が一致することを証明する。
+\item 検索キーとして使う文字列だけが保存されることを証明する。
+\item 旧APIの表示互換性だけを証明する。
+\end{itemize}
+
+\begin{definitionbox}
+\textbf{仕様弱化}とは、証明できない強すぎる主張を捨て、実務上必要な弱い主張へ置き換えることである。完全な等式ではなく、表示上の一致、正規化後の一致、順序関係、安全な抽象化などを証明対象にする。
+\end{definitionbox}
+
+仕様弱化は、妥協ではあるが、悪いことではない。むしろ、証明できないことを証明済みのように扱うよりは、はるかに正確である。
+
+\begin{warningbox}
+「証明できないから Lean が役に立たない」のではない。Lean は、強すぎる主張が本当に強すぎることを明らかにする。そこで、証明対象を実務上必要な性質へ落とす。この判断そのものが、仕様レビューの価値になる。
+\end{warningbox}
+
+\section{分類ごとの証明義務}
+
+ここまでの分類を、実務で使うための表にまとめる。
+
+\small
+\begin{longtable}{p{0.14\linewidth}p{0.22\linewidth}p{0.24\linewidth}p{0.22\linewidth}}
+\toprule
+分類 & 典型例 & Leanで証明する性質 & 注意点 \\
+\midrule
+完全同型 & フィールド名変更、ネスト構造への移動 & 両方向 round-trip & 逆変換があるだけでは不十分 \\
+\midrule
+片方向互換 & フィールド追加、旧API入力の受け入れ & 旧形式について一方向 round-trip & 新形式全体を旧形式へ戻せるとは限らない \\
+\midrule
+情報損失あり & ログ匿名化、集約、カラム削除 & 保存される性質だけ & 完全復元を主張しない \\
+\midrule
+制約付き同型 & 正規化済みデータ、デフォルト値つき移行 & well-formed 条件付き round-trip & 条件を仕様として明示する \\
+\midrule
+仕様弱化 & 氏名分割、表示互換、検索キー保存 & 正規化後の一致、表示一致、順序関係 & 何を諦めたかを文書化する \\
+\bottomrule
+\end{longtable}
+\normalsize
+
+\FigurePlaceholder{fig-ch21-proof-choice.png}{0.90}{マイグレーションで証明すべき性質を選ぶための判断フロー}{fig:ch21-proof-choice}
+
+表の見方は単純である。まず、移行が完全復元を要求しているかを確認する。要求しているなら、両方向 round-trip が必要である。旧データを新システムで読めればよいだけなら、一方向の性質で十分なことがある。情報を落とす設計なら、落とす情報と残す情報を分け、残す情報だけを証明対象にする。特定条件でだけ戻せるなら、well-formed 条件を定義する。
+
+\section{実務で証明すべき性質の選び方}
+
+実務では、すべての性質を Lean で証明する必要はない。むしろ、証明する性質を絞ることが重要である。判断の出発点は、次の問いである。
+
+\begin{itemize}
+\item 変更前後の型は何か。
+\item 移行関数は何か。
+\item 逆変換は存在するか。
+\item 逆変換が存在するなら、両方向の round-trip を要求するのか。
+\item 情報損失はあるか。
+\item well-formed 条件は必要か。
+\item 完全な等式ではなく、弱めた仕様で十分か。
+\item Lean のモデルと本番実装の差分はどこにあるか。
+\end{itemize}
+
+\begin{softwarebox}
+マイグレーションレビューでは、まず「互換性あり」という言葉を分解する。後方互換なのか、前方互換なのか、完全同型なのか、条件付きなのか、表示互換だけなのかを確認する。そのうえで、証明したい性質を一つか二つに絞る。
+\end{softwarebox}
+
+たとえば、DBスキーマ変更であれば、すべてのSQLの意味を証明するのは重すぎることが多い。しかし、重要なクエリ結果が保存されること、主キーが保存されること、件数が保存されることは、小さなモデルで扱えるかもしれない。
+
+APIバージョニングであれば、すべてのクライアント挙動を証明するのではなく、旧レスポンスから新レスポンスへ変換したときに特定フィールドが保存されること、adapter が業務ロジックと干渉しないことを証明対象にできる。
+
+ログ匿名化であれば、復元不能性そのものを厳密に扱うには追加のモデルが必要になる。しかし、少なくとも公開ログに残すメッセージが保存されることや、内部IDを出力しない構造になっていることは、小さな型で表せる。
+
+\begin{warningbox}
+Lean で証明した性質は、Lean 上のモデルについての性質である。本番DB、外部API、文字コード、NULL、時刻、並行実行、運用手順まで自動的に保証されるわけではない。設計文書では、証明した範囲と証明していない範囲を分けて書く必要がある。
+\end{warningbox}
+
+\section{本章のまとめ}
+
+\begin{summarybox}
+マイグレーションは、旧形式から新形式への単なる作業ではなく、型の間の変換である。完全同型では、両方向の round-trip を証明する。片方向互換では、旧データを新形式で扱い、必要なら旧形式へ戻せることだけを証明する。情報損失ありの移行では、完全復元を主張せず、保存される性質を証明する。制約付き同型では、well-formed 条件を明示して、その範囲だけで round-trip を証明する。仕様弱化では、強すぎる等式を諦め、実務上必要な弱い性質へ落とす。
+
+次章では、この分類のうち完全同型を、\texttt{UserV1} から \texttt{UserV2} への lossless migration として具体的に扱う。そこで、\texttt{migrate} と \texttt{rollback} を定義し、両方向の round-trip を Lean で証明する。
+\end{summarybox}

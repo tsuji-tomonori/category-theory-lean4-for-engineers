@@ -1,0 +1,402 @@
+% !TEX root = ../main.tex
+\chapter{圏論用語チートシート}
+\label{app:category-cheatsheet}
+
+\begin{chapterabstract}
+この付録は、本文で使う圏論用語を、ソフトウェアエンジニアが設計・仕様・変更管理で使いやすい形にまとめた早見表である。用語の厳密な一般論を網羅することよりも、「この言葉はコードや設計レビューでは何を指すのか」「Lean 4 ではどのような形で小さく表せるのか」をすぐ確認できることを目的にする。
+\end{chapterabstract}
+
+\begin{learninggoals}
+\item 圏論の基本語彙を、型・関数・データ変換・API adapter・DB join などの実務例へ読み替えられる。
+\item 本文中で出てきた用語を、どの章・どの証明パターンに戻ればよいか判断できる。
+\item Lean 4 で概念を小さくモデル化するときの最小単位を思い出せる。
+\end{learninggoals}
+
+\section{この付録の使い方}
+
+\begin{intuitionbox}
+この付録は、圏論用語を暗記するための辞書ではない。実務上の問いに戻すための索引である。たとえば「このマイグレーションは戻せるのか」と考えているなら同型を見る。「この adapter は業務ロジックと干渉しないか」と考えているなら自然変換を見る。「二つのデータソースを同じ ID で整合させたい」と考えているなら Pullback を見る。
+\end{intuitionbox}
+
+\begin{softwarebox}
+読み方の基本は一つである。対象は型やデータ構造、射は関数や変換、合成はパイプライン、法則はリファクタリングしても意味が変わらないための条件として読む。抽象語を見たら、まず「何を変換しているのか」「何が保存されるべきか」「どの順序で実行しても同じか」に戻す。
+\end{softwarebox}
+
+\FigurePlaceholder{fig-appB-category-cheatsheet-map.png}{0.92}{圏論用語をソフトウェア設計へ読み替える地図}{fig:appB-category-cheatsheet-map}
+
+\section{一枚で見る対応表}
+
+\begingroup
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{@{}p{0.13\linewidth}p{0.24\linewidth}p{0.24\linewidth}p{0.27\linewidth}@{}}
+\caption{圏論用語の最小対応表}\label{tab:appB-category-cheatsheet}\\
+\toprule
+\textbf{用語} & \textbf{一言でいうと} & \textbf{ソフトウェアでの読み替え} & \textbf{Lean での最小表現} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{用語} & \textbf{一言でいうと} & \textbf{ソフトウェアでの読み替え} & \textbf{Lean での最小表現} \\
+\midrule
+\endhead
+対象 & 変換されるもの & 型、DTO、状態空間、データ構造 & \texttt{Type}、\texttt{structure}、\texttt{inductive} \\
+射 & 対象から対象への矢印 & 関数、変換、migration、adapter & \texttt{A -> B} \\
+合成 & 変換をつなぐこと & パイプライン、middleware chain、ETL の段階結合 & \texttt{fun x => g (f x)} \\
+恒等射 & 何もしない変換 & no-op、identity adapter、空の wrapper & \texttt{fun x => x} \\
+圏 & 合成できる世界 & 型と関数の世界、処理パイプラインの設計空間 & 対象・射・合成・恒等射・法則の組 \\
+双対 & 矢印を逆に見た世界 & 入力側と出力側、作る側と使う側を反転して考える & 定理や定義の向きを入れ替えた形 \\
+同型 & 情報を失わない相互変換 & lossless migration、encode/decode、DTO の可逆変換 & \texttt{to}、\texttt{from}、round-trip 証明 \\
+積 & 両方持つ構造 & ペア、レコード、複数フィールドを持つ DTO & \texttt{Prod A B}、\texttt{structure} \\
+余積 & どちらか一方の構造 & \texttt{Either}、\texttt{Result}、成功/失敗分岐 & \texttt{Sum A B}、\texttt{Option A}、\texttt{Except E A} \\
+関手 & 構造を保った一括変換 & \texttt{List.map}、\texttt{Option.map}、バッチ移行 & \texttt{map} と関手則 \\
+自然変換 & 型に依存しない一貫した adapter & API response wrapper の変換、\texttt{Option A} から \texttt{List A} への変換 & 任意の \texttt{A} に対する関数族と自然性 \\
+モノイド & 空と結合を持つ構造 & ログ結合、設定マージ、集約処理 & 単位元、結合演算、結合律、単位元律 \\
+モナド & 文脈つき処理を合成する形 & 失敗、例外、状態、検証、非同期の合成 & \texttt{pure}、\texttt{bind}、モナド則 \\
+随伴 & 自由に作る操作と構造を忘れる操作の対応 & DSL 生成、最小構造の自動構築、抽象化/具体化 & 本書では直感中心。Mathlib では発展事項 \\
+極限 & 条件を同時に満たす合流点 & 複数制約を満たす設定、整合するデータ統合 & 構造体と述語で小さく表す \\
+Pullback & 共通条件で整合するペア & DB join、共通 ID による API レスポンス統合 & 条件付きペア、\texttt{Subtype}、整合述語 \\
+\bottomrule
+\end{longtable}
+\endgroup
+
+\section{用語別ミニカード}
+
+\subsection{対象}
+
+\begin{definitionbox}
+対象とは、圏の中で矢印の出発点や到着点になるものである。型と関数の世界で考えるなら、対象は \texttt{Nat}、\texttt{String}、\texttt{UserV1}、\texttt{UserV2} のような型である。
+\end{definitionbox}
+
+\begin{softwarebox}
+対象は「値そのもの」ではなく、「その値が属する形」と読むとよい。たとえば一人のユーザー値ではなく、\texttt{User} というデータ構造全体が対象である。状態遷移を扱うなら、状態空間も対象として読める。
+\end{softwarebox}
+
+\begin{leanbox}
+Lean では、対象はまず \texttt{Type} として現れる。ドメインモデルなら \texttt{structure User where ...} のように定義する。
+\end{leanbox}
+
+\subsection{射}
+
+\begin{definitionbox}
+射とは、ある対象から別の対象へ向かう矢印である。型と関数の世界では、射は関数である。\texttt{A -> B} は、対象 \texttt{A} から対象 \texttt{B} への射として読める。
+\end{definitionbox}
+
+\begin{softwarebox}
+射は、単なる数学的な関数に限らない。マイグレーション、正規化、DTO 変換、encoder、decoder、adapter、validator など、入力の形を別の形へ移す処理を射として見ることができる。
+\end{softwarebox}
+
+\begin{warningbox}
+実務コードでは副作用を持つ処理も多い。本書の初期モデルでは、まず純粋関数として切り出せる部分を射として扱う。失敗や状態を含む処理は、後で \texttt{Option}、\texttt{Except}、\texttt{State} などの文脈つき処理として整理する。
+\end{warningbox}
+
+\subsection{合成}
+
+\begin{definitionbox}
+合成とは、\(f : A \to B\) と \(g : B \to C\) をつないで、\(g \circ f : A \to C\) を作る操作である。先に \(f\) を実行し、その結果に \(g\) を適用する。
+\end{definitionbox}
+
+\begin{softwarebox}
+合成はパイプラインである。入力正規化、検証、変換、保存用 DTO への変換を順につなぐとき、各ステージの出力型と次の入力型が合っていれば合成できる。
+\end{softwarebox}
+
+\begin{leanbox}
+Lean では、\texttt{fun x => g (f x)} が最小の合成表現である。関数合成記法を使わなくても、まずこの形で読むとわかりやすい。
+\end{leanbox}
+
+\subsection{恒等射}
+
+\begin{definitionbox}
+恒等射とは、対象 \(A\) から \(A\) 自身への「何もしない」射である。通常 \(\mathrm{id}_A\) と書く。
+\end{definitionbox}
+
+\begin{softwarebox}
+恒等射は no-op である。何もしない adapter、変換しない migration、空の wrapper として読める。パイプラインの前後に置いても、結果は変わらない。
+\end{softwarebox}
+
+\begin{definitionbox}
+恒等律は、任意の \(f : A \to B\) に対して次の二つが成り立つという法則である。
+\[
+\mathrm{id}_B \circ f = f, \qquad f \circ \mathrm{id}_A = f.
+\]
+\end{definitionbox}
+
+\subsection{圏}
+
+\begin{definitionbox}
+圏とは、対象、射、射の合成、恒等射を持ち、恒等律と結合律を満たす世界である。
+\end{definitionbox}
+
+\begin{softwarebox}
+圏は「合成できる処理の設計空間」と読む。パイプラインを安全に組み替えるには、各処理をつなげられること、何もしない処理が自然に振る舞うこと、括弧の付け方を変えても意味が変わらないことが重要になる。
+\end{softwarebox}
+
+\begin{warningbox}
+本書の前半では、一般の圏をいきなり Mathlib の \texttt{CategoryTheory} で扱わない。まず型と関数の世界で、対象・射・合成・恒等射の感覚を作る。
+\end{warningbox}
+
+\subsection{双対}
+
+\begin{definitionbox}
+双対とは、すべての矢印の向きを逆にして得られる見方である。ある概念に対して、矢印を逆にした対応概念が現れることが多い。
+\end{definitionbox}
+
+\begin{softwarebox}
+双対は、作る側と使う側、入力側と出力側、分解と合成を反転して見るための視点である。積と余積、極限と余極限のように、双対な概念はペアで理解すると見通しがよい。
+\end{softwarebox}
+
+\begin{warningbox}
+双対は「逆関数が存在する」という意味ではない。矢印を逆向きにして理論全体を見直す、というメタな操作である。同型の逆変換とは区別する。
+\end{warningbox}
+
+\subsection{同型}
+
+\begin{definitionbox}
+同型とは、二つの対象が情報として同じであり、相互変換しても元に戻る関係である。\(A\) と \(B\) が同型であるとは、\(to : A \to B\) と \(from : B \to A\) があり、両方向の round-trip が成り立つことである。
+\[
+from \circ to = \mathrm{id}_A, \qquad to \circ from = \mathrm{id}_B.
+\]
+\end{definitionbox}
+
+\begin{softwarebox}
+同型は lossless migration の言葉である。\texttt{UserV1} と \texttt{UserV2} の形が違っても、\texttt{migrate} と \texttt{rollback} の両方向で完全に戻せるなら、情報は失われていないと言える。
+\end{softwarebox}
+
+\begin{warningbox}
+\texttt{A -> B} と \texttt{B -> A} が存在するだけでは同型ではない。戻したときに本当に元に戻ることを証明しなければならない。
+\end{warningbox}
+
+\subsection{積}
+
+\begin{definitionbox}
+積とは、「両方を持つ」構造である。型の世界では \texttt{Prod A B} や二つのフィールドを持つ構造体として現れる。
+\end{definitionbox}
+
+\begin{softwarebox}
+積は、ペア、レコード、DTO、複数フィールドをまとめたレスポンスとして読む。ユーザー情報と権限情報を同時に持つ値、注文と請求先情報を同時に持つ値は、積の直感で理解できる。
+\end{softwarebox}
+
+\begin{leanbox}
+Lean では \texttt{Prod A B}、\texttt{(A × B)}、または \texttt{structure} を使う。取り出しは第一射影・第二射影として読むことができる。
+\end{leanbox}
+
+\subsection{余積}
+
+\begin{definitionbox}
+余積とは、「どちらか一方」を表す構造である。型の世界では \texttt{Sum A B} として現れる。
+\end{definitionbox}
+
+\begin{softwarebox}
+余積は、成功または失敗、旧形式または新形式、同期結果または非同期受付結果のような分岐を表す。\texttt{Either}、\texttt{Result}、\texttt{Option} は余積的な読み方ができる。
+\end{softwarebox}
+
+\begin{warningbox}
+積は「両方ある」、余積は「どちらかである」。レコード設計とエラー分岐設計では、この違いを混同しないことが重要である。
+\end{warningbox}
+
+\subsection{関手}
+
+\begin{definitionbox}
+関手とは、対象を対象へ、射を射へ移し、恒等射と合成を保存する対応である。
+\end{definitionbox}
+
+\begin{softwarebox}
+関手は「構造を壊さない一括変換」と読む。\texttt{List.map migrate} は、リストという構造を保ったまま各要素を移行する。\texttt{Option.map f} は、値があるかないかという構造を保ったまま、中身だけを変換する。
+\end{softwarebox}
+
+\begin{definitionbox}
+関手則は、次の二つとして読むとよい。
+\[
+map\;\mathrm{id} = \mathrm{id}, \qquad map\;(g \circ f) = map\;g \circ map\;f.
+\]
+これは、何もしない変換と二段階変換が、構造の中へ持ち上げても自然に振る舞うという条件である。
+\end{definitionbox}
+
+\subsection{自然変換}
+
+\begin{definitionbox}
+自然変換とは、二つの関手の間の一貫した変換である。型 \(A\) ごとに変換 \(\eta_A : F A \to G A\) があり、任意の関数 \(f : A \to B\) と整合する。
+\end{definitionbox}
+
+\begin{softwarebox}
+自然変換は、型に依存しない adapter である。たとえば \texttt{Option A} を \texttt{List A} にする処理は、\texttt{A} が \texttt{User} でも \texttt{Order} でも同じ規則で動く。先に中身を変換してから adapter を通しても、先に adapter を通してから中身を変換しても、結果が一致することが自然性である。
+\end{softwarebox}
+
+\begin{definitionbox}
+自然性は、次の可換性として読む。
+\[
+G(f) \circ \eta_A = \eta_B \circ F(f).
+\]
+実務では「adapter が業務ロジックの前にあっても後にあっても同じ」と読む。
+\end{definitionbox}
+
+\subsection{モノイド}
+
+\begin{definitionbox}
+モノイドとは、結合演算と単位元を持つ構造である。演算は結合律を満たし、単位元は左右どちらから結合しても値を変えない。
+\end{definitionbox}
+
+\begin{softwarebox}
+モノイドは、ログ、文字列、リスト、設定、集計結果などを安全にまとめるための言葉である。空ログ、空文字列、空リスト、デフォルト設定は単位元として読める。
+\end{softwarebox}
+
+\begin{warningbox}
+モノイドに必要なのは結合律であり、必ずしも交換律ではない。つまり、\(a \diamond b = b \diamond a\) までは要求しない。ログや文字列では順序が重要なので、交換できるとは限らない。
+\end{warningbox}
+
+\subsection{モナド}
+
+\begin{definitionbox}
+モナドとは、文脈つきの値を扱い、その文脈を保ったまま処理を合成するための構造である。中心になるのは \texttt{pure} と \texttt{bind} である。
+\end{definitionbox}
+
+\begin{softwarebox}
+モナドは、失敗する処理、例外を返す処理、状態を更新する処理、検証ログを伴う処理を合成するための形として読む。\texttt{Option} は失敗するかもしれない処理、\texttt{Except E} はエラー情報を返す処理の代表例である。
+\end{softwarebox}
+
+\begin{warningbox}
+モナドは「副作用そのもの」ではない。文脈つき処理を一定の法則に従って合成するためのインターフェースである。実務では、法則をリファクタリング規則として読むと役に立つ。
+\end{warningbox}
+
+\subsection{随伴}
+
+\begin{definitionbox}
+随伴とは、二つの構成が互いに最も自然に対応している関係である。本書では、まず「自由に作る」と「構造を忘れる」の対応として読む。
+\end{definitionbox}
+
+\begin{softwarebox}
+随伴は、最小限の構造を自動的に作る設計と、その構造を忘れて基礎データだけを見る設計を結びつける。たとえば、要素型からリストを作ることを free monoid の直感で読むと、集約可能な構造がどのように生まれるかが見える。
+\end{softwarebox}
+
+\begin{warningbox}
+この付録では、随伴の一般定義や単位・余単位の証明までは扱わない。第31章で直感を作り、必要になったら標準教材や Mathlib の \texttt{CategoryTheory} へ進む。
+\end{warningbox}
+
+\subsection{極限}
+
+\begin{definitionbox}
+極限とは、複数の射や条件を同時に満たす普遍的な合流点である。最初は「条件を全部満たす最も自然なまとめ方」と読めばよい。
+\end{definitionbox}
+
+\begin{softwarebox}
+極限は、複数の設定、複数 API の結果、複数の制約を同時に満たすデータを作る場面に現れる。単に値を並べるだけでなく、整合条件を満たす必要があるときに重要になる。
+\end{softwarebox}
+
+\begin{warningbox}
+初学者向けには、一般の極限を最初から形式化しない。まずは構造体と述語で「条件を満たす値」を表し、その後に Pullback などの具体例へ進む。
+\end{warningbox}
+
+\subsection{Pullback}
+
+\begin{definitionbox}
+Pullback、または引き戻しは、二つの対象が共通の対象へ写るとき、その結果が一致するペアを集める構成である。
+\end{definitionbox}
+
+\begin{softwarebox}
+Pullback は、整合条件を満たす join と読める。たとえば \texttt{User} と \texttt{Order} を単にペアにするのではなく、\texttt{user.id = order.userId} を満たすペアだけを作るとき、Pullback の直感が働いている。
+\end{softwarebox}
+
+\begin{leanbox}
+Lean では、まず次のように小さく表す。二つの値を持つ構造体を作り、その中に \texttt{left.id = right.userId} のような証明フィールドを入れる。あるいは \texttt{Subtype} で「整合するペア」だけを取り出す。
+\end{leanbox}
+
+\section{Lean 4 で見る最小対応}
+
+\begin{leanbox}
+次のコードは、圏論用語のうち、対象、射、合成、恒等射、同型、自然性を Lean で最小限に表したものである。Mathlib の高度な \texttt{CategoryTheory} API は使わず、型と関数だけで確認できる形にしている。
+\end{leanbox}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+namespace AppendixB
+
+def idFn (A : Type) : A -> A := fun x => x
+
+def comp {A B C : Type} (g : B -> C) (f : A -> B) : A -> C :=
+  fun x => g (f x)
+
+theorem comp_assoc {A B C D : Type}
+    (h : C -> D) (g : B -> C) (f : A -> B) :
+    comp h (comp g f) = comp (comp h g) f := by
+  rfl
+
+structure Iso (A B : Type) where
+  toFun : A -> B
+  invFun : B -> A
+  left_inv : forall a : A, invFun (toFun a) = a
+  right_inv : forall b : B, toFun (invFun b) = b
+
+def optionToList {A : Type} : Option A -> List A
+  | none => []
+  | some a => [a]
+
+theorem optionToList_natural {A B : Type}
+    (f : A -> B) (x : Option A) :
+    optionToList (Option.map f x) = List.map f (optionToList x) := by
+  cases x <;> rfl
+
+end AppendixB
+\end{minted}
+\caption{圏論用語の最小対応}
+\label{lst:appB_category_minicode}
+\end{listing}
+
+\section{実務上の逆引き}
+
+\begingroup
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{@{}p{0.31\linewidth}p{0.22\linewidth}p{0.37\linewidth}@{}}
+\caption{実務の問いから用語を引く}\label{tab:appB-reverse-lookup}\\
+\toprule
+\textbf{実務上の問い} & \textbf{見る用語} & \textbf{確認する性質} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{実務上の問い} & \textbf{見る用語} & \textbf{確認する性質} \\
+\midrule
+\endhead
+処理を分割・結合しても意味が変わらないか & 合成、恒等射、圏 & 恒等律、結合律、同じ入力に対する同じ出力 \\
+スキーマ変更で情報を失っていないか & 同型 & 両方向の round-trip \\
+一件の変換をリスト全体へ安全に広げられるか & 関手 & \texttt{map id = id}、\texttt{map} が合成を保存すること \\
+API wrapper の変更が業務ロジックと干渉しないか & 自然変換 & adapter と \texttt{map} の可換性 \\
+ログや設定を安全にまとめられるか & モノイド & 結合律、単位元律。必要なら交換律は別途確認する \\
+失敗しうる処理を安全に合成できるか & モナド & \texttt{pure} と \texttt{bind} の法則、失敗ケースの伝播 \\
+複数データソースを同じキーで整合させたい & Pullback、極限 & 共通キーや整合条件を満たすペアだけを作ること \\
+情報損失のある変換をどう扱うか & 前順序、Galois 接続、同型でない変換 & 完全復元ではなく、弱めた仕様や安全な近似を証明すること \\
+\bottomrule
+\end{longtable}
+\endgroup
+
+\section{よくある誤解}
+
+\begin{warningbox}
+\textbf{誤解1：圏論用語は高度な抽象数学なので、実務コードとは無関係である。}
+本書では、圏論を型、関数、変換、合成、同値性、保存性を整理する言葉として使う。抽象性は、実務の具体例を捨てるためではなく、共通パターンを見つけるために使う。
+\end{warningbox}
+
+\begin{warningbox}
+\textbf{誤解2：同型は、双方向の変換関数があれば十分である。}
+双方向の関数だけでは不十分である。\texttt{to} と \texttt{from} を合成したときに元へ戻ることを証明して初めて、情報を失わないと言える。
+\end{warningbox}
+
+\begin{warningbox}
+\textbf{誤解3：\texttt{map} があれば何でも関手である。}
+\texttt{map} という名前の関数があるだけでは足りない。恒等関数を保存し、合成を保存するという関手則が必要である。
+\end{warningbox}
+
+\begin{warningbox}
+\textbf{誤解4：モナドは難しいので、実務では考えなくてよい。}
+モナドを一般論として完全に理解する必要はない。まずは \texttt{Option} や \texttt{Except} のような失敗する処理を、法則に従って合成する形として読めば十分に役立つ。
+\end{warningbox}
+
+\section{本付録のまとめ}
+
+\begin{summarybox}
+\begin{itemize}
+\item 対象・射・合成・恒等射は、型・関数・パイプライン・no-op として読む。
+\item 同型は、情報を失わない相互変換であり、round-trip 証明が必要である。
+\item 関手は構造を壊さない一括変換であり、自然変換は型に依存しない一貫した adapter である。
+\item モノイドは集約、モナドは文脈つき処理の合成、Pullback は整合条件つき join として読む。
+\item Lean では、まず型・関数・構造体・述語・等式で小さくモデル化し、必要になってから Mathlib の \texttt{CategoryTheory} へ進む。
+\end{itemize}
+\end{summarybox}
