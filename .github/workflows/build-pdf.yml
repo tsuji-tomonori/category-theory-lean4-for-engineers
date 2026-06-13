@@ -18,6 +18,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             latexmk \
+            python3-pip \
             python3-pygments \
             texlive-fonts-recommended \
             texlive-lang-japanese \
@@ -25,6 +26,14 @@ jobs:
             texlive-luatex \
             texlive-pictures \
             texlive-science
+
+      - name: Install Pygments with Lean 4 lexer
+        run: |
+          python3 -m pip install --user --break-system-packages 'Pygments==2.19.2'
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Verify Lean 4 lexer
+        run: pygmentize -L lexers | grep -i 'lean4'
 
       - name: Build PDF
         run: make
