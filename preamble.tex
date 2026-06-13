@@ -29,7 +29,7 @@
 
 % Code
 \usepackage{accsupp}
-\usepackage[cache=false]{minted}
+\usepackage{minted}
 \usemintedstyle{friendly}
 \newcommand{\copyablespace}{%
   \BeginAccSupp{method=escape,ActualText={\space}}%
@@ -50,10 +50,32 @@
   showspaces=true,
   space=\copyablespace
 }
-
 % Hyperlinks
 \usepackage[hidelinks]{hyperref}
 \usepackage[nameinlink,noabbrev]{cleveref}
+
+% Table of contents
+\setcounter{tocdepth}{1}
+\makeatletter
+\renewcommand*{\l@chapter}[2]{%
+  \ifnum \c@tocdepth >\m@ne
+    \addpenalty{-\@highpenalty}%
+    \addvspace{1.0em \@plus\jsc@mpt}%
+    \begingroup
+      \parindent\z@
+      \rightskip\@tocrmarg
+      \parfillskip-\rightskip
+      \leavevmode\headfont
+      \setlength\@lnumwidth{5.5\zw}%
+      \advance\leftskip\@lnumwidth
+      \hskip-\leftskip
+      #1\nobreak\hfil\nobreak\hbox to\@pnumwidth{\hss#2}\par
+      \penalty\@highpenalty
+    \endgroup
+  \fi}
+\renewcommand*{\l@section}{%
+  \@dottedtocline{1}{1.5\zw}{4.5\zw}}
+\makeatother
 
 % Page headers
 \renewcommand{\chaptermark}[1]{\markboth{第\thechapter 章\quad #1}{}}
