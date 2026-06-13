@@ -91,21 +91,21 @@ variable {A B C D : Type}
 def id (A : Type) : Stage A A :=
   { run := fun x => x }
 
-def then (s1 : Stage A B) (s2 : Stage B C) : Stage A C :=
+def andThen (s1 : Stage A B) (s2 : Stage B C) : Stage A C :=
   { run := Function.comp s2.run s1.run }
 
 theorem left_id (s : Stage A B) (x : A) :
-    ((id A).then s).run x = s.run x := by
+    ((id A).andThen s).run x = s.run x := by
   rfl
 
 theorem right_id (s : Stage A B) (x : A) :
-    (s.then (id B)).run x = s.run x := by
+    (s.andThen (id B)).run x = s.run x := by
   rfl
 
 theorem assoc
     (s1 : Stage A B) (s2 : Stage B C) (s3 : Stage C D) (x : A) :
-    ((s1.then s2).then s3).run x =
-      (s1.then (s2.then s3)).run x := by
+    ((s1.andThen s2).andThen s3).run x =
+      (s1.andThen (s2.andThen s3)).run x := by
   rfl
 
 end Stage
