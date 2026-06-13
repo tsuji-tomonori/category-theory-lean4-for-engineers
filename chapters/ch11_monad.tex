@@ -340,7 +340,7 @@ def exceptBind {ε α β : Type}
   | Except.ok a => f a
 
 theorem except_right_identity {ε α : Type} (x : Except ε α) :
-    exceptBind x Except.ok = x := by
+    exceptBind x exceptPure = x := by
   cases x <;> rfl
 
 theorem except_assoc {ε α β γ : Type}

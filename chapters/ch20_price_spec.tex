@@ -123,7 +123,7 @@ def addFixedTax (tax amount : Money) : Money :=
 def taxOnly (rateNum rateDen amount : Money) : Money :=
   (amount * rateNum) / rateDen
 
-def addRateTax (rateNum rateDen amount : Money) :=
+def addRateTax (rateNum rateDen amount : Money) : Money :=
   amount + taxOnly rateNum rateDen amount
 \end{minted}
 \caption{金額と基本操作の最小モデル}

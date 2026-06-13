@@ -44,6 +44,13 @@ def migrate (u : UserV1) : UserV2 :=
         verified := u.emailVerified }
     audit := { createdAt := u.createdAt } }
 
+#eval migrate
+  { id := 1
+    name := "Ada"
+    email := "ada@example.com"
+    emailVerified := true
+    createdAt := 1000 }
+
 -- 新スキーマから旧スキーマへ戻す。
 def rollback (v : UserV2) : UserV1 :=
   { id := v.userId

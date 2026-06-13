@@ -6,6 +6,10 @@ It intentionally avoids Mathlib's CategoryTheory API.
 
 namespace Ch07
 
+structure UserSummary where
+  id   : Nat
+  name : String
+
 -- Lean's A × B notation is Prod A B.
 def loginPair : Nat × String := (42, "token")
 
@@ -51,7 +55,7 @@ def parseOk    : ParseResult := Sum.inr 200
 def showParseResult (r : ParseResult) : String :=
   match r with
   | Sum.inl _ => "parse failed"
-  | Sum.inr _ => "parse ok"
+  | Sum.inr n => "parse ok"
 
 -- Option A can be read as Unit + A.
 def optionToSum {A : Type} : Option A → Sum Unit A
@@ -136,6 +140,10 @@ inductive ApiError where
 structure ResponseBody where
   status : Nat
   body   : String
+
+structure BadResponse where
+  errorCode : Nat
+  body      : String
 
 abbrev ApiResponse := Sum ApiError ResponseBody
 

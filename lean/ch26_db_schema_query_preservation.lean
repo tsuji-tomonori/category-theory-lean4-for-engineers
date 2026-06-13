@@ -90,12 +90,6 @@ def queryNewRow (s : ConsistentSplitRow) : OrderView :=
     userName := s.val.user.userName,
     amount := s.val.order.amount }
 
-/-- 整合性つきにしても、一行のクエリ保存は成り立つ。 -/
-theorem checked_row_preserves_query (r : OrderOld) :
-    queryNewRow (splitOrderChecked r) = queryOldRow r := by
-  cases r
-  rfl
-
 /-- 本章の有限 DB モデル。 -/
 def DBV1 := List OrderOld
 
@@ -112,6 +106,12 @@ def queryOld (db : DBV1) : List OrderView :=
 /-- 新 DB へのクエリ。 -/
 def queryNew (db : DBV2) : List OrderView :=
   List.map queryNewRow db
+
+/-- 整合性つきにしても、一行のクエリ保存は成り立つ。 -/
+theorem checked_row_preserves_query (r : OrderOld) :
+    queryNewRow (splitOrderChecked r) = queryOldRow r := by
+  cases r
+  rfl
 
 /--
 任意の旧 DB について、移行後に新クエリを実行した結果は、

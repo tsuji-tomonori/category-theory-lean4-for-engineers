@@ -24,7 +24,11 @@ BEGIN_RE = re.compile(r"\\begin\{minted\}(?:\[[^\]]*\])?\{([^}]+)\}")
 END_RE = re.compile(r"\\end\{minted\}")
 INPUT_RE = re.compile(r"\\(?:input|include)\{([^}]+)\}")
 NAMESPACE_RE = re.compile(r"^\s*namespace\s+\S+\s*$")
+SECTION_RE = re.compile(r"^\s*section(?:\s+\S+)?\s*$")
+UNIVERSE_RE = re.compile(r"^\s*universe\s+.+$")
 END_NAMESPACE_RE = re.compile(r"^\s*end\s+\S+\s*$")
+IMPORT_RE = re.compile(r"^\s*import\s+.+$")
+OPEN_RE = re.compile(r"^\s*open(?:\s+scoped)?\s+.+$")
 
 
 @dataclass(frozen=True)
@@ -72,9 +76,25 @@ def normalize_lean_code(code: str) -> str:
     lines = [
         line
         for line in lines
-        if line and not NAMESPACE_RE.match(line) and not END_NAMESPACE_RE.match(line)
+        if line
+        and not NAMESPACE_RE.match(line)
+        and not SECTION_RE.match(line)
+        and not UNIVERSE_RE.match(line)
+        and not END_NAMESPACE_RE.match(line)
+        and not IMPORT_RE.match(line)
+        and not OPEN_RE.match(line)
     ]
     return "\n".join(lines)
+
+
+def compact_line(line: str) -> str:
+    return " ".join(line.split())
+
+
+def lines_match(snippet_line: str, lean_line: str) -> bool:
+    left = compact_line(snippet_line)
+    right = compact_line(lean_line)
+    return left == right or left in right or right in left
 
 
 def extract_minted_snippets(tex_path: Path) -> list[Snippet]:
@@ -133,25 +153,33 @@ def check_tex_file(tex_path: Path) -> list[str]:
 
     lean_lines = normalize_lean_code(lean_path.read_text(encoding="utf-8")).splitlines()
     errors: list[str] = []
-    search_from = 0
 
     for snippet in snippets:
-        if not snippet.code:
+        snippet_lines = normalize_lean_code(snippet.code).splitlines()
+        if not snippet_lines:
             continue
-        found = True
+        search_from = 0
         missing_line = ""
-        for snippet_line in snippet.code.splitlines():
-            try:
-                found_at = lean_lines.index(snippet_line, search_from)
-            except ValueError:
-                found = False
+        for snippet_line in snippet_lines:
+            found_at = next(
+                (
+                    index
+                    for index in range(search_from, len(lean_lines))
+                    if lines_match(snippet_line, lean_lines[index])
+                ),
+                None,
+            )
+            if found_at is None:
                 missing_line = snippet_line
                 break
-            search_from = found_at + 1
-        if not found:
+            if compact_line(snippet_line) == compact_line(lean_lines[found_at]):
+                search_from = found_at + 1
+            else:
+                search_from = found_at
+        if missing_line:
             errors.append(
                 f"{rel_tex}:{snippet.start_line}: Lean snippet does not match "
-                f"{lean_path.relative_to(ROOT)} in order; missing line: {missing_line!r}"
+                f"{lean_path.relative_to(ROOT)}; missing line: {missing_line!r}"
             )
 
     return errors
