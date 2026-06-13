@@ -301,15 +301,15 @@ def shipmentMatchesOrder (s : Shipment) (o : Order) : Prop :=
 structure OrderShipment where
   order : Order
   shipment : Shipment
-  matches : shipmentMatchesOrder shipment order
+  matched : shipmentMatchesOrder shipment order
 
 theorem orderShipment_userId_eq (os : OrderShipment) :
     os.shipment.userId = os.order.userId :=
-  os.matches.left
+  os.matched.left
 
 theorem orderShipment_orderId_eq (os : OrderShipment) :
     os.shipment.orderId = os.order.orderId :=
-  os.matches.right
+  os.matched.right
 \end{minted}
 \caption{注文と配送情報の整合条件}
 \label{lst:ch17-order-shipment}
