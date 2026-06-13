@@ -92,6 +92,13 @@
   \renewcommand{\headrulewidth}{0.4pt}%
   \renewcommand{\footrulewidth}{0pt}%
 }
+\fancypagestyle{plainhead}{%
+  \fancyhf{}%
+  \fancyhead[L]{\nouppercase{\leftmark}}%
+  \fancyhead[R]{\thepage}%
+  \renewcommand{\headrulewidth}{0.4pt}%
+  \renewcommand{\footrulewidth}{0pt}%
+}
 
 % Japanese captions
 \renewcommand{\figurename}{図}
