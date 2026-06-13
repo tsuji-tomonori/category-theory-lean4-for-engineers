@@ -101,7 +101,8 @@ theorem rollbackAll_migrateAll (xs : List UserV1) :
   | nil =>
       rfl
   | cons x xs ih =>
-      simp [rollbackAll, migrateAll, rollback_migrate, ih]
+      unfold rollbackAll migrateAll at ih ⊢
+      simp [rollback_migrate, ih]
 
 theorem migrateAll_rollbackAll (ys : List UserV2) :
     migrateAll (rollbackAll ys) = ys := by
@@ -109,7 +110,8 @@ theorem migrateAll_rollbackAll (ys : List UserV2) :
   | nil =>
       rfl
   | cons y ys ih =>
-      simp [rollbackAll, migrateAll, migrate_rollback, ih]
+      unfold rollbackAll migrateAll at ih ⊢
+      simp [migrate_rollback, ih]
 
 def idsV1 (xs : List UserV1) : List Nat :=
   xs.map UserV1.id
