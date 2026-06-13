@@ -102,7 +102,7 @@ Leanでは、\texttt{\#check}で式や名前の型を確認できる。
 #eval (some "alice" : Option String)
 \end{minted}
 \caption{基本的な型と値を確認する}
-\label{lst:ch01-basic-types}
+\label{lst:ch01_basic_types}
 \end{listing}
 
 \begin{leanbox}
@@ -192,7 +192,7 @@ def labelBySize (price : Nat) : String :=
 #eval labelBySize (addTax10 1000)
 \end{minted}
 \caption{小さな数値関数と判定関数}
-\label{lst:ch01-def-functions}
+\label{lst:ch01_def_functions}
 \end{listing}
 
 \texttt{addTax10}は\texttt{Nat}を受け取り、\texttt{Nat}を返す。
@@ -229,7 +229,7 @@ def greetingById (userId : Nat) : String :=
 #eval greetingById 3
 \end{minted}
 \caption{\texttt{Option}で検索失敗を表す}
-\label{lst:ch01-option-search}
+\label{lst:ch01_option_search}
 \end{listing}
 
 ここで重要なのは、\texttt{findUserName}の返り値が\texttt{String}ではなく\texttt{Option String}であることだ。
@@ -276,7 +276,7 @@ def normalizeUserName' : String -> String :=
 #eval normalizeUserName' "alice"
 \end{minted}
 \caption{関数合成としてパイプラインを読む}
-\label{lst:ch01-composition}
+\label{lst:ch01_composition}
 \end{listing}
 
 この例では、\texttt{keepAsIs}、\texttt{addUserPrefix}、\texttt{addExampleDomain}を順に適用している。
@@ -315,7 +315,7 @@ def normalizeAll (names : List String) : List (Option String) :=
 #eval normalizeAll ["alice", "", "bob"]
 \end{minted}
 \caption{失敗しうる文字列正規化パイプライン}
-\label{lst:ch01-normalization-pipeline}
+\label{lst:ch01_normalization_pipeline}
 \end{listing}
 
 このコードは、実務の入力正規化をかなり単純化したものである。

@@ -67,10 +67,10 @@ def hasDiscount (member : Bool) : Bool :=
 #eval hasDiscount false  -- false
 \end{minted}
 \caption{Bool は計算される真偽値である}
-\label{lst:ch02-bool}
+\label{lst:ch02_bool}
 \end{listing}
 
-コード\ref{lst:ch02-bool}では、\texttt{hasDiscount true} を評価すると \texttt{true} が得られる。
+コード\ref{lst:ch02_bool}では、\texttt{hasDiscount true} を評価すると \texttt{true} が得られる。
 これは、実行時に計算される値である。
 テストコードで特定の入力を与えて結果を確認する感覚に近い。
 
@@ -93,10 +93,10 @@ theorem member_hasDiscount : DiscountSpec true := by
   rfl
 \end{minted}
 \caption{Prop は証明したい主張である}
-\label{lst:ch02-prop}
+\label{lst:ch02_prop}
 \end{listing}
 
-コード\ref{lst:ch02-prop}の \texttt{DiscountSpec true} は、\texttt{hasDiscount true = true} という主張である。
+コード\ref{lst:ch02_prop}の \texttt{DiscountSpec true} は、\texttt{hasDiscount true = true} という主張である。
 \texttt{theorem member\_hasDiscount} は、その主張が正しいことを Lean に示している。
 ここで使っている \texttt{rfl} は、左右が定義を展開すれば同じになることを示す証明である。
 
@@ -165,10 +165,10 @@ example : TaxSpec 1000 100 1100 := by
   rfl
 \end{minted}
 \caption{仕様を関数と命題に分ける}
-\label{lst:ch02-spec-as-prop}
+\label{lst:ch02_spec_as_prop}
 \end{listing}
 
-コード\ref{lst:ch02-spec-as-prop}では、\texttt{addTax} が計算であり、\texttt{TaxSpec} が仕様である。
+コード\ref{lst:ch02_spec_as_prop}では、\texttt{addTax} が計算であり、\texttt{TaxSpec} が仕様である。
 \texttt{TaxSpec 1000 100 1100} は「1000 に 100 を足した税込金額は 1100 である」という命題になる。
 
 \begin{leanbox}
@@ -206,10 +206,10 @@ example : SamePrice 1200 1200 := by
   rfl
 \end{minted}
 \caption{example による小さな証明}
-\label{lst:ch02-example}
+\label{lst:ch02_example}
 \end{listing}
 
-コード\ref{lst:ch02-example}は、「1200 と 1200 は同じ価格である」という命題を証明している。
+コード\ref{lst:ch02_example}は、「1200 と 1200 は同じ価格である」という命題を証明している。
 この証明に名前はない。
 そのため、後から別の証明で参照することはできない。
 
@@ -225,10 +225,10 @@ theorem addTax_zero (price : Nat) :
   simp [addTax]
 \end{minted}
 \caption{theorem による名前付き仕様}
-\label{lst:ch02-theorem}
+\label{lst:ch02_theorem}
 \end{listing}
 
-コード\ref{lst:ch02-theorem}は、「税額が 0 のとき、税込金額は元の価格と一致する」という名前付きの仕様である。
+コード\ref{lst:ch02_theorem}は、「税額が 0 のとき、税込金額は元の価格と一致する」という名前付きの仕様である。
 \texttt{addTax\_zero} という名前が付いているため、後の章でこの事実を使って別の証明を組み立てることができる。
 
 \begin{definitionbox}
@@ -250,10 +250,10 @@ theorem same_price_refl (price : Nat) :
   rfl
 \end{minted}
 \caption{by ブロックの基本形}
-\label{lst:ch02-by-proof}
+\label{lst:ch02_by_proof}
 \end{listing}
 
-コード\ref{lst:ch02-by-proof}では、\texttt{price = price} という命題を証明している。
+コード\ref{lst:ch02_by_proof}では、\texttt{price = price} という命題を証明している。
 これはどの \texttt{price} についても明らかに成り立つ。
 Lean では、その明らかさを \texttt{rfl} という証明で伝える。
 
@@ -288,10 +288,10 @@ theorem addTax_def (price tax : Nat) :
   rfl
 \end{minted}
 \caption{rfl で定義どおりの等式を証明する}
-\label{lst:ch02-rfl}
+\label{lst:ch02_rfl}
 \end{listing}
 
-コード\ref{lst:ch02-rfl}では、\texttt{addTax price tax} の定義が \texttt{price + tax} なので、\texttt{rfl} で証明できる。
+コード\ref{lst:ch02_rfl}では、\texttt{addTax price tax} の定義が \texttt{price + tax} なので、\texttt{rfl} で証明できる。
 これは「定義どおりです」と Lean に伝えていると読める。
 
 \subsection{simp は明らかな整理を任せる}
@@ -309,10 +309,10 @@ theorem member_shipping_zero (shipping : Nat) :
   simp [chargeShipping]
 \end{minted}
 \caption{simp で分岐を整理する}
-\label{lst:ch02-simp}
+\label{lst:ch02_simp}
 \end{listing}
 
-コード\ref{lst:ch02-simp}では、\texttt{isMember} が \texttt{true} の場合、\texttt{if true then 0 else shipping} は \texttt{0} に整理される。
+コード\ref{lst:ch02_simp}では、\texttt{isMember} が \texttt{true} の場合、\texttt{if true then 0 else shipping} は \texttt{0} に整理される。
 \texttt{simp [chargeShipping]} は、\texttt{chargeShipping} の定義を展開し、明らかな分岐を整理している。
 
 \subsection{rw は等式による書き換えである}
@@ -335,10 +335,10 @@ theorem addTax_after_normalize (price tax : Nat) :
   rw [normalizePrice_eq]
 \end{minted}
 \caption{rw で既知の等式を使って書き換える}
-\label{lst:ch02-rw}
+\label{lst:ch02_rw}
 \end{listing}
 
-コード\ref{lst:ch02-rw}では、\texttt{normalizePrice\_eq} という等式を使って、\texttt{normalizePrice price} を \texttt{price} に書き換えている。
+コード\ref{lst:ch02_rw}では、\texttt{normalizePrice\_eq} という等式を使って、\texttt{normalizePrice price} を \texttt{price} に書き換えている。
 その結果、左右が同じ形になり、証明が完了する。
 
 \begin{leanbox}
@@ -381,10 +381,10 @@ theorem addTax_zero (price : Nat) :
   simp [addTax]
 \end{minted}
 \caption{税込金額計算の小さな仕様証明}
-\label{lst:ch02-tax-spec}
+\label{lst:ch02_tax_spec}
 \end{listing}
 
-コード\ref{lst:ch02-tax-spec}で重要なのは、\texttt{example} と \texttt{theorem} の違いである。
+コード\ref{lst:ch02_tax_spec}で重要なのは、\texttt{example} と \texttt{theorem} の違いである。
 \texttt{example} は、具体的な入力 \texttt{1000} と \texttt{100} についての確認である。
 一方、\texttt{addTax\_zero} は任意の \texttt{price} について成り立つ主張である。
 テストが具体例を確認するのに対し、定理はすべての入力に対する主張を扱う。
@@ -415,10 +415,10 @@ theorem toDto_preservesId : PreservesId toDto := by
   rfl
 \end{minted}
 \caption{DTO 変換で ID が保存されることを証明する}
-\label{lst:ch02-id-preservation}
+\label{lst:ch02_id_preservation}
 \end{listing}
 
-コード\ref{lst:ch02-id-preservation}では、\texttt{PreservesId} が仕様である。
+コード\ref{lst:ch02_id_preservation}では、\texttt{PreservesId} が仕様である。
 \texttt{forall u, ...} は「すべての \texttt{u} について」という意味である。
 \texttt{intro u} は、任意のユーザー \texttt{u} を一つ取って証明を始める命令である。
 その後、\texttt{toDto} の定義を見れば ID がそのままコピーされているので、\texttt{rfl} で証明できる。

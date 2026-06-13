@@ -1,0 +1,37 @@
+% !TEX root = ../main.tex
+
+この部では、データ、API、DBスキーマ、設定ファイルなどのマイグレーションを、圏論とLeanの視点から扱う。マイグレーションは、ソフトウェア開発において頻繁に発生する。フィールドを追加する、名前を変える、複数のカラムをまとめる、1つのフィールドを分割する、レスポンス形式を変更する、旧バージョンのデータを新バージョンで読み込む。これらはすべて、ある形式から別の形式への変換である。
+
+しかし、マイグレーションには種類がある。完全に情報を保つ変更もあれば、旧形式から新形式へは安全に変換できるが戻せない変更もある。情報を落とす変更もあるし、ある条件を満たすデータだけなら戻せる変更もある。これらを区別しないまま「互換性がある」と言ってしまうと、レビューやテストで重要な欠落を見逃しやすい。
+
+圏論では、情報を失わない相互変換を同型として表す。Leanでは、その同型性を round-trip law として書ける。\texttt{rollback (migrate x) = x}、あるいは \texttt{migrate (rollback y) = y} という形の命題である。もし片方しか証明できないなら、それは完全同型ではなく、片方向互換である。もし条件付きでしか証明できないなら、well-formed 条件を明示する必要がある。
+
+この部では、\texttt{UserV1} から \texttt{UserV2} への lossless migration、\texttt{fullName} を \texttt{firstName} と \texttt{lastName} に分割する lossy migration、\texttt{List.map migrate} によるバッチ移行、API response wrapper の変更、DBスキーマ変更後のクエリ結果保存を扱う。各ケースでは、どの性質を証明すべきか、どの性質は証明できないのかを明確にする。
+
+この部の目的は、マイグレーションを「作業手順」ではなく「変換と保存性の問題」として捉え直すことである。Leanで小さなモデルを作ることで、移行仕様の曖昧さを減らし、レビュー可能な証拠を残すことができる。
+
+\section*{この部で扱うこと}
+
+\begin{itemize}
+\item 完全同型、片方向互換、lossy migration の分類
+\item \texttt{migrate} と \texttt{rollback} の round-trip 証明
+\item 条件付き同型と well-formed データ
+\item \texttt{List.map} によるバッチ移行
+\item 関手則による構造保存
+\item API adapter と自然性
+\item DB schema migration とクエリ保存
+\item マイグレーション証明チェックリスト
+\end{itemize}
+
+\section*{この部で扱わないこと}
+
+\begin{itemize}
+\item 実DBエンジンの完全な意味論
+\item 大規模データ移行の性能保証
+\item 本番データの全件検査
+\item 分散システムの整合性全体の証明
+\end{itemize}
+
+\section*{次の部への接続}
+
+次の部では、マイグレーションに限らず、設計、リファクタリング、アーキテクチャ全体に圏論とLeanの考え方を広げる。合成可能な設計をどう作るか、変更前後の意味保存をどうレビューするか、チーム開発の中で証明をどう運用するかを扱う。
