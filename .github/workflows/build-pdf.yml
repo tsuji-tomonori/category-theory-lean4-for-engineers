@@ -4,6 +4,11 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
 
 jobs:
   test-lean:
@@ -48,6 +53,8 @@ jobs:
 
   build-pdf:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
@@ -78,10 +85,31 @@ jobs:
       - name: Build PDF
         run: make
 
+      - name: Prepare release PDF
+        id: release-pdf
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          pdf_name="category-theory-lean4-for-engineers.pdf"
+          if [ "$GITHUB_EVENT_NAME" = "release" ]; then
+            safe_tag="$(printf '%s' "$RELEASE_TAG" | tr '/ ' '--')"
+            pdf_name="category-theory-lean4-for-engineers-${safe_tag}.pdf"
+            cp category-theory-lean4-for-engineers.pdf "$pdf_name"
+          fi
+          echo "pdf_name=$pdf_name" >> "$GITHUB_OUTPUT"
+
       - name: Upload PDF artifact
         uses: actions/upload-artifact@v4
         with:
-          name: category-theory-lean4-for-engineers-pdf
-          path: main.pdf
+          name: ${{ steps.release-pdf.outputs.pdf_name }}
+          path: ${{ steps.release-pdf.outputs.pdf_name }}
           if-no-files-found: error
           retention-days: 14
+
+      - name: Attach PDF to release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          PDF_NAME: ${{ steps.release-pdf.outputs.pdf_name }}
+        run: gh release upload "$RELEASE_TAG" "$PDF_NAME" --clobber
