@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check chapter Lean snippet files by running each chapter as one Lean source."""
+"""Check every Lean snippet file as a standalone Lean source."""
 
 from __future__ import annotations
 
@@ -7,61 +7,47 @@ import argparse
 import os
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 LEAN_DIR = ROOT / "lean"
 MATHLIB_CHAPTER = "ch34_mathlib_category_theory"
-SKIP_MARKER = "check-lean-snippets: skip"
 
 
-def snippet_dirs(paths: list[str]) -> list[Path]:
+def snippet_files(paths: list[str]) -> list[Path]:
     if paths:
-        return [Path(path).resolve() for path in paths]
-    return sorted(path for path in LEAN_DIR.iterdir() if path.is_dir())
+        selected: list[Path] = []
+        for raw_path in paths:
+            path = Path(raw_path).resolve()
+            if path.is_dir():
+                selected.extend(sorted(path.glob("code*.lean")))
+            else:
+                selected.append(path)
+        return selected
+    return sorted(LEAN_DIR.glob("*/code*.lean"))
 
 
-def read_chapter_source(chapter_dir: Path) -> str:
-    files = [
-        path
-        for path in sorted(chapter_dir.glob("code*.lean"))
-        if SKIP_MARKER not in path.read_text(encoding="utf-8")
-    ]
-    if not files:
-        raise RuntimeError(f"{chapter_dir.relative_to(ROOT)}: no code*.lean files found")
-    return "\n\n".join(path.read_text(encoding="utf-8") for path in files)
-
-
-def check_chapter(chapter_dir: Path, lean: str, lake: str) -> bool:
-    source = read_chapter_source(chapter_dir)
-    with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".lean", delete=False) as temp:
-        temp.write(source)
-        temp_path = Path(temp.name)
-
-    if chapter_dir.name == MATHLIB_CHAPTER:
-        argv = [lake, "env", "lean", str(temp_path)]
+def check_file(lean_path: Path, lean: str, lake: str) -> bool:
+    if lean_path.parent.name == MATHLIB_CHAPTER:
+        argv = [lake, "env", "lean", str(lean_path)]
     else:
-        argv = [lean, str(temp_path)]
+        argv = [lean, str(lean_path)]
 
-    try:
-        completed = subprocess.run(
-            argv,
-            cwd=ROOT,
-            check=False,
-            text=True,
-            capture_output=True,
-            env={**os.environ, "PATH": f"{Path(lean).parent}:{os.environ.get('PATH', '')}"},
-        )
-    finally:
-        temp_path.unlink(missing_ok=True)
+    completed = subprocess.run(
+        argv,
+        cwd=ROOT,
+        check=False,
+        text=True,
+        capture_output=True,
+        env={**os.environ, "PATH": f"{Path(lean).parent}:{os.environ.get('PATH', '')}"},
+    )
 
     if completed.returncode == 0:
-        print(f"ok: {chapter_dir.relative_to(ROOT)}")
+        print(f"ok: {lean_path.relative_to(ROOT)}")
         return True
 
-    print(f"failed: {chapter_dir.relative_to(ROOT)}", file=sys.stderr)
+    print(f"failed: {lean_path.relative_to(ROOT)}", file=sys.stderr)
     sys.stderr.write(completed.stdout)
     sys.stderr.write(completed.stderr)
     return False
@@ -75,12 +61,12 @@ def main() -> int:
     args = parser.parse_args()
 
     failed = False
-    for chapter_dir in snippet_dirs(args.paths):
-        if not chapter_dir.exists():
-            print(f"{chapter_dir}: directory does not exist", file=sys.stderr)
+    for lean_path in snippet_files(args.paths):
+        if not lean_path.exists():
+            print(f"{lean_path}: file does not exist", file=sys.stderr)
             failed = True
             continue
-        failed = not check_chapter(chapter_dir, args.lean, args.lake) or failed
+        failed = not check_file(lean_path, args.lean, args.lake) or failed
     return 1 if failed else 0
 
 

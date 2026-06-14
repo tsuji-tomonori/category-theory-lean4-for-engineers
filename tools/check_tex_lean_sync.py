@@ -62,6 +62,70 @@ def strip_lean_line_comment(line: str) -> str:
     return line
 
 
+def strip_lean_comments(code: str) -> str:
+    result: list[str] = []
+    index = 0
+    in_line_comment = False
+    block_depth = 0
+    in_string = False
+    escaped = False
+
+    while index < len(code):
+        char = code[index]
+        next_char = code[index + 1] if index + 1 < len(code) else ""
+
+        if in_line_comment:
+            if char == "\n":
+                result.append(char)
+                in_line_comment = False
+            index += 1
+            continue
+
+        if block_depth:
+            if char == "/" and next_char == "-":
+                block_depth += 1
+                index += 2
+                continue
+            if char == "-" and next_char == "/":
+                block_depth -= 1
+                index += 2
+                continue
+            if char == "\n":
+                result.append(char)
+            index += 1
+            continue
+
+        if in_string:
+            result.append(char)
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            index += 1
+            continue
+
+        if char == '"':
+            in_string = True
+            result.append(char)
+            index += 1
+            continue
+        if char == "-" and next_char == "-":
+            in_line_comment = True
+            index += 2
+            continue
+        if char == "/" and next_char == "-":
+            block_depth = 1
+            index += 2
+            continue
+
+        result.append(char)
+        index += 1
+
+    return "".join(result)
+
+
 def normalize_code(code: str) -> str:
     lines = [line.rstrip() for line in code.replace("\r\n", "\n").split("\n")]
     while lines and not lines[0]:
@@ -72,7 +136,7 @@ def normalize_code(code: str) -> str:
 
 
 def normalize_lean_code(code: str) -> str:
-    lines = [strip_lean_line_comment(line).rstrip() for line in code.replace("\r\n", "\n").split("\n")]
+    lines = [line.rstrip() for line in strip_lean_comments(code.replace("\r\n", "\n")).split("\n")]
     lines = [
         line
         for line in lines

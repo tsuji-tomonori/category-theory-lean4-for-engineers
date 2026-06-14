@@ -1,15 +1,8 @@
--- Source: chapters/ch28_refactoring_as_equations.tex:42
-
-/-
-Chapter 28: リファクタリングを等式として扱う
-
-This file contains the Lean 4 snippets used in the chapter.
-It avoids Mathlib-specific APIs and uses small standard-library examples.
--/
+-- 出典: chapters/ch28_refactoring_as_equations.tex:42
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 namespace Chapter28
 
--- 関数抽出: 補助関数を導入しても計算結果が同じであることを示す。
 def basePrice (subtotal shipping : Nat) : Nat :=
   subtotal + shipping
 

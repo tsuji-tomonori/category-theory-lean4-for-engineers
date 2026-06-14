@@ -1,9 +1,5 @@
--- Source: chapters/ch24_list_migration_functor_laws.tex:126
-
-/-
-Chapter 24: List migration and functor laws.
-This file contains the Lean snippets used in the chapter.
--/
+-- 出典: chapters/ch24_list_migration_functor_laws.tex:126
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 structure UserV1 where
   id : Nat

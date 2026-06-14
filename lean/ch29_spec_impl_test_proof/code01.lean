@@ -1,9 +1,5 @@
--- Source: chapters/ch29_spec_impl_test_proof.tex:78
-
-/-
-Chapter 29: 仕様・実装・テスト・証明の接続
-This file contains the Lean snippets used in the chapter.
--/
+-- 出典: chapters/ch29_spec_impl_test_proof.tex:78
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 namespace Chapter29
 

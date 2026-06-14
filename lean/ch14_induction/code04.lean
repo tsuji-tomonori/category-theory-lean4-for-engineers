@@ -1,12 +1,46 @@
--- Source: chapters/ch14_induction.tex:233
--- check-lean-snippets: skip
--- Repeated in the chapter text for explanation; omitted from chapter-level Lean check.
+-- 出典: chapters/ch14_induction.tex:233
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
+
+namespace Ch14
+
+structure UserV1 where
+  id : Nat
+  name : String
+  deriving Repr, BEq
+
+structure UserV2 where
+  id : Nat
+  displayName : String
+  deriving Repr, BEq
+
+def migrateUser (u : UserV1) : UserV2 :=
+  { id := u.id, displayName := u.name }
+
+def migrateUsers (xs : List UserV1) : List UserV2 :=
+  xs.map migrateUser
 
 def idsV1 (xs : List UserV1) : List Nat :=
   xs.map (fun u => u.id)
 
 def idsV2 (xs : List UserV2) : List Nat :=
   xs.map (fun u => u.id)
+
+theorem migrateUser_preserves_id (u : UserV1) :
+    (migrateUser u).id = u.id := by
+  rfl
+
+theorem map_preserves_length {α β : Type} (f : α → β) :
+    ∀ xs : List α, (xs.map f).length = xs.length := by
+  intro xs
+  induction xs with
+  | nil =>
+      rfl
+  | cons x xs ih =>
+      simp [List.map, ih]
+
+theorem migrateUsers_preserves_length (xs : List UserV1) :
+    (migrateUsers xs).length = xs.length := by
+  simpa [migrateUsers] using map_preserves_length migrateUser xs
 
 theorem migrateUsers_preserves_ids (xs : List UserV1) :
     idsV2 (migrateUsers xs) = idsV1 xs := by

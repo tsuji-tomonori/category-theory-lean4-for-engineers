@@ -1,6 +1,19 @@
--- Source: chapters/ch03_equality_refactoring.tex:103
+-- 出典: chapters/ch03_equality_refactoring.tex:103
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
--- 関数の結果が同じ、という仕様を全入力についての命題にする。
+namespace Ch03EqualityRefactoring
+
+def rawCalc (x : Nat) : Nat :=
+  (x + 0) * 1
+
+def refactoredCalc (x : Nat) : Nat :=
+  x
+
+theorem rawCalc_eq_refactoredCalc (x : Nat) :
+    rawCalc x = refactoredCalc x := by
+  unfold rawCalc refactoredCalc
+  simp
+
 def sameOnNat (f g : Nat → Nat) : Prop :=
   ∀ x, f x = g x
 

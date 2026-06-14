@@ -1,4 +1,5 @@
--- Source: chapters/ch14_induction.tex:126
+-- 出典: chapters/ch14_induction.tex:126
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 namespace Ch14
 

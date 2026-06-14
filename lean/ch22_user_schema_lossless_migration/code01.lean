@@ -1,11 +1,5 @@
--- Source: chapters/ch22_user_schema_lossless_migration.tex:129
-
-/-
-第22章 ケーススタディ：User スキーマの lossless migration
-
-このファイルは、本文中の Lean コードを抽出したものです。
-標準ライブラリだけで読める小さなモデルとして書いています。
--/
+-- 出典: chapters/ch22_user_schema_lossless_migration.tex:129
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 namespace Chapter22
 

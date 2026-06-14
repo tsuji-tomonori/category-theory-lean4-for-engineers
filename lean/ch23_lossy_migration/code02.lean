@@ -1,6 +1,37 @@
--- Source: chapters/ch23_lossy_migration.tex:101
+-- 出典: chapters/ch23_lossy_migration.tex:101
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-/-- 新形式から旧形式へ戻し、再び新形式へ移す方向は常に戻る。 -/
+namespace Ch23
+
+structure FullName where
+  first : String
+  middle : Option String
+  last : String
+deriving Repr, DecidableEq
+
+structure UserV1 where
+  id : Nat
+  fullName : FullName
+deriving Repr, DecidableEq
+
+structure UserV2 where
+  id : Nat
+  firstName : String
+  lastName : String
+deriving Repr, DecidableEq
+
+def migrate (u : UserV1) : UserV2 :=
+  { id := u.id,
+    firstName := u.fullName.first,
+    lastName := u.fullName.last }
+
+def rollback (v : UserV2) : UserV1 :=
+  { id := v.id,
+    fullName :=
+      { first := v.firstName,
+        middle := none,
+        last := v.lastName } }
+
 theorem new_round_trip (v : UserV2) :
     migrate (rollback v) = v := by
   cases v with

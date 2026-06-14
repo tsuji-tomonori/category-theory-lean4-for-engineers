@@ -1,6 +1,27 @@
--- Source: chapters/ch05_category.tex:310
+-- 出典: chapters/ch05_category.tex:310
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
--- 例を小さくするため、文字列の長さをユーザーIDの代わりに使う。
+namespace Ch05Category
+
+def idFn {A : Type} (x : A) : A :=
+  x
+
+def comp {A B C : Type} (g : B -> C) (f : A -> B) : A -> C :=
+  fun x => g (f x)
+
+theorem id_left_pointwise {A B : Type} (f : A -> B) (x : A) :
+    comp idFn f x = f x := by
+  rfl
+
+theorem id_right_pointwise {A B : Type} (f : A -> B) (x : A) :
+    comp f idFn x = f x := by
+  rfl
+
+theorem comp_assoc_pointwise {A B C D : Type}
+    (h : C -> D) (g : B -> C) (f : A -> B) (x : A) :
+    comp (comp h g) f x = comp h (comp g f) x := by
+  rfl
+
 def parseUserId (s : String) : Nat :=
   s.length
 
@@ -10,11 +31,9 @@ def fetchUserName (id : Nat) : String :=
 def renderGreeting (name : String) : String :=
   "hello, " ++ name
 
--- 前半を後でまとめる見方。
 def pipelineLeft : String -> String :=
   comp (comp renderGreeting fetchUserName) parseUserId
 
--- 後半を先にまとめる見方。
 def pipelineRight : String -> String :=
   comp renderGreeting (comp fetchUserName parseUserId)
 

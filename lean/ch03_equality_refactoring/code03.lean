@@ -1,6 +1,28 @@
--- Source: chapters/ch03_equality_refactoring.tex:141
+-- 出典: chapters/ch03_equality_refactoring.tex:141
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
--- rw は、既知の等式を使った置換として読める。
+namespace Ch03EqualityRefactoring
+
+def rawCalc (x : Nat) : Nat :=
+  (x + 0) * 1
+
+def refactoredCalc (x : Nat) : Nat :=
+  x
+
+theorem rawCalc_eq_refactoredCalc (x : Nat) :
+    rawCalc x = refactoredCalc x := by
+  unfold rawCalc refactoredCalc
+  simp
+
+def sameOnNat (f g : Nat → Nat) : Prop :=
+  ∀ x, f x = g x
+
+theorem raw_and_refactored_same :
+    sameOnNat rawCalc refactoredCalc := by
+  intro x
+  unfold rawCalc refactoredCalc
+  simp
+
 def addFeeOriginal (price fee : Nat) : Nat :=
   price + fee
 
@@ -12,7 +34,6 @@ theorem addFee_refactor_preserves (price fee : Nat) :
   unfold addFeeOriginal addFeeRefactored
   rw [Nat.add_comm]
 
--- calc は、レビューしやすい段階的な式変形である。
 def totalOriginal (price qty shipping handling : Nat) : Nat :=
   ((price * qty) + shipping) + handling
 

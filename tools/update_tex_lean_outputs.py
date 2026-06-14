@@ -18,7 +18,6 @@ ROOT = Path(__file__).resolve().parents[1]
 CHAPTERS_DIR = ROOT / "chapters"
 LEAN_DIR = ROOT / "lean"
 LEAN_LANGS = {"lean", "lean4"}
-SKIP_MARKER = "check-lean-snippets: skip"
 COMMAND_RE = re.compile(r"^(\s*)#(eval|check|reduce)\b")
 BEGIN_RE = re.compile(r"\\begin\{minted\}(?:\[[^\]]*\])?\{([^}]+)\}")
 END_RE = re.compile(r"\\end\{minted\}")
@@ -145,22 +144,8 @@ def lean_display_name(lean_paths: list[Path]) -> str:
     return f"{parent.relative_to(ROOT)}/*.lean"
 
 
-def read_lean_source(lean_paths: list[Path]) -> list[str]:
-    lines: list[str] = []
-    wrote_any = False
-    for lean_path in lean_paths:
-        text = lean_path.read_text(encoding="utf-8")
-        if SKIP_MARKER in text:
-            continue
-        if wrote_any:
-            lines.append("")
-        lines.extend(text.splitlines())
-        wrote_any = True
-    return lines
-
-
-def lean_command_outputs(lean_paths: list[Path], lean: str, lake: str) -> dict[str, deque[list[str]]]:
-    source_lines = read_lean_source(lean_paths)
+def lean_command_outputs_for_file(lean_path: Path, lean: str, lake: str) -> dict[str, deque[list[str]]]:
+    source_lines = lean_path.read_text(encoding="utf-8").splitlines()
     commands = extract_commands_from_lines(source_lines)
     if not commands:
         return {}
@@ -170,10 +155,7 @@ def lean_command_outputs(lean_paths: list[Path], lean: str, lake: str) -> dict[s
         temp.write(instrumented)
         temp_path = Path(temp.name)
 
-    uses_mathlib = any(
-        path.name == "ch34_mathlib_category_theory.lean" or path.parent.name == "ch34_mathlib_category_theory"
-        for path in lean_paths
-    )
+    uses_mathlib = lean_path.name == "ch34_mathlib_category_theory.lean" or lean_path.parent.name == "ch34_mathlib_category_theory"
     if uses_mathlib:
         argv = [lake, "env", "lean", str(temp_path)]
     else:
@@ -194,7 +176,7 @@ def lean_command_outputs(lean_paths: list[Path], lean: str, lake: str) -> dict[s
     if completed.returncode != 0:
         sys.stderr.write(completed.stdout)
         sys.stderr.write(completed.stderr)
-        raise RuntimeError(f"Lean command failed for {lean_display_name(lean_paths)}")
+        raise RuntimeError(f"Lean command failed for {lean_path.relative_to(ROOT)}")
 
     marked_lines = [
         line
@@ -209,6 +191,15 @@ def lean_command_outputs(lean_paths: list[Path], lean: str, lake: str) -> dict[s
     for command, output in zip(commands, chunks, strict=True):
         outputs[command.text].append(output)
     return outputs
+
+
+def lean_command_outputs(lean_paths: list[Path], lean: str, lake: str) -> dict[str, deque[list[str]]]:
+    merged: dict[str, deque[list[str]]] = defaultdict(deque)
+    for lean_path in lean_paths:
+        file_outputs = lean_command_outputs_for_file(lean_path, lean, lake)
+        for command, chunks in file_outputs.items():
+            merged[command].extend(chunks)
+    return merged
 
 
 def collect_tex_inputs(path: Path, seen: set[Path] | None = None) -> list[Path]:

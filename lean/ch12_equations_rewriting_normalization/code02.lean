@@ -1,16 +1,37 @@
--- Source: chapters/ch12_equations_rewriting_normalization.tex:114
+-- 出典: chapters/ch12_equations_rewriting_normalization.tex:114
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
--- 0 を足す税計算は、元の金額と同じ。
+namespace Ch12
+
+def subtotal (base discount : Nat) : Nat :=
+  base - discount
+
+def addTax (amount tax : Nat) : Nat :=
+  amount + tax
+
+def legacyPrice (base discount tax : Nat) : Nat :=
+  addTax (subtotal base discount) tax
+
+def refactoredPrice (base discount tax : Nat) : Nat :=
+  (base - discount) + tax
+
+#eval legacyPrice 1000 100 80
+#eval refactoredPrice 1000 100 80
+
+theorem legacy_eq_refactored
+    (base discount tax : Nat) :
+    legacyPrice base discount tax =
+      refactoredPrice base discount tax := by
+  rfl
+
 theorem addTax_zero (n : Nat) :
     addTax n 0 = n := by
   unfold addTax
   rw [Nat.add_zero]
 
--- 既存コードには、不要な 0 税計算が残っているとする。
 def normalizedPrice (base discount : Nat) : Nat :=
   addTax (subtotal base discount) 0
 
--- その不要な処理を仕様に基づいて取り除く。
 theorem normalizedPrice_eq_subtotal
     (base discount : Nat) :
     normalizedPrice base discount =

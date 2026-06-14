@@ -1,6 +1,43 @@
--- Source: chapters/ch23_lossy_migration.tex:119
+-- 出典: chapters/ch23_lossy_migration.tex:119
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-/-- ミドルネームを含む旧データ。 -/
+namespace Ch23
+
+structure FullName where
+  first : String
+  middle : Option String
+  last : String
+deriving Repr, DecidableEq
+
+structure UserV1 where
+  id : Nat
+  fullName : FullName
+deriving Repr, DecidableEq
+
+structure UserV2 where
+  id : Nat
+  firstName : String
+  lastName : String
+deriving Repr, DecidableEq
+
+def migrate (u : UserV1) : UserV2 :=
+  { id := u.id,
+    firstName := u.fullName.first,
+    lastName := u.fullName.last }
+
+def rollback (v : UserV2) : UserV1 :=
+  { id := v.id,
+    fullName :=
+      { first := v.firstName,
+        middle := none,
+        last := v.lastName } }
+
+theorem new_round_trip (v : UserV2) :
+    migrate (rollback v) = v := by
+  cases v with
+  | mk id firstName lastName =>
+      rfl
+
 def oldWithMiddle : UserV1 :=
   { id := 42,
     fullName :=
@@ -11,16 +48,13 @@ def oldWithMiddle : UserV1 :=
 #eval migrate oldWithMiddle
 #eval rollback (migrate oldWithMiddle)
 
-/-- この具体例では、旧データへ完全には戻らない。 -/
 theorem oldWithMiddle_not_restored :
     rollback (migrate oldWithMiddle) ≠ oldWithMiddle := by
   decide
 
-/-- 強い仕様：すべての旧データについて完全に戻る。 -/
 def StrongRoundTrip : Prop :=
   ∀ u : UserV1, rollback (migrate u) = u
 
-/-- 強い仕様は、この移行では成り立たない。 -/
 theorem strong_spec_fails : ¬ StrongRoundTrip := by
   intro h
   exact oldWithMiddle_not_restored (h oldWithMiddle)

@@ -1,4 +1,70 @@
--- Source: chapters/ch34_mathlib_category_theory.tex:271
+-- 出典: chapters/ch34_mathlib_category_theory.tex:271
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
+
+import Mathlib.CategoryTheory.Category.Basic
+import Mathlib.CategoryTheory.Functor.Basic
+import Mathlib.CategoryTheory.NatTrans
+import Mathlib.CategoryTheory.Iso
+
+universe v u v1 v2 u1 u2
+
+namespace Chapter34
+
+open CategoryTheory
+open scoped CategoryTheory
+
+section CategoryFields
+
+variable {C : Type u} [Category.{v} C]
+variable {W X Y Z : C}
+
+#check (X ⟶ Y)
+#check (𝟙 X)
+#check fun (f : X ⟶ Y) (g : Y ⟶ Z) => f ≫ g
+
+theorem id_then (f : X ⟶ Y) : (𝟙 X) ≫ f = f := by
+  simpa
+
+theorem then_id (f : X ⟶ Y) : f ≫ (𝟙 Y) = f := by
+  simpa
+
+theorem comp_assoc_example
+    (f : W ⟶ X) (g : X ⟶ Y) (h : Y ⟶ Z) :
+    (f ≫ g) ≫ h = f ≫ (g ≫ h) := by
+  simpa using (Category.assoc f g h)
+
+end CategoryFields
+
+section FunctorFields
+
+variable {C : Type u1} [Category.{v1} C]
+variable {D : Type u2} [Category.{v2} D]
+variable (F : C ⥤ D)
+
+#check F.obj
+#check F.map
+#check fun {X Y : C} (f : X ⟶ Y) => F.map f
+
+theorem functor_preserves_id (X : C) :
+    F.map (𝟙 X) = 𝟙 (F.obj X) := by
+  simpa using F.map_id X
+
+theorem functor_preserves_comp {X Y Z : C}
+    (f : X ⟶ Y) (g : Y ⟶ Z) :
+    F.map (f ≫ g) = F.map f ≫ F.map g := by
+  simpa using F.map_comp f g
+
+end FunctorFields
+
+section NatTransFields
+
+variable {C : Type u1} [Category.{v1} C]
+variable {D : Type u2} [Category.{v2} D]
+variable {F G : C ⥤ D}
+variable (α : NatTrans F G)
+
+#check fun (X : C) => α.app X
+#check fun {X Y : C} (f : X ⟶ Y) => α.naturality f
 
 theorem naturality_example {X Y : C} (f : X ⟶ Y) :
     F.map f ≫ α.app Y = α.app X ≫ G.map f := by
@@ -16,7 +82,6 @@ variable (e : X ≅ Y)
 #check e.inv
 #check e.hom_inv_id
 #check e.inv_hom_id
-
 
 theorem iso_roundtrip_left : e.hom ≫ e.inv = 𝟙 X := by
   simpa using e.hom_inv_id

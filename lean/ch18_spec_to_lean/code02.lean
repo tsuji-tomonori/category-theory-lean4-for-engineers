@@ -1,11 +1,25 @@
--- Source: chapters/ch18_spec_to_lean.tex:165
+-- 出典: chapters/ch18_spec_to_lean.tex:165
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
--- 成功時の事後条件。
+namespace Chapter18
+
+structure Account where
+  balance : Nat
+  deriving Repr, DecidableEq
+
+def CanWithdraw (a : Account) (amount : Nat) : Prop :=
+  amount <= a.balance
+
+def withdraw (a : Account) (amount : Nat) : Option Account :=
+  if amount <= a.balance then
+    some { balance := a.balance - amount }
+  else
+    none
+
 def PostSuccess
     (before : Account) (amount : Nat) (after : Account) : Prop :=
   after.balance = before.balance - amount
 
--- 事前条件があれば、withdraw は成功する。
 theorem withdraw_success_when_allowed
     (a : Account) (amount : Nat)
     (h : CanWithdraw a amount) :
@@ -14,7 +28,6 @@ theorem withdraw_success_when_allowed
     simpa [CanWithdraw] using h
   simp [withdraw, hle]
 
--- 成功時の戻り値は、PostSuccess を満たす。
 theorem withdraw_success_post
     (a : Account) (amount : Nat)
     (h : CanWithdraw a amount) :

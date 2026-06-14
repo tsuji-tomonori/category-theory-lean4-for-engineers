@@ -1,12 +1,17 @@
--- Source: chapters/ch07_products_coproducts.tex:93
+-- 出典: chapters/ch07_products_coproducts.tex:93
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
--- Lean's A × B notation is Prod A B.
+namespace Ch07
+
+structure UserSummary where
+  id   : Nat
+  name : String
+
 def loginPair : Nat × String := (42, "token")
 
 example : loginPair.1 = 42 := rfl
 example : loginPair.2 = "token" := rfl
 
--- A pair can be rebuilt from its two projections.
 theorem prod_eta {A B : Type} (p : A × B) : (p.1, p.2) = p := by
   cases p
   rfl

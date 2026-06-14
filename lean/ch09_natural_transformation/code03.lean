@@ -1,25 +1,53 @@
--- Source: chapters/ch09_natural_transformation.tex:312
+-- 出典: chapters/ch09_natural_transformation.tex:312
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-/-- A tiny response status used in the API wrapper example. -/
+namespace Chapter09
+
+def optionMap {A B : Type} (f : A -> B) : Option A -> Option B
+  | none => none
+  | some a => some (f a)
+
+def optionToList {A : Type} : Option A -> List A
+  | none => []
+  | some a => [a]
+
+#eval optionToList (some 10)
+#eval optionToList (none : Option Nat)
+
+theorem optionToList_naturality {A B : Type}
+    (f : A -> B) (x : Option A) :
+    optionToList (optionMap f x) =
+      List.map f (optionToList x) := by
+  cases x <;> rfl
+
+structure NatTransOptionList where
+  app : {A : Type} -> Option A -> List A
+  naturality :
+    {A B : Type} -> (f : A -> B) -> (x : Option A) ->
+      app (optionMap f x) = List.map f (app x)
+
+def optionToListNT : NatTransOptionList where
+  app := fun x => optionToList x
+  naturality := by
+    intro A B f x
+    cases x <;> rfl
+
 inductive Status where
   | ok
   | empty
   deriving Repr, DecidableEq
 
-/-- Old API wrapper: at most one payload. -/
 structure OldResponse (A : Type) where
   traceId : Nat
   payload : Option A
   deriving Repr
 
-/-- New API wrapper: zero or more payload items plus status. -/
 structure NewResponse (A : Type) where
   traceId : Nat
   status : Status
   items : List A
   deriving Repr
 
-/-- Status depends only on whether the payload exists, not on its value. -/
 def statusOf {A : Type} : Option A -> Status
   | none => Status.empty
   | some _ => Status.ok

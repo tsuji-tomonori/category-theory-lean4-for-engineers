@@ -18,7 +18,10 @@ LuaLaTeX と `latexmk` が必要です。
 make
 ```
 
-生成物は `main.pdf` です。中間ファイルを削除する場合は次を実行します。
+生成物は `main.pdf` と、配布用に名前を付けた
+`category-theory-lean4-for-engineers.pdf` です。GitHub Release では
+`category-theory-lean4-for-engineers-<tag>.pdf` がリリースアセットとして添付されます。
+中間ファイルを削除する場合は次を実行します。
 
 ```sh
 make clean
@@ -26,7 +29,7 @@ make clean
 
 ## Lean コードの確認
 
-本文のコードブロックごとに分けた `lean/<章名>/codeNN.lean` は、章ごとに連結して確認します。
+本文のコードブロックごとに分けた `lean/<章名>/codeNN.lean` は、各ファイルを単独で確認します。
 
 ```sh
 python3 tools/check_lean_snippets.py

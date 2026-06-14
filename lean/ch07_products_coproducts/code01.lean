@@ -1,10 +1,5 @@
--- Source: chapters/ch07_products_coproducts.tex:47
-
-/-
-Chapter 7: Products and coproducts for software engineers.
-This file mirrors the Lean snippets used in the chapter.
-It intentionally avoids Mathlib's CategoryTheory API.
--/
+-- 出典: chapters/ch07_products_coproducts.tex:47
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 namespace Ch07
 

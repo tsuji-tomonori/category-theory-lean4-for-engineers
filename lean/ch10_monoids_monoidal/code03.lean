@@ -1,4 +1,49 @@
--- Source: chapters/ch10_monoids_monoidal.tex:275
+-- 出典: chapters/ch10_monoids_monoidal.tex:275
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
+
+namespace Chapter10
+
+abbrev Log := List String
+
+def emptyLog : Log := []
+
+def combineLog (a b : Log) : Log :=
+  a ++ b
+
+#eval combineLog ["start"] ["end"]
+
+theorem combineLog_empty_left (xs : Log) :
+    combineLog emptyLog xs = xs := by
+  rfl
+
+theorem combineLog_empty_right (xs : Log) :
+    combineLog xs emptyLog = xs := by
+  simpa [combineLog, emptyLog] using List.append_nil xs
+
+theorem combineLog_assoc (a b c : Log) :
+    combineLog (combineLog a b) c = combineLog a (combineLog b c) := by
+  simpa [combineLog] using List.append_assoc a b c
+
+structure SimpleMonoid (M : Type) where
+  empty : M
+  append : M -> M -> M
+  empty_left : forall x, append empty x = x
+  empty_right : forall x, append x empty = x
+  append_assoc : forall x y z,
+    append (append x y) z = append x (append y z)
+
+def listNatMonoid : SimpleMonoid (List Nat) where
+  empty := []
+  append := fun xs ys => xs ++ ys
+  empty_left := by
+    intro xs
+    rfl
+  empty_right := by
+    intro xs
+    simpa using List.append_nil xs
+  append_assoc := by
+    intro xs ys zs
+    simpa using List.append_assoc xs ys zs
 
 def planLeft (a b c : Log) : Log :=
   combineLog (combineLog a b) c

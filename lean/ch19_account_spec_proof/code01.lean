@@ -1,9 +1,5 @@
--- Source: chapters/ch19_account_spec_proof.tex:87
-
-/-
-Chapter 19: Account operation specification proofs.
-This file contains the Lean 4 snippets used by chapters/ch19_account_spec_proof.tex.
--/
+-- 出典: chapters/ch19_account_spec_proof.tex:87
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 namespace Chapter19
 

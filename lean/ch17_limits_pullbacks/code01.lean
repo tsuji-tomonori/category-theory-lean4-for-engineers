@@ -1,4 +1,5 @@
--- Source: chapters/ch17_limits_pullbacks.tex:156
+-- 出典: chapters/ch17_limits_pullbacks.tex:156
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 namespace Ch17
 

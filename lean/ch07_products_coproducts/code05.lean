@@ -1,6 +1,55 @@
--- Source: chapters/ch07_products_coproducts.tex:217
+-- 出典: chapters/ch07_products_coproducts.tex:217
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
--- Option A can be read as Unit + A.
+namespace Ch07
+
+structure UserSummary where
+  id   : Nat
+  name : String
+
+def loginPair : Nat × String := (42, "token")
+
+example : loginPair.1 = 42 := rfl
+example : loginPair.2 = "token" := rfl
+
+theorem prod_eta {A B : Type} (p : A × B) : (p.1, p.2) = p := by
+  cases p
+  rfl
+
+structure LoginInput where
+  userId : Nat
+  token  : String
+
+def loginAsPair (x : LoginInput) : Nat × String :=
+  (x.userId, x.token)
+
+def pairAsLogin (p : Nat × String) : LoginInput :=
+  { userId := p.1, token := p.2 }
+
+theorem pair_login_roundtrip (p : Nat × String) :
+    loginAsPair (pairAsLogin p) = p := by
+  cases p
+  rfl
+
+theorem login_pair_roundtrip (x : LoginInput) :
+    pairAsLogin (loginAsPair x) = x := by
+  cases x
+  rfl
+
+inductive ParseError where
+  | empty
+  | badFormat
+
+abbrev ParseResult := Sum ParseError Nat
+
+def parseEmpty : ParseResult := Sum.inl ParseError.empty
+def parseOk    : ParseResult := Sum.inr 200
+
+def showParseResult (r : ParseResult) : String :=
+  match r with
+  | Sum.inl _ => "parse failed"
+  | Sum.inr n => "parse ok"
+
 def optionToSum {A : Type} : Option A → Sum Unit A
   | none   => Sum.inl ()
   | some a => Sum.inr a

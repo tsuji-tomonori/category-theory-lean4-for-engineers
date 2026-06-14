@@ -1,11 +1,5 @@
--- Source: chapters/ch34_mathlib_category_theory.tex:70
-
-/-
-第34章 Mathlib の CategoryTheory へ進む
-
-このファイルは、章本文に掲載した Lean コード例をまとめたものです。
-Mathlib の CategoryTheory API の入口だけを扱います。
--/
+-- 出典: chapters/ch34_mathlib_category_theory.tex:70
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 import Mathlib.CategoryTheory.Category.Basic
 import Mathlib.CategoryTheory.Functor.Basic

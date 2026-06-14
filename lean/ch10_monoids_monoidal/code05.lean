@@ -1,4 +1,84 @@
--- Source: chapters/ch10_monoids_monoidal.tex:339
+-- 出典: chapters/ch10_monoids_monoidal.tex:339
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
+
+namespace Chapter10
+
+abbrev Log := List String
+
+def emptyLog : Log := []
+
+def combineLog (a b : Log) : Log :=
+  a ++ b
+
+#eval combineLog ["start"] ["end"]
+
+theorem combineLog_empty_left (xs : Log) :
+    combineLog emptyLog xs = xs := by
+  rfl
+
+theorem combineLog_empty_right (xs : Log) :
+    combineLog xs emptyLog = xs := by
+  simpa [combineLog, emptyLog] using List.append_nil xs
+
+theorem combineLog_assoc (a b c : Log) :
+    combineLog (combineLog a b) c = combineLog a (combineLog b c) := by
+  simpa [combineLog] using List.append_assoc a b c
+
+structure SimpleMonoid (M : Type) where
+  empty : M
+  append : M -> M -> M
+  empty_left : forall x, append empty x = x
+  empty_right : forall x, append x empty = x
+  append_assoc : forall x y z,
+    append (append x y) z = append x (append y z)
+
+def listNatMonoid : SimpleMonoid (List Nat) where
+  empty := []
+  append := fun xs ys => xs ++ ys
+  empty_left := by
+    intro xs
+    rfl
+  empty_right := by
+    intro xs
+    simpa using List.append_nil xs
+  append_assoc := by
+    intro xs ys zs
+    simpa using List.append_assoc xs ys zs
+
+def planLeft (a b c : Log) : Log :=
+  combineLog (combineLog a b) c
+
+def planRight (a b c : Log) : Log :=
+  combineLog a (combineLog b c)
+
+theorem log_plan_safe (a b c : Log) :
+    planLeft a b c = planRight a b c := by
+  simpa [planLeft, planRight] using combineLog_assoc a b c
+
+structure Config where
+  retry : Nat
+  tags : List String
+  deriving Repr
+
+def emptyConfig : Config :=
+  { retry := 0, tags := [] }
+
+def mergeConfig (a b : Config) : Config :=
+  { retry := a.retry + b.retry,
+    tags := a.tags ++ b.tags }
+
+#eval mergeConfig { retry := 1, tags := ["api"] }
+                  { retry := 2, tags := ["db"] }
+
+theorem mergeConfig_empty_left (c : Config) :
+    mergeConfig emptyConfig c = c := by
+  cases c
+  simp [mergeConfig, emptyConfig]
+
+theorem mergeConfig_empty_right (c : Config) :
+    mergeConfig c emptyConfig = c := by
+  cases c
+  simp [mergeConfig, emptyConfig]
 
 theorem mergeConfig_assoc (a b c : Config) :
     mergeConfig (mergeConfig a b) c =
@@ -7,6 +87,5 @@ theorem mergeConfig_assoc (a b c : Config) :
   cases b
   cases c
   simp [mergeConfig, Nat.add_assoc, List.append_assoc]
-
 
 end Chapter10

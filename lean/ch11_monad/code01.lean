@@ -1,14 +1,7 @@
--- Source: chapters/ch11_monad.tex:96
-
-/-
-第11章 モナド：失敗・状態・非同期を合成する形
-このファイルは本文中の Lean コードを抜き出したものです。
-Mathlib の CategoryTheory API は使わず、標準的な Lean 4 の構文と小さな自作定義だけで説明します。
--/
+-- 出典: chapters/ch11_monad.tex:96
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 namespace Chapter11Monad
-
-/-! ## Option の pure と bind -/
 
 def optPure {α : Type} (a : α) : Option α :=
   some a

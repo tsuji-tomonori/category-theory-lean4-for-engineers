@@ -1,23 +1,76 @@
--- Source: chapters/ch26_db_schema_query_preservation.tex:245
+-- 出典: chapters/ch26_db_schema_query_preservation.tex:245
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-/-- ユーザー行と注文行の外部キーが一致している、という整合条件。 -/
+namespace Ch26
+
+structure OrderOld where
+  orderId : Nat
+  userId : Nat
+  userName : String
+  amount : Nat
+
+deriving Repr, DecidableEq
+
+structure UserRow where
+  userId : Nat
+  userName : String
+
+deriving Repr, DecidableEq
+
+structure OrderRow where
+  orderId : Nat
+  userId : Nat
+  amount : Nat
+
+deriving Repr, DecidableEq
+
+structure SplitRow where
+  user : UserRow
+  order : OrderRow
+
+deriving Repr, DecidableEq
+
+structure OrderView where
+  orderId : Nat
+  userName : String
+  amount : Nat
+
+deriving Repr, DecidableEq
+
+def splitOrder (r : OrderOld) : SplitRow :=
+  { user := { userId := r.userId, userName := r.userName },
+    order := { orderId := r.orderId,
+               userId := r.userId,
+               amount := r.amount } }
+
+def queryOldRow (r : OrderOld) : OrderView :=
+  { orderId := r.orderId,
+    userName := r.userName,
+    amount := r.amount }
+
+def querySplitRow (s : SplitRow) : OrderView :=
+  { orderId := s.order.orderId,
+    userName := s.user.userName,
+    amount := s.order.amount }
+
+theorem split_row_preserves_query (r : OrderOld) :
+    querySplitRow (splitOrder r) = queryOldRow r := by
+  cases r
+  rfl
+
 def Consistent (s : SplitRow) : Prop :=
   s.user.userId = s.order.userId
 
-/-- 整合条件の証明を持つ分割行。 -/
 def ConsistentSplitRow := { s : SplitRow // Consistent s }
 
-/-- 旧行から作った分割行は、必ず userId の整合条件を満たす。 -/
 theorem split_consistent (r : OrderOld) :
     Consistent (splitOrder r) := by
   cases r
   rfl
 
-/-- 整合性の証明を添えて、旧行を新スキーマ行へ移す。 -/
 def splitOrderChecked (r : OrderOld) : ConsistentSplitRow :=
   Subtype.mk (splitOrder r) (split_consistent r)
 
-/-- 整合済みの新スキーマ行から表示用ビューを作る。 -/
 def queryNewRow (s : ConsistentSplitRow) : OrderView :=
   { orderId := s.val.order.orderId,
     userName := s.val.user.userName,

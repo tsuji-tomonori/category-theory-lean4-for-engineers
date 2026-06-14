@@ -1,12 +1,5 @@
--- Source: chapters/ch26_db_schema_query_preservation.tex:152
-
-/-
-第26章 ケーススタディ：DB スキーマ変更とクエリ保存
-
-Mathlib には依存しない、Lean 4 標準機能だけの小さなモデル。
-旧スキーマの注文行を、ユーザー行と注文行に分割し、
-表示用クエリの結果が移行前後で一致することを証明する。
--/
+-- 出典: chapters/ch26_db_schema_query_preservation.tex:152
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 namespace Ch26
 

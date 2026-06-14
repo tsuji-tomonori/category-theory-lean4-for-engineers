@@ -1,10 +1,69 @@
--- Source: chapters/ch21_migration_classification.tex:212
+-- 出典: chapters/ch21_migration_classification.tex:212
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-/-- 追加フィールドがデフォルト値である、という well-formed 条件。 -/
+namespace Ch21MigrationClassification
+
+structure EquivLike (A B : Type) where
+  toFun : A -> B
+  invFun : B -> A
+  left_inv : (a : A) -> invFun (toFun a) = a
+  right_inv : (b : B) -> toFun (invFun b) = b
+
+structure UserV1 where
+  id : Nat
+  name : String
+  deriving DecidableEq, Repr
+
+structure UserV2 where
+  id : Nat
+  profileName : String
+  deriving DecidableEq, Repr
+
+def migrateUser (u : UserV1) : UserV2 :=
+  { id := u.id, profileName := u.name }
+
+def rollbackUser (v : UserV2) : UserV1 :=
+  { id := v.id, name := v.profileName }
+
+theorem user_left_roundtrip (u : UserV1) :
+    rollbackUser (migrateUser u) = u := by
+  cases u
+  rfl
+
+theorem user_right_roundtrip (v : UserV2) :
+    migrateUser (rollbackUser v) = v := by
+  cases v
+  rfl
+
+def userIso : EquivLike UserV1 UserV2 :=
+  { toFun := migrateUser
+    invFun := rollbackUser
+    left_inv := user_left_roundtrip
+    right_inv := user_right_roundtrip }
+
+structure OldToken where
+  token : String
+  deriving DecidableEq, Repr
+
+structure NewToken where
+  token : String
+  issuedAt : Nat
+  deriving DecidableEq, Repr
+
+def oldToNew (o : OldToken) : NewToken :=
+  { token := o.token, issuedAt := 0 }
+
+def newToOld (n : NewToken) : OldToken :=
+  { token := n.token }
+
+theorem old_roundtrip (o : OldToken) :
+    newToOld (oldToNew o) = o := by
+  cases o
+  rfl
+
 def IsDefaultIssuedAt (n : NewToken) : Prop :=
   n.issuedAt = 0
 
-/-- well-formed な新データだけなら、戻して移しても元に戻る。 -/
 theorem new_roundtrip_when_default
     (n : NewToken) (h : IsDefaultIssuedAt n) :
     oldToNew (newToOld n) = n := by
@@ -15,38 +74,30 @@ theorem new_roundtrip_when_default
       cases h
       rfl
 
-/-- 内部ログ。 -/
 structure PrivateLog where
   userId : Nat
   message : String
   deriving DecidableEq, Repr
 
-/-- 公開ログ。 -/
 structure PublicLog where
   message : String
   deriving DecidableEq, Repr
 
-/-- 匿名化。ユーザーIDは落とす。 -/
 def anonymize (l : PrivateLog) : PublicLog :=
   { message := l.message }
 
-/-- 公開ログとして同じ見え方をする、という関係。 -/
 def SamePublicView (x y : PrivateLog) : Prop :=
   anonymize x = anonymize y
 
-/-- 匿名化してもメッセージ本文は保存される。 -/
 theorem anonymize_preserves_message (l : PrivateLog) :
     (anonymize l).message = l.message := by
   rfl
 
-/-- 異なるユーザーでも、公開ログとしては同じになることがある。 -/
 theorem different_users_can_have_same_public_view (msg : String) :
     SamePublicView { userId := 1, message := msg }
                    { userId := 2, message := msg } := by
   rfl
 
-
-/-- 本章で使う分類名。 -/
 inductive MigrationKind : Type where
   | fullIso
   | oneWayCompatible

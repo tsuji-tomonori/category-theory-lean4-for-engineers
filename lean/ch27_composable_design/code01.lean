@@ -1,9 +1,5 @@
--- Source: chapters/ch27_composable_design.tex:104
-
-/-
-Chapter 27: 合成可能な設計を作る
-Lean examples for the chapter.
--/
+-- 出典: chapters/ch27_composable_design.tex:104
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 namespace Ch27
 

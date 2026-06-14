@@ -1,8 +1,8 @@
--- Source: chapters/ch16_relations_preorders_galois.tex:54
+-- 出典: chapters/ch16_relations_preorders_galois.tex:54
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 namespace Ch16
 
--- A と B の間の関係は、A の値と B の値から命題を作るもの。
 def Rel (A B : Type) := A -> B -> Prop
 
 structure DetailLog where
@@ -15,11 +15,9 @@ structure PublicLog where
   endpoint : Nat
 deriving Repr
 
--- 詳細ログから公開ログへ落とす。
 def maskLog (l : DetailLog) : PublicLog :=
   { endpoint := l.endpoint }
 
--- 公開ログに残すと決めた部分が保存されている、という関係。
 def KeepsPublicPart (d : DetailLog) (p : PublicLog) : Prop :=
   p.endpoint = d.endpoint
 

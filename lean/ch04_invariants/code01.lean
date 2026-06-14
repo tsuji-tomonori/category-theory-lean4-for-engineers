@@ -1,11 +1,5 @@
--- Source: chapters/ch04_invariants.tex:62
-
-/-
-Chapter 04: Data structures and invariants
-
-This file contains the Lean snippets used in chapters/ch04_invariants.tex.
-It is intentionally small and uses only Lean's core/prelude-level features.
--/
+-- 出典: chapters/ch04_invariants.tex:62
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 namespace Chapter04
 
@@ -19,7 +13,6 @@ structure Account where
   balance : Nat
   deriving Repr, DecidableEq
 
--- A sample value used by #eval examples.
 def sampleAccount : Account :=
   { ownerId := 1, balance := 100 }
 

@@ -1,4 +1,63 @@
--- Source: chapters/ch27_composable_design.tex:203
+-- 出典: chapters/ch27_composable_design.tex:203
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
+
+namespace Ch27
+
+variable {A B C D : Type}
+
+theorem left_id_point (f : A -> B) (x : A) :
+    (Function.comp id f) x = f x := by
+  rfl
+
+theorem right_id_point (f : A -> B) (x : A) :
+    (Function.comp f id) x = f x := by
+  rfl
+
+theorem assoc_point
+    (f : A -> B) (g : B -> C) (h : C -> D) (x : A) :
+    (Function.comp h (Function.comp g f)) x =
+      (Function.comp (Function.comp h g) f) x := by
+  rfl
+
+end Ch27
+
+namespace Ch27ETL
+
+structure RawRow where
+  userId : Nat
+  amountText : Nat
+  deriving Repr, DecidableEq
+
+structure ValidRow where
+  userId : Nat
+  amount : Nat
+  deriving Repr, DecidableEq
+
+structure EnrichedRow where
+  userId : Nat
+  amount : Nat
+  fee : Nat
+  deriving Repr, DecidableEq
+
+structure ReportRow where
+  userId : Nat
+  total : Nat
+  deriving Repr, DecidableEq
+
+def sanitize (r : RawRow) : ValidRow :=
+  { userId := r.userId, amount := r.amountText }
+
+def enrich (r : ValidRow) : EnrichedRow :=
+  { userId := r.userId, amount := r.amount, fee := 10 }
+
+def summarize (r : EnrichedRow) : ReportRow :=
+  { userId := r.userId, total := r.amount + r.fee }
+
+def pipeline : RawRow -> ReportRow :=
+  Function.comp summarize (Function.comp enrich sanitize)
+
+def pipelineExpanded (r : RawRow) : ReportRow :=
+  summarize (enrich (sanitize r))
 
 theorem pipeline_same_as_expanded (r : RawRow) :
     pipeline r = pipelineExpanded r := by

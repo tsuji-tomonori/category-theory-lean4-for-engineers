@@ -1,32 +1,61 @@
--- Source: chapters/ch21_migration_classification.tex:168
+-- 出典: chapters/ch21_migration_classification.tex:168
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-/-- フィールド名変更は完全同型としてまとめられる。 -/
+namespace Ch21MigrationClassification
+
+structure EquivLike (A B : Type) where
+  toFun : A -> B
+  invFun : B -> A
+  left_inv : (a : A) -> invFun (toFun a) = a
+  right_inv : (b : B) -> toFun (invFun b) = b
+
+structure UserV1 where
+  id : Nat
+  name : String
+  deriving DecidableEq, Repr
+
+structure UserV2 where
+  id : Nat
+  profileName : String
+  deriving DecidableEq, Repr
+
+def migrateUser (u : UserV1) : UserV2 :=
+  { id := u.id, profileName := u.name }
+
+def rollbackUser (v : UserV2) : UserV1 :=
+  { id := v.id, name := v.profileName }
+
+theorem user_left_roundtrip (u : UserV1) :
+    rollbackUser (migrateUser u) = u := by
+  cases u
+  rfl
+
+theorem user_right_roundtrip (v : UserV2) :
+    migrateUser (rollbackUser v) = v := by
+  cases v
+  rfl
+
 def userIso : EquivLike UserV1 UserV2 :=
   { toFun := migrateUser
     invFun := rollbackUser
     left_inv := user_left_roundtrip
     right_inv := user_right_roundtrip }
 
-/-- フィールド追加前のトークン。 -/
 structure OldToken where
   token : String
   deriving DecidableEq, Repr
 
-/-- フィールド追加後のトークン。 -/
 structure NewToken where
   token : String
   issuedAt : Nat
   deriving DecidableEq, Repr
 
-/-- 旧形式を新形式へ移す。追加フィールドにはデフォルト値を入れる。 -/
 def oldToNew (o : OldToken) : NewToken :=
   { token := o.token, issuedAt := 0 }
 
-/-- 新形式を旧形式へ戻す。追加フィールドは落ちる。 -/
 def newToOld (n : NewToken) : OldToken :=
   { token := n.token }
 
-/-- 旧データについては、移して戻すと元に戻る。 -/
 theorem old_roundtrip (o : OldToken) :
     newToOld (oldToNew o) = o := by
   cases o

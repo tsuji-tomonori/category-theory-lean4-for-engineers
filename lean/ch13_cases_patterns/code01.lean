@@ -1,8 +1,8 @@
--- Source: chapters/ch13_cases_patterns.tex:93
+-- 出典: chapters/ch13_cases_patterns.tex:93
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 namespace Ch13CasesPatterns
 
--- Bool は false / true の二通りに分解できる。
 def boolCode (b : Bool) : Nat :=
   match b with
   | true => 1
@@ -18,7 +18,6 @@ theorem boolCode_all (b : Bool) :
       left
       rfl
 
--- Option は none / some の二通りに分解できる。
 def optionCode (x : Option Nat) : Nat :=
   match x with
   | none => 0

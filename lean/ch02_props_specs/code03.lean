@@ -1,6 +1,20 @@
--- Source: chapters/ch02_props_specs.tex:167
+-- 出典: chapters/ch02_props_specs.tex:167
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
--- A specification can be separated from the function it describes.
+namespace Ch02PropsSpecs
+
+def hasDiscount (member : Bool) : Bool :=
+  member
+
+#eval hasDiscount true
+#eval hasDiscount false
+
+def DiscountSpec (member : Bool) : Prop :=
+  hasDiscount member = true
+
+theorem member_hasDiscount : DiscountSpec true := by
+  rfl
+
 def addTax (price tax : Nat) : Nat :=
   price + tax
 

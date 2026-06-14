@@ -1,9 +1,6 @@
--- Source: chapters/ch10_monoids_monoidal.tex:192
+-- 出典: chapters/ch10_monoids_monoidal.tex:192
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-/-
-第10章「モノイドとモノイダルな見方：結合できる処理」で使う Lean 4 コード。
-標準ライブラリ中心の小さなモデルだけを使う。
--/
 namespace Chapter10
 
 abbrev Log := List String

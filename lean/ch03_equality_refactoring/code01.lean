@@ -1,11 +1,8 @@
--- Source: chapters/ch03_equality_refactoring.tex:59
+-- 出典: chapters/ch03_equality_refactoring.tex:59
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 namespace Ch03EqualityRefactoring
 
--- 第3章 等式推論とリファクタリング
--- 目的: リファクタリング前後の意味保存を、小さな等式として表す。
-
--- 何もしない整理は、simp で消せることが多い。
 def rawCalc (x : Nat) : Nat :=
   (x + 0) * 1
 

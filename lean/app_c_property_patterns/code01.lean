@@ -1,9 +1,5 @@
--- Source: chapters/app_c_property_patterns.tex:87
-
-/-
-Lean examples for Appendix C: Property patterns to prove.
-These snippets are intended to mirror the examples in the TeX file.
--/
+-- 出典: chapters/app_c_property_patterns.tex:87
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 structure UserV1 where
   id : Nat

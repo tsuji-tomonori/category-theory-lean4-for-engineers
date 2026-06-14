@@ -1,9 +1,5 @@
--- Source: chapters/appA_lean4_min_cheatsheet.tex:46
-
-/-
-Appendix A: Lean 4 minimal cheat sheet
-This file mirrors the Lean snippets used in the appendix.
--/
+-- 出典: chapters/appA_lean4_min_cheatsheet.tex:46
+-- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 def serviceFee : Nat := 300
 
