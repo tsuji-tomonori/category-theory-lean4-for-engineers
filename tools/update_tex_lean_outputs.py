@@ -18,6 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CHAPTERS_DIR = ROOT / "chapters"
 LEAN_DIR = ROOT / "lean"
 LEAN_LANGS = {"lean", "lean4"}
+SKIP_MARKER = "check-lean-snippets: skip"
 COMMAND_RE = re.compile(r"^(\s*)#(eval|check|reduce)\b")
 BEGIN_RE = re.compile(r"\\begin\{minted\}(?:\[[^\]]*\])?\{([^}]+)\}")
 END_RE = re.compile(r"\\end\{minted\}")
@@ -137,8 +138,29 @@ def parse_marked_output(lines: list[str], command_count: int) -> list[list[str]]
     return chunks
 
 
-def lean_command_outputs(lean_path: Path, lean: str, lake: str) -> dict[str, deque[list[str]]]:
-    source_lines = lean_path.read_text(encoding="utf-8").splitlines()
+def lean_display_name(lean_paths: list[Path]) -> str:
+    if len(lean_paths) == 1:
+        return str(lean_paths[0].relative_to(ROOT))
+    parent = lean_paths[0].parent
+    return f"{parent.relative_to(ROOT)}/*.lean"
+
+
+def read_lean_source(lean_paths: list[Path]) -> list[str]:
+    lines: list[str] = []
+    wrote_any = False
+    for lean_path in lean_paths:
+        text = lean_path.read_text(encoding="utf-8")
+        if SKIP_MARKER in text:
+            continue
+        if wrote_any:
+            lines.append("")
+        lines.extend(text.splitlines())
+        wrote_any = True
+    return lines
+
+
+def lean_command_outputs(lean_paths: list[Path], lean: str, lake: str) -> dict[str, deque[list[str]]]:
+    source_lines = read_lean_source(lean_paths)
     commands = extract_commands_from_lines(source_lines)
     if not commands:
         return {}
@@ -148,7 +170,11 @@ def lean_command_outputs(lean_path: Path, lean: str, lake: str) -> dict[str, deq
         temp.write(instrumented)
         temp_path = Path(temp.name)
 
-    if lean_path.name == "ch34_mathlib_category_theory.lean":
+    uses_mathlib = any(
+        path.name == "ch34_mathlib_category_theory.lean" or path.parent.name == "ch34_mathlib_category_theory"
+        for path in lean_paths
+    )
+    if uses_mathlib:
         argv = [lake, "env", "lean", str(temp_path)]
     else:
         argv = [lean, str(temp_path)]
@@ -168,7 +194,7 @@ def lean_command_outputs(lean_path: Path, lean: str, lake: str) -> dict[str, deq
     if completed.returncode != 0:
         sys.stderr.write(completed.stdout)
         sys.stderr.write(completed.stderr)
-        raise RuntimeError(f"Lean command failed for {lean_path.relative_to(ROOT)}")
+        raise RuntimeError(f"Lean command failed for {lean_display_name(lean_paths)}")
 
     marked_lines = [
         line
@@ -202,8 +228,11 @@ def collect_tex_inputs(path: Path, seen: set[Path] | None = None) -> list[Path]:
     return collected
 
 
-def matching_lean_path(tex_path: Path) -> Path:
-    return LEAN_DIR / f"{tex_path.stem}.lean"
+def matching_lean_paths(tex_path: Path) -> list[Path]:
+    snippet_dir = LEAN_DIR / tex_path.stem
+    if snippet_dir.is_dir():
+        return sorted(snippet_dir.glob("code*.lean"))
+    return [LEAN_DIR / f"{tex_path.stem}.lean"]
 
 
 def format_output(output: list[str], indent: str) -> list[str]:
@@ -302,16 +331,17 @@ def main() -> int:
     args = parser.parse_args()
 
     tex_paths = [Path(path).resolve() for path in args.paths] if args.paths else sorted(set(collect_tex_inputs(ROOT / "main.tex")))
-    output_cache: dict[Path, dict[str, deque[list[str]]]] = {}
+    output_cache: dict[tuple[Path, ...], dict[str, deque[list[str]]]] = {}
     total = 0
 
     for tex_path in tex_paths:
-        lean_path = matching_lean_path(tex_path)
-        if not lean_path.exists():
+        lean_paths = matching_lean_paths(tex_path)
+        if not lean_paths or any(not path.exists() for path in lean_paths):
             continue
-        if lean_path not in output_cache:
-            output_cache[lean_path] = lean_command_outputs(lean_path, args.lean, args.lake)
-        total += annotate_tex_file(tex_path, {key: deque(value) for key, value in output_cache[lean_path].items()})
+        cache_key = tuple(lean_paths)
+        if cache_key not in output_cache:
+            output_cache[cache_key] = lean_command_outputs(lean_paths, args.lean, args.lake)
+        total += annotate_tex_file(tex_path, {key: deque(value) for key, value in output_cache[cache_key].items()})
 
     print(f"Annotated {total} Lean command output(s) in {len(tex_paths)} TeX file(s).")
     return 0

@@ -7,7 +7,7 @@
 - `main.tex`: 書籍全体のエントリポイント
 - `chapters/`: 各章の LaTeX 原稿
 - `parts/`: 各部の導入文
-- `lean/`: 章に対応する Lean 4 サンプル
+- `lean/`: 章ごとにディレクトリを分けた Lean 4 サンプル。本文のコードブロックごとに `codeNN.lean` を置く
 - `tools/`: 原稿と Lean コードの整合性チェック用スクリプト
 
 ## PDF 生成
@@ -26,20 +26,18 @@ make clean
 
 ## Lean コードの確認
 
-通常の Lean ファイルは次のように確認できます。
+本文のコードブロックごとに分けた `lean/<章名>/codeNN.lean` は、章ごとに連結して確認します。
 
 ```sh
-find lean -type f -name '*.lean' ! -name 'ch34_mathlib_category_theory.lean' -print0 \
-  | sort -z \
-  | while IFS= read -r -d '' file; do lean "$file"; done
+python3 tools/check_lean_snippets.py
 ```
 
-`mathlib` を使う章はキャッシュ取得後に確認します。
+`mathlib` を使う章を含めて確認する場合は、事前にキャッシュを取得します。
 
 ```sh
 lake update mathlib
 lake exe cache get
-lake env lean lean/ch34_mathlib_category_theory.lean
+python3 tools/check_lean_snippets.py lean/ch34_mathlib_category_theory
 ```
 
 ## 補助チェック

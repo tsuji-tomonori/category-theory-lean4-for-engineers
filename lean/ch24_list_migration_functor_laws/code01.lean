@@ -1,0 +1,34 @@
+-- Source: chapters/ch24_list_migration_functor_laws.tex:126
+
+/-
+Chapter 24: List migration and functor laws.
+This file contains the Lean snippets used in the chapter.
+-/
+
+structure UserV1 where
+  id : Nat
+  name : String
+  active : Bool
+deriving Repr, DecidableEq
+
+structure UserV2 where
+  userId : Nat
+  profileName : String
+  enabled : Bool
+deriving Repr, DecidableEq
+
+def migrate (u : UserV1) : UserV2 :=
+  { userId := u.id,
+    profileName := u.name,
+    enabled := u.active }
+
+def rollback (v : UserV2) : UserV1 :=
+  { id := v.userId,
+    name := v.profileName,
+    active := v.enabled }
+
+def migrateAll (xs : List UserV1) : List UserV2 :=
+  xs.map migrate
+
+def rollbackAll (xs : List UserV2) : List UserV1 :=
+  xs.map rollback

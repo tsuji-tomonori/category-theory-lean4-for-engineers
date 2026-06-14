@@ -137,8 +137,11 @@ def extract_minted_snippets(tex_path: Path) -> list[Snippet]:
     return snippets
 
 
-def matching_lean_path(tex_path: Path) -> Path:
-    return LEAN_DIR / f"{tex_path.stem}.lean"
+def matching_lean_paths(tex_path: Path) -> list[Path]:
+    snippet_dir = LEAN_DIR / tex_path.stem
+    if snippet_dir.is_dir():
+        return sorted(snippet_dir.glob("code*.lean"))
+    return [LEAN_DIR / f"{tex_path.stem}.lean"]
 
 
 def check_tex_file(tex_path: Path) -> list[str]:
@@ -146,11 +149,50 @@ def check_tex_file(tex_path: Path) -> list[str]:
     if not snippets:
         return []
 
-    lean_path = matching_lean_path(tex_path)
     rel_tex = tex_path.relative_to(ROOT)
-    if not lean_path.exists():
-        return [f"{rel_tex}: matching Lean file is missing: {lean_path.relative_to(ROOT)}"]
+    lean_paths = matching_lean_paths(tex_path)
+    missing_paths = [path for path in lean_paths if not path.exists()]
+    if missing_paths:
+        missing = ", ".join(str(path.relative_to(ROOT)) for path in missing_paths)
+        return [f"{rel_tex}: matching Lean file is missing: {missing}"]
 
+    snippet_dir = LEAN_DIR / tex_path.stem
+    if snippet_dir.is_dir():
+        errors: list[str] = []
+        if len(lean_paths) != len(snippets):
+            errors.append(
+                f"{rel_tex}: Lean snippet file count mismatch: "
+                f"{len(snippets)} TeX snippet(s), {len(lean_paths)} file(s) in {snippet_dir.relative_to(ROOT)}"
+            )
+        for snippet, lean_path in zip(snippets, lean_paths, strict=False):
+            lean_lines = normalize_lean_code(lean_path.read_text(encoding="utf-8")).splitlines()
+            snippet_lines = normalize_lean_code(snippet.code).splitlines()
+            search_from = 0
+            missing_line = ""
+            for snippet_line in snippet_lines:
+                found_at = next(
+                    (
+                        index
+                        for index in range(search_from, len(lean_lines))
+                        if lines_match(snippet_line, lean_lines[index])
+                    ),
+                    None,
+                )
+                if found_at is None:
+                    missing_line = snippet_line
+                    break
+                if compact_line(snippet_line) == compact_line(lean_lines[found_at]):
+                    search_from = found_at + 1
+                else:
+                    search_from = found_at
+            if missing_line:
+                errors.append(
+                    f"{rel_tex}:{snippet.start_line}: Lean snippet does not match "
+                    f"{lean_path.relative_to(ROOT)}; missing line: {missing_line!r}"
+                )
+        return errors
+
+    lean_path = lean_paths[0]
     lean_lines = normalize_lean_code(lean_path.read_text(encoding="utf-8")).splitlines()
     errors: list[str] = []
 
