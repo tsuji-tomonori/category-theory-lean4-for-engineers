@@ -30,26 +30,18 @@ jobs:
       - name: Verify Lean version
         run: lean --version
 
-      - name: Compile Lean files
+      - name: Compile Lean snippet files
         run: |
-          find lean -type f -name '*.lean' ! -name 'ch34_mathlib_category_theory.lean' -print0 \
-            | sort -z \
-            | while IFS= read -r -d '' file; do
-                echo "::group::$file"
-                lean "$file"
-                echo "::endgroup::"
-              done
+          python3 tools/check_lean_snippets.py \
+            $(find lean -mindepth 1 -maxdepth 1 -type d ! -name ch34_mathlib_category_theory | sort)
 
       - name: Fetch Mathlib cache
         run: |
           lake update mathlib
           lake exe cache get
 
-      - name: Compile Mathlib Lean files
-        run: |
-          echo "::group::lean/ch34_mathlib_category_theory.lean"
-          lake env lean lean/ch34_mathlib_category_theory.lean
-          echo "::endgroup::"
+      - name: Compile Mathlib Lean snippet files
+        run: python3 tools/check_lean_snippets.py lean/ch34_mathlib_category_theory
 
   build-pdf:
     runs-on: ubuntu-latest
