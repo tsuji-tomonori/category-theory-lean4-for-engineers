@@ -2,6 +2,8 @@ name: Build and Test
 
 on:
   push:
+    branches: ["**"]
+    tags: ["**"]
   pull_request:
   workflow_dispatch:
   release:
@@ -77,18 +79,28 @@ jobs:
       - name: Build PDF
         run: make
 
-      - name: Prepare release PDF
+      - name: Prepare PDF output
         id: release-pdf
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           pdf_name="category-theory-lean4-for-engineers.pdf"
+
+          release_tag=""
           if [ "$GITHUB_EVENT_NAME" = "release" ]; then
-            safe_tag="$(printf '%s' "$RELEASE_TAG" | tr '/ ' '--')"
+            release_tag="$RELEASE_TAG"
+          elif [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            release_tag="$GITHUB_REF_NAME"
+          fi
+
+          if [ -n "$release_tag" ]; then
+            safe_tag="$(printf '%s' "$release_tag" | tr '/ ' '--')"
             pdf_name="category-theory-lean4-for-engineers-${safe_tag}.pdf"
             cp category-theory-lean4-for-engineers.pdf "$pdf_name"
           fi
+
           echo "pdf_name=$pdf_name" >> "$GITHUB_OUTPUT"
+          echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
 
       - name: Upload PDF artifact
         uses: actions/upload-artifact@v4
@@ -99,9 +111,16 @@ jobs:
           retention-days: 14
 
       - name: Attach PDF to release
-        if: github.event_name == 'release'
+        if: steps.release-pdf.outputs.release_tag != ''
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_TAG: ${{ steps.release-pdf.outputs.release_tag }}
           PDF_NAME: ${{ steps.release-pdf.outputs.pdf_name }}
-        run: gh release upload "$RELEASE_TAG" "$PDF_NAME" --clobber
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$PDF_NAME" --clobber
+          else
+            gh release create "$RELEASE_TAG" "$PDF_NAME" \
+              --title "$RELEASE_TAG" \
+              --notes "PDF build for $RELEASE_TAG"
+          fi

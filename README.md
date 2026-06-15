@@ -19,7 +19,7 @@ make
 ```
 
 生成物は `main.pdf` と、配布用に名前を付けた
-`category-theory-lean4-for-engineers.pdf` です。GitHub Release では
+`category-theory-lean4-for-engineers.pdf` です。Git タグを push すると GitHub Release が作成または更新され、
 `category-theory-lean4-for-engineers-<tag>.pdf` がリリースアセットとして添付されます。
 中間ファイルを削除する場合は次を実行します。
 
