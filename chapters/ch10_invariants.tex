@@ -1,0 +1,593 @@
+% !TEX root = ../main.tex
+\chapter{データ構造と不変条件}
+\label{chap:ch10_invariants}
+
+\begin{chapterabstract}
+本章では、Lean 4 でドメインモデルを作り、そのモデルが守るべきルールを不変条件として表す方法を学ぶ。
+前章までは、関数の結果が等しいことを中心に扱った。
+ここからは、値そのものが正しい形をしているか、操作の前後で重要な性質が壊れていないかを扱う。
+題材として、ユーザーと口座を使う。
+特に、出金処理 \texttt{withdraw} を小さくモデル化し、成功条件と失敗条件、事前条件と事後条件、そして \texttt{Subtype} による「条件を満たす値」の表し方を確認する。
+\end{chapterabstract}
+
+\begin{learninggoals}
+\item \texttt{structure} を使って、Lean 4 上に小さなドメインモデルを定義できる。
+\item データが守るべきルールを、\texttt{Prop} を返す述語として表現できる。
+\item 事前条件、事後条件、不変条件を区別し、関数仕様として書ける。
+\item \texttt{Subtype} を使って、「条件を満たす値」を型として扱える。
+\item 口座残高を題材に、失敗しうる \texttt{withdraw} の仕様を Lean で表せる。
+\end{learninggoals}
+
+\section{この章を読む理由}
+
+ソフトウェアのバグは、計算式の間違いだけから生まれるわけではない。
+むしろ多くの場合、データが想定していない形になったときに起きる。
+たとえば、次のような状況である。
+
+\begin{itemize}
+\item ユーザーIDが空、または未割当なのに、認可処理に流れてしまう。
+\item 注文明細の合計と注文ヘッダの合計金額がずれている。
+\item 口座残高が負にならない仕様のはずなのに、出金後に負の状態が作られる。
+\item APIレスポンスのフィールドは存在するが、その組み合わせが業務ルールを満たしていない。
+\end{itemize}
+
+これらは、型だけで完全に防げる場合もあれば、防げない場合もある。
+たとえば、Lean の \texttt{Nat} は自然数なので、負の数を値として作ることはできない。
+一方で、「ユーザーIDは0ではない」「予約金額は残高以下である」「注文合計は明細合計と一致する」のような条件は、単にフィールドを並べただけでは保証されない。
+
+\begin{intuitionbox}
+データ構造は「何を持っているか」を表す。
+不変条件は「その持ち物がどのような約束を満たすべきか」を表す。
+\texttt{structure} が形を作り、述語が正しさを語り、定理が操作後にも約束が保たれることを確認する。
+\end{intuitionbox}
+
+\FigurePlaceholder{fig-ch10-invariant-flow.png}{0.90}{データ構造・不変条件・操作・証明の関係}{fig:ch10-invariant-flow}
+
+\section{\texttt{structure} によるドメインモデル}
+
+\subsection{レコードをLeanで表す}
+
+実務のドメインモデルは、多くの場合、複数のフィールドを持つレコードとして現れる。
+ユーザーならIDと名前を持つ。
+口座なら所有者IDと残高を持つ。
+Lean では、このようなレコード型を \texttt{structure} で定義する。
+
+\begin{leanbox}
+\texttt{structure} は、新しい型を作り、その型の値が持つフィールドを指定する構文である。
+TypeScript の \texttt{interface} や、Scala/Kotlin の \texttt{data class}、Rust の \texttt{struct} に近い。
+ただし Lean では、その後で命題や証明と組み合わせられる点が重要である。
+\end{leanbox}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+namespace Chapter04
+
+structure User where
+  id : Nat
+  name : String
+  deriving Repr, DecidableEq
+
+structure Account where
+  ownerId : Nat
+  balance : Nat
+  deriving Repr, DecidableEq
+
+-- 以降の例で使うサンプル値
+def sampleAccount : Account :=
+  { ownerId := 1, balance := 100 }
+
+#eval sampleAccount.balance  -- => 100
+\end{minted}
+\caption{ユーザーと口座の小さなドメインモデル}
+\label{lst:ch10_structure_model}
+\end{listing}
+
+このコードでは、\texttt{User} と \texttt{Account} という二つの型を作っている。
+\texttt{Account} の \texttt{balance} は \texttt{Nat} なので、Lean の世界では負の残高を直接作れない。
+この時点で、型が一つの不正状態を排除している。
+
+ただし、これだけで口座モデルとして十分とは限らない。
+たとえば \texttt{ownerId := 0} を未割当IDとして扱う業務仕様なら、\texttt{ownerId} が \texttt{Nat} であるだけでは不十分である。
+\texttt{0} も \texttt{Nat} の値だからである。
+
+\begin{softwarebox}
+レコード型は、データの「形」を表す。
+しかし、多くの業務ルールは形だけでは表せない。
+「数値である」ことと「有効なIDである」ことは違う。
+「残高フィールドを持つ」ことと「操作後にも仕様が守られる」ことも違う。
+\end{softwarebox}
+
+\subsection{型で保証するか、述語で保証するか}
+
+データのルールを表す方法は、大きく二つある。
+第一に、型そのもので不正な値を作れなくする方法である。
+第二に、値の上に述語を定義し、その値が条件を満たすことを別途証明する方法である。
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+方法 & 例 & 特徴 \\
+\midrule
+型で表す & 残高を \texttt{Nat} にする & 負の値をそもそも作れない \\
+述語で表す & \texttt{0 < ownerId} & 値とは別に条件を証明する \\
+部分型で表す & \texttt{\{a // AccountValid a\}} & 値と証明を一緒に持つ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+本章では、この三つを順に使う。
+まず \texttt{structure} で形を作る。
+次に述語で不変条件を表す。
+最後に \texttt{Subtype} で、条件を満たす値だけを型として扱う。
+
+\section{述語としての不変条件}
+
+\subsection{不変条件とは何か}
+
+不変条件とは、データが有効である限り、常に守られていてほしい条件である。
+英語では invariant と呼ばれる。
+「変わらない条件」という名前だが、値がまったく変化しないという意味ではない。
+値を操作しても、重要な約束が壊れないという意味である。
+
+\begin{definitionbox}
+本書では、不変条件を「データが有効な状態であるために満たすべき命題」と呼ぶ。
+Lean では、多くの場合、ある型 \texttt{A} の値を受け取り \texttt{Prop} を返す関数として書く。
+たとえば \texttt{AccountValid : Account -> Prop} は、「この口座が有効である」という命題を返す述語である。
+\end{definitionbox}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def AccountValid (a : Account) : Prop :=
+  0 < a.ownerId
+
+-- 入金は残高だけを増やし、所有者IDは変えない。
+def deposit (a : Account) (amount : Nat) : Account :=
+  { a with balance := a.balance + amount }
+
+-- 入金しても AccountValid は保たれる。
+theorem deposit_preserves_valid
+    (a : Account) (amount : Nat)
+    (h : AccountValid a) :
+    AccountValid (deposit a amount) := by
+  simpa [deposit, AccountValid] using h
+\end{minted}
+\caption{口座が有効であることを述語として表す}
+\label{lst:ch10_invariant_predicate}
+\end{listing}
+
+\begin{syntaxbox}
+ここでは、構造体の一部だけを更新する記法と、単純化結果を既存の証明へ合わせるタクティクが出てくる。
+\begin{itemize}
+\item \texttt{\{ a with balance := ... \}} は、構造体 \texttt{a} をもとにして \texttt{balance} フィールドだけを変えた新しい値を作る。
+\item \texttt{simpa [f, P] using h} は、定義 \texttt{f} や \texttt{P} を使ってゴールと証明 \texttt{h} を単純化し、形を合わせて閉じる。
+\end{itemize}
+\end{syntaxbox}
+
+\texttt{AccountValid} は、口座の所有者IDが正であることを表している。
+この例では、残高の非負性は \texttt{balance : Nat} という型で表している。
+一方、所有者IDが \texttt{0} でないことは述語で表している。
+
+\subsection{保存される条件として読む}
+
+\texttt{deposit\_preserves\_valid} は、入金後にも \texttt{AccountValid} が保たれることを述べている。
+これは実務的には、「入金処理は所有者IDの妥当性を壊さない」という仕様である。
+証明は短い。
+なぜなら、\texttt{deposit} は \texttt{balance} だけを更新し、\texttt{ownerId} を変更しないからである。
+
+\begin{intuitionbox}
+不変条件保存の証明は、「この処理は、壊してはいけない約束に触っていない」または「触っているが、触った後も約束を満たす」ことを確認する作業である。
+\end{intuitionbox}
+
+この見方は、後の章で何度も現れる。
+スキーマ移行では「IDが保存される」。
+リスト移行では「件数が保存される」。
+API adapter では「業務ロジックと干渉しない」。
+どの場合も、ある操作が何らかの性質を保存している。
+不変条件は、その最初の練習である。
+
+\section{事前条件・事後条件}
+
+\subsection{操作の前に必要な条件}
+
+不変条件と似ているが、別の概念として事前条件と事後条件がある。
+事前条件は、操作を安全に実行するために、操作の前に満たしていてほしい条件である。
+事後条件は、操作の後に成り立ってほしい条件である。
+
+たとえば、出金では次のように考えられる。
+
+\begin{itemize}
+\item 事前条件：出金額は現在残高以下である。
+\item 事後条件：成功後の残高に出金額を足すと、元の残高に戻る。
+\item 不変条件：残高は負にならない。有効な口座IDは保たれる。
+\end{itemize}
+
+\FigurePlaceholder{fig-ch10-pre-post-invariant.png}{0.92}{事前条件・操作・事後条件・不変条件の時間的な関係}{fig:ch10-pre-post-invariant}
+
+\begin{definitionbox}
+事前条件は「関数を呼ぶ前に要求する条件」である。
+事後条件は「関数を呼んだ後に保証したい条件」である。
+不変条件は「操作の前後を通じて、データが有効であるために守りたい条件」である。
+\end{definitionbox}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+-- 出金可能である、という事前条件。
+def CanWithdraw (a : Account) (amount : Nat) : Prop :=
+  amount <= a.balance
+
+-- 出金成功後に期待する事後条件。
+def WithdrawPost
+    (oldAccount newAccount : Account)
+    (amount : Nat) : Prop :=
+  And (newAccount.ownerId = oldAccount.ownerId)
+      (newAccount.balance + amount = oldAccount.balance)
+\end{minted}
+\caption{出金の事前条件と事後条件}
+\label{lst:ch10_pre_post}
+\end{listing}
+
+\begin{syntaxbox}
+比較式は、値の大小関係を命題として書く構文である。
+\begin{itemize}
+\item \texttt{amount <= a.balance} は、「\texttt{amount} は \texttt{a.balance} 以下である」という命題である。
+\item Lean のコードでは ASCII の \texttt{<=} と、数学記号の \texttt{≤} の両方が使われることがある。
+\item 比較式は \texttt{Bool} ではなく、証明対象になる \texttt{Prop} として使われる場面が多い。
+\end{itemize}
+\end{syntaxbox}
+
+\texttt{CanWithdraw a amount} は、\texttt{amount} が \texttt{a.balance} 以下であることを表す。
+これは、出金を成功させるための条件である。
+一方、\texttt{WithdrawPost oldAccount newAccount amount} は、出金が成功した後に期待する結果を表す。
+所有者IDは変わらず、減った残高に出金額を戻すと元の残高になる。
+
+\subsection{仕様を分解する効果}
+
+自然言語で「出金は正しく行われる」とだけ書くと、何を証明すべきかが曖昧になる。
+これを Lean で扱うには、少なくとも次のように分ける必要がある。
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+自然言語の言い方 & Leanでの分解 \\
+\midrule
+出金できるときだけ成功する & \texttt{CanWithdraw a amount} \\
+成功時は残高が減る & \texttt{WithdrawPost old new amount} \\
+所有者は変わらない & \texttt{new.ownerId = old.ownerId} \\
+残高は負にならない & \texttt{balance : Nat} または述語 \\
+無理な出金は失敗する & \texttt{withdrawOpt a amount = none} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+このように分解すると、証明の対象が小さくなる。
+Lean で扱いやすくなるだけでなく、仕様レビューでも議論しやすくなる。
+
+\begin{softwarebox}
+実務では、関数名やAPI名だけでは仕様にならない。
+\texttt{withdraw} という名前から「何となく出金する」と読めても、成功条件、失敗条件、状態更新、保持すべき情報は別々に書く必要がある。
+Leanの述語は、その分解を強制するための道具として使える。
+\end{softwarebox}
+
+\section{\texttt{Subtype} による「条件を満たす値」}
+
+\subsection{値と証明を一緒に持つ}
+
+ここまで、不変条件は \texttt{AccountValid a : Prop} のように、値とは別の命題として表してきた。
+しかし、ときには「有効であることが証明済みの口座」だけを関数に渡したい。
+そのようなときに使えるのが \texttt{Subtype} である。
+
+Lean の表記では、\texttt{\{x : A // P x\}} は「型 \texttt{A} の値 \texttt{x} と、\texttt{P x} の証明を一緒に持つ型」を表す。
+本章では、これを「条件付きの値」と読む。
+
+\begin{definitionbox}
+\texttt{Subtype} は、値とその値が条件を満たす証明を組にした型である。
+\texttt{\{a : Account // AccountValid a\}} は、「有効であることが証明された \texttt{Account}」の型である。
+\end{definitionbox}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+-- AccountValid を満たす Account だけを表す型。
+def ValidAccount : Type :=
+  { a : Account // AccountValid a }
+
+-- Subtype から中身の Account を取り出す。
+def validAccountBalance (a : ValidAccount) : Nat :=
+  a.val.balance
+
+-- 入金後も有効な口座であることを、値と証明の組として返す。
+def depositValid (a : ValidAccount) (amount : Nat) : ValidAccount :=
+  Subtype.mk (deposit a.val amount)
+    (deposit_preserves_valid a.val amount a.property)
+\end{minted}
+\caption{Subtypeで有効な口座だけを表す}
+\label{lst:ch10_subtype}
+\end{listing}
+
+\texttt{a.val} は、\texttt{Subtype} の中に入っている元の値である。
+\texttt{a.property} は、その値が条件を満たす証明である。
+この二つを組み合わせることで、\texttt{depositValid} は「有効な口座を受け取り、有効な口座を返す」関数になっている。
+
+\subsection{どこまで型に入れるべきか}
+
+\texttt{Subtype} を使うと、条件を型の一部として扱える。
+これは強力だが、すべての条件を \texttt{Subtype} に入れるべきとは限らない。
+条件が多すぎると、関数の型が重くなり、証明も増える。
+初学者の段階では、次の基準で考えるとよい。
+
+\begin{itemize}
+\item 常に守りたい条件は、型または \texttt{Subtype} に入れる候補になる。
+\item 特定の操作のときだけ必要な条件は、事前条件として引数にする候補になる。
+\item 実システムとの境界で初めて確認する条件は、検証関数で \texttt{Option} や \texttt{Except} を返す候補になる。
+\end{itemize}
+
+\begin{warningbox}
+\texttt{Subtype} を使うと「不正な値を作れない設計」に近づく。
+ただし、証明が必要になる場所も増える。
+最初からすべての業務ルールを \texttt{Subtype} に押し込むのではなく、壊れると困る核となる条件から始めるとよい。
+\end{warningbox}
+
+\FigurePlaceholder{fig-ch10-subtype-gate.png}{0.88}{Subtypeを条件付きデータの入口として読む}{fig:ch10-subtype-gate}
+
+\section{サンプル：口座残高が負にならない \texttt{withdraw}}
+
+\subsection{失敗しうる処理としての出金}
+
+出金は、いつでも成功する処理ではない。
+残高が足りない場合は失敗する。
+このような処理は、Lean では \texttt{Option Account} として表せる。
+成功時は \texttt{some newAccount}、失敗時は \texttt{none} を返す。
+
+\begin{leanbox}
+\texttt{Option A} は、「値があるかもしれないし、ないかもしれない」ことを表す型である。
+\texttt{some x} は成功して値 \texttt{x} がある状態、\texttt{none} は失敗または値なしの状態として読める。
+\end{leanbox}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+-- 残高が足りる場合だけ、残高を減らした口座を返す。
+def withdrawOpt (a : Account) (amount : Nat) : Option Account :=
+  if h : amount <= a.balance then
+    some { a with balance := a.balance - amount }
+  else
+    none
+
+#eval withdrawOpt sampleAccount 40  -- => some { ownerId := 1, balance := 60 }
+#eval withdrawOpt sampleAccount 150  -- => none
+\end{minted}
+\caption{失敗しうる出金処理}
+\label{lst:ch10_withdraw_option}
+\end{listing}
+
+この定義では、\texttt{amount <= a.balance} が成り立つときだけ出金に成功する。
+失敗した場合は \texttt{none} を返す。
+\texttt{balance} は \texttt{Nat} なので、成功時に \texttt{a.balance - amount} を計算しても、Lean の値としては自然数に収まる。
+ただし、ここで重要なのは「成功する条件」を明示している点である。
+
+\subsection{成功時の仕様を証明する}
+
+成功時には、出金後の残高に出金額を足すと元の残高に戻ってほしい。
+これは先ほど定義した \texttt{WithdrawPost} で表せる。
+証明しやすくするため、まずは事前条件を証明引数として受け取る \texttt{withdrawChecked} を定義する。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+-- 証明 h がある場合だけ呼べる出金処理。
+def withdrawChecked
+    (a : Account) (amount : Nat)
+    (_h : CanWithdraw a amount) : Account :=
+  { a with balance := a.balance - amount }
+
+-- 成功時の事後条件。
+theorem withdrawChecked_post
+    (a : Account) (amount : Nat)
+    (h : CanWithdraw a amount) :
+    WithdrawPost a (withdrawChecked a amount h) amount := by
+  unfold withdrawChecked WithdrawPost CanWithdraw at *
+  constructor
+  · rfl
+  · exact Nat.sub_add_cancel h
+\end{minted}
+\caption{事前条件を受け取る出金処理と成功時仕様}
+\label{lst:ch10_withdraw_checked}
+\end{listing}
+
+\begin{syntaxbox}
+複数の部品から証明を組み立てる構文がここで出てくる。
+\begin{itemize}
+\item \texttt{constructor} は、ゴールが複数の条件から成るとき、それぞれの部分ゴールへ分解する。
+\item \texttt{exact h} は、現在のゴールにぴったり合う証明 \texttt{h} を渡して終了する。
+\item 行頭の \texttt{·} は、分解された複数のゴールを一つずつ書くための箇条書きのような区切りである。
+\item レコードや \texttt{And} のように「部品をそろえる」場面でよく使う。
+\end{itemize}
+\end{syntaxbox}
+
+
+この証明は二つの部分からなる。
+第一に、所有者IDが変わらないことを \texttt{rfl} で示す。
+第二に、\texttt{Nat.sub\_add\_cancel} を使って、\texttt{a.balance - amount + amount = a.balance} を示す。
+この定理は、\texttt{amount <= a.balance} という事前条件があるときに使える。
+
+\begin{intuitionbox}
+\texttt{Nat.sub\_add\_cancel} は、出金額が残高以下なら「引いてから足すと元に戻る」と読むことができる。
+ここでは数学の定理というより、出金成功時の残高計算を支える道具として使っている。
+\end{intuitionbox}
+
+\subsection{成功と失敗を分けて仕様化する}
+
+\texttt{withdrawOpt} は \texttt{Option Account} を返すため、成功ケースと失敗ケースがある。
+本章では場合分けの証明を深追いしない。
+それは第19章で扱う。
+ここでは、成功条件があるときに \texttt{some} が返ることと、成功条件がないときに \texttt{none} が返ることを、仕様として読む。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+theorem withdrawOpt_success
+    (a : Account) (amount : Nat)
+    (h : CanWithdraw a amount) :
+    withdrawOpt a amount =
+      some { a with balance := a.balance - amount } := by
+  unfold withdrawOpt CanWithdraw at *
+  simp [h]
+
+theorem withdrawOpt_failure
+    (a : Account) (amount : Nat)
+    (h : Not (CanWithdraw a amount)) :
+    withdrawOpt a amount = none := by
+  unfold withdrawOpt CanWithdraw at *
+  simp [h]
+\end{minted}
+\caption{成功時・失敗時の戻り値仕様}
+\label{lst:ch10_withdraw_option_spec}
+\end{listing}
+
+成功ケースと失敗ケースを分けて書くと、レビューで確認すべきことが明確になる。
+「残高が足りるなら成功する」のか。
+「残高が足りないなら失敗する」のか。
+「失敗時に元の口座を返す」のか、それとも \texttt{none} を返すのか。
+こうした設計上の選択を、型と定理で表せるようになる。
+
+\begin{softwarebox}
+実務では、失敗時の仕様が曖昧なまま実装されることがある。
+例外を投げるのか、\texttt{null} を返すのか、エラーコードを返すのか、元の状態を返すのか。
+Lean上で \texttt{Option} や \texttt{Except} を選ぶと、その選択が型に現れる。
+\end{softwarebox}
+
+\section{ドメインモデルと仕様を分離する}
+
+\subsection{フィールドを増やしても仕様は別に書く}
+
+実務のドメインモデルでは、フィールドが増える。
+口座なら、通貨、凍結状態、利用上限、予約済み金額、バージョン番号などが入るかもしれない。
+しかし、フィールドを増やすことと、仕様を明確にすることは別である。
+
+たとえば、次のような拡張を考える。
+
+\begin{itemize}
+\item \texttt{frozen : Bool} を追加する。
+\item \texttt{reserved : Nat} を追加する。
+\item \texttt{dailyLimit : Nat} を追加する。
+\end{itemize}
+
+このとき、\texttt{structure} にフィールドを追加するだけでは、次のルールは保証されない。
+
+\begin{itemize}
+\item 凍結中の口座からは出金できない。
+\item 予約済み金額は残高以下である。
+\item 1日の出金額は上限以下である。
+\end{itemize}
+
+これらは、述語や事前条件として別に書く必要がある。
+この分離は重要である。
+構造体はデータの容器であり、述語はその容器に入っている値の意味を語る。
+
+\begin{warningbox}
+フィールドがあることは、仕様があることではない。
+\texttt{balance : Nat} は負の値を排除するが、「十分な残高があるときだけ出金できる」ことまでは自動で保証しない。
+操作の仕様は、関数定義と定理として別に書く必要がある。
+\end{warningbox}
+
+\subsection{型・述語・定理の役割分担}
+
+本章で使った道具を整理すると、次のようになる。
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+道具 & Leanでの形 & 役割 \\
+\midrule
+データ構造 & \texttt{structure Account} & フィールドを持つ型を作る \\
+不変条件 & \texttt{AccountValid : Account -> Prop} & 有効な状態を表す \\
+事前条件 & \texttt{CanWithdraw a amount} & 操作前に必要な条件を表す \\
+事後条件 & \texttt{WithdrawPost old new amount} & 操作後に保証したい条件を表す \\
+条件付き値 & \texttt{\{a // AccountValid a\}} & 値と証明を一緒に持つ \\
+仕様証明 & \texttt{theorem ...} & 操作が条件を満たすことを示す \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+この役割分担を意識すると、Leanコードが「実装の写し」ではなく「仕様の模型」になる。
+実システムのコードをすべてLeanへ移す必要はない。
+壊れると困る性質を小さく切り出し、型・関数・述語・定理へ分解すればよい。
+
+\section{実務への読み替え}
+
+本章の考え方は、口座処理以外にも使える。
+たとえば、次のように読み替えられる。
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+実務例 & 不変条件の例 & 操作の例 \\
+\midrule
+ユーザー & IDが有効である & プロフィール更新 \\
+注文 & 合計額が明細合計と一致する & 明細追加・削除 \\
+在庫 & 予約数が在庫数以下である & 引当・キャンセル \\
+権限 & ロールが許可集合に含まれる & 権限追加・削除 \\
+APIレスポンス & 成功時だけ本文を持つ & wrapper変換 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+重要なのは、最初から完全な業務モデルを作らないことである。
+たとえば注文モデルをいきなり完全に形式化しようとすると、税、割引、配送、返品、在庫、キャンペーン、決済状態が絡む。
+初めて Lean で仕様を書くときは、その中から一つだけ選ぶ。
+「合計額が保存される」「IDが変わらない」「失敗時に状態が変わらない」のように、小さな性質に切り出す。
+
+\begin{softwarebox}
+Leanで証明する価値が高いのは、テストケースが増えやすいが、実は一般的な性質として言える部分である。
+不変条件、事前条件、事後条件は、その候補を見つけるためのチェックリストになる。
+\end{softwarebox}
+
+\section{よくある誤解}
+
+\subsection{「型があれば不変条件はいらない」}
+
+型は強力だが、すべての業務ルールを自動的に保証するわけではない。
+\texttt{Nat} は負の残高を排除できる。
+しかし、「出金額は残高以下でなければならない」という操作上の条件は、別に書く必要がある。
+
+\subsection{「不変条件はコメントに書けばよい」}
+
+コメントは人間にとって有用だが、Leanはコメントを検査しない。
+\texttt{AccountValid : Account -> Prop} のように命題として書くと、その条件を定理の前提や結論として使える。
+仕様がレビュー可能なだけでなく、機械的に検査可能な形になる。
+
+\subsection{「\texttt{Subtype} を使えばすべて安全になる」}
+
+\texttt{Subtype} は値と証明を一緒に持つため、不正な値を渡しにくくできる。
+しかし、証明を作る責任が消えるわけではない。
+また、実システムから入力されるJSONやDB行は、最初から \texttt{Subtype} として手に入るわけではない。
+境界では検証関数が必要になる。
+
+\begin{warningbox}
+\texttt{Subtype} は「入力のバリデーションを不要にする魔法」ではない。
+外部入力を受け取る場所では、普通の値を検査し、条件を満たす場合だけ \texttt{Subtype} に変換する、という段階が必要である。
+\end{warningbox}
+
+\section{本章のまとめ}
+
+\texttt{structure} は、ドメインモデルの形をLean上に作るための基本道具である。
+
+不変条件は、値が有効な状態であるために守るべき条件であり、Leanでは \texttt{A -> Prop} の形で表せる。
+
+事前条件は操作の前に必要な条件、事後条件は操作の後に保証したい条件である。
+
+\texttt{Subtype} を使うと、値と「条件を満たす証明」を一緒に持てる。
+
+\texttt{withdraw} のような失敗しうる処理は、\texttt{Option} を使って成功ケースと失敗ケースを明示できる。
+
+仕様証明では、実装全体ではなく、壊れると困る小さな性質を切り出すことが重要である。
+
+\begin{summarybox}
+この章で新しく出た記法
+\begin{itemize}
+\item \texttt{structure 名前 where ...} \quad レコード型（ドメインモデル）の定義。
+\item \texttt{A -> Prop} \quad 値が条件を満たすかを表す述語。
+\item \texttt{Subtype} / \texttt{\{x // P x\}} \quad 値と「条件を満たす証明」を一緒に持つ型。
+\end{itemize}
+\end{summarybox}
+
+本章で、型・関数・命題に加えて、述語、不変条件、事前条件、事後条件がそろった。
+次の部では、これらを圏論の言葉で見直す。
+型は対象、関数は射、操作の合成はパイプラインとして読める。
+本章の \texttt{Account} や \texttt{withdraw} は、後の仕様証明やマイグレーション証明で再び登場する考え方の入口である。

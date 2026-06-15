@@ -30,7 +30,9 @@
 % Code
 \usepackage{accsupp}
 \usepackage[cachedir=_minted-main-lean-keywords]{minted}
-\renewcommand{\MintedPygmentize}{./tools/pygmentize_lean_keywords.py}
+\ifcsname MintedPygmentize\endcsname
+  \renewcommand{\MintedPygmentize}{./tools/pygmentize_lean_keywords.py}
+\fi
 \usemintedstyle{friendly}
 \newcommand{\copyablespace}{%
   \BeginAccSupp{method=escape,ActualText={\space}}%

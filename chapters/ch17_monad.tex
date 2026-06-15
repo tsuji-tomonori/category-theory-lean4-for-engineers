@@ -1,0 +1,478 @@
+% !TEX root = ../main.tex
+\chapter{モナド：失敗・状態・非同期を合成する形}
+\label{chap:monad}
+
+\begin{chapterabstract}
+本章では、モナドを「文脈を持つ処理を合成する形」として導入する。
+モナドを抽象的な数学用語として暗記するのではなく、失敗する処理、エラー理由を返す処理、状態を読み書きする処理、非同期に完了する処理を、同じ合成パターンで扱うための道具として読む。
+Lean 4 では、まず自作の小さな \texttt{Option} 用 \texttt{pure} と \texttt{bind} を定義し、モナド則を等式として確認する。
+最後に、失敗しうるユーザー移行を題材に、\texttt{bind} の法則が effectful code のリファクタリング規則として働くことを見る。
+\end{chapterabstract}
+
+\begin{learninggoals}
+\item \texttt{Option}、\texttt{Except}、状態つき計算を「文脈を持つ値」として説明できる。
+\item \texttt{pure} と \texttt{bind} の役割を、実務コードの処理連結として読める。
+\item モナド則を、抽象法則ではなく effectful code のリファクタリング規則として説明できる。
+\item Lean 4 で \texttt{Option} の小さなモナド則を証明できる。
+\item 失敗しうるマイグレーションを \texttt{bind} で安全に合成する最小モデルを書ける。
+\end{learninggoals}
+
+\section{この章を読む理由}
+
+実務コードでは、普通の関数だけでは表しにくい処理が頻繁に出てくる。
+たとえば、入力が欠けていれば失敗するバリデーション、失敗理由を返すマイグレーション、内部状態を更新する処理、外部 API の応答を待つ非同期処理である。
+これらは見た目には別物に見える。
+しかし、どれも「値だけでなく、値が置かれている文脈も一緒に運ぶ処理」として見ると、同じ形で合成できる。
+
+\begin{intuitionbox}
+普通の関数 \texttt{A -> B} は、\texttt{A} の値を受け取って \texttt{B} の値を返す。
+一方、失敗しうる関数 \texttt{A -> Option B} は、\texttt{B} の値を返すかもしれないし、返せないかもしれない。
+この「かもしれない」という文脈を保ったまま次の処理につなぐための道具が \texttt{bind} である。
+\end{intuitionbox}
+
+\FigurePlaceholder{fig-ch17-overview.png}{0.90}{モナドを文脈つき処理の合成として見る}{fig:ch17-overview}
+
+この章で扱うモナドは、Mathlib の高度な圏論 API としてのモナドではない。
+本章では、初学者がコードとして追えるように、\texttt{Option}、\texttt{Except}、状態つき計算の最小モデルだけを使う。
+圏論的には、モナドは自己関手と二つの自然変換を持つ構造として定義される。
+ただし本書の実務入門では、まず \texttt{pure} と \texttt{bind} を使った合成規則として理解すれば十分である。
+
+\section{\texttt{Option}、\texttt{Except}、\texttt{State} を同じ形で見る}
+
+最初に、三つの典型例を並べる。
+ここで大事なのは、細部ではなく「値をそのまま返すのではなく、何らかの文脈に入れて返す」という共通点である。
+
+\begin{center}
+\begin{tabular}{p{0.22\linewidth}p{0.30\linewidth}p{0.38\linewidth}}
+\toprule
+型の形 & 文脈 & 実務での読み方 \\
+\midrule
+\texttt{Option A} & 値があるかもしれない & 欠損、検索失敗、バリデーション失敗 \\
+\texttt{Except E A} & 失敗理由 \texttt{E} を持つ & エラーコード、移行失敗理由、API エラー \\
+\texttt{S -> (A, S)} & 状態 \texttt{S} を読み書きする & カウンタ、セッション、更新履歴、疑似的な状態遷移 \\
+非同期結果 & 後で値が得られる & タスク、Future、Promise、外部 I/O \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{softwarebox}
+\texttt{Option} は「失敗したらそこで止まる」処理に向いている。
+\texttt{Except} は「失敗した理由も残したい」処理に向いている。
+状態つき計算は「値だけでなく、新しい状態も次へ渡したい」処理に向いている。
+非同期処理は「値が今すぐではなく、後で得られる」処理として読める。
+どれも、普通の関数合成 \texttt{g (f x)} だけでは扱いにくい文脈を持っている。
+\end{softwarebox}
+
+本章では、このような文脈を抽象的に \texttt{M A} と書くことにする。
+\texttt{A} は中身の型であり、\texttt{M} は文脈を表す。
+たとえば、\texttt{M A} が \texttt{Option A} なら「失敗するかもしれない \texttt{A}」である。
+\texttt{M A} が \texttt{Except E A} なら「エラー \texttt{E} を出すかもしれない \texttt{A}」である。
+
+\section{\texttt{pure} と \texttt{bind}}
+
+モナドの操作として、まず \texttt{pure} と \texttt{bind} を見る。
+\texttt{pure} は、普通の値を文脈の中に入れる。
+\texttt{bind} は、文脈つきの値を取り出せた場合だけ、次の文脈つき処理へ渡す。
+
+\begin{definitionbox}
+本章では、モナドを次の二つの操作を持つものとして扱う。
+\begin{itemize}
+\item \texttt{pure : A -> M A}。普通の値を文脈 \texttt{M} に入れる。
+\item \texttt{bind : M A -> (A -> M B) -> M B}。文脈つきの値を、次の文脈つき処理へつなぐ。
+\end{itemize}
+この二つが自然に振る舞うために、後で述べる三つのモナド則を要求する。
+\end{definitionbox}
+
+\texttt{Option} の場合、\texttt{pure} は単に \texttt{some} で値を包む。
+\texttt{bind} は、入力が \texttt{none} なら次の処理を実行せずに \texttt{none} を返す。
+入力が \texttt{some a} なら、\texttt{a} を次の処理へ渡す。
+
+\begin{leanbox}
+ここでは Lean 標準の \texttt{Option.bind} を直接使わず、理解のために \texttt{optPure} と \texttt{optBind} を自作する。
+これにより、\texttt{bind} が何をしているかを \texttt{match} で直接確認できる。
+\end{leanbox}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def optPure {α : Type} (a : α) : Option α :=
+  some a
+
+def optBind {α β : Type} (x : Option α) (f : α → Option β) : Option β :=
+  match x with
+  | none => none
+  | some a => f a
+
+#eval optBind (some 10) (fun n => some (n + 1))  -- => some 11
+#eval optBind (none : Option Nat) (fun n => some (n + 1))  -- => none
+\end{minted}
+\caption{Option 用の pure と bind}
+\label{lst:ch17_option_bind}
+\end{listing}
+
+コード \ref{lst:ch17_option_bind} の一つ目の \texttt{\#eval} は、\texttt{some 10} の中身を取り出して \texttt{some 11} を作る。
+二つ目は、最初から \texttt{none} なので、後続の関数を実行せずに \texttt{none} になる。
+この「失敗を自動的に伝播する」振る舞いが、バリデーションやマイグレーションで重要になる。
+
+\FigurePlaceholder{fig-ch17-bind-flow.png}{0.90}{\texttt{bind} が成功時だけ次の処理へ進む流れ}{fig:ch17-bind-flow}
+
+\section{モナド則をリファクタリング規則として読む}
+
+モナドには三つの基本法則がある。
+数学としては、これらは \texttt{pure} と \texttt{bind} が一貫して振る舞うことを表す。
+ソフトウェア的には、これらは effectful code のリファクタリング規則である。
+つまり、不要な包みを消してもよいこと、何もしない後続処理を消してもよいこと、括弧の付け方を変えてもよいことを保証する。
+
+\begin{center}
+\begin{tabular}{p{0.23\linewidth}p{0.34\linewidth}p{0.35\linewidth}}
+\toprule
+法則 & 形 & リファクタリングとしての読み方 \\
+\midrule
+左単位律 & \texttt{bind (pure a) f = f a} & 値を一度包んですぐ渡すだけなら、直接渡してよい \\
+右単位律 & \texttt{bind x pure = x} & 最後にただ包み直すだけの処理は消してよい \\
+結合律 & \texttt{bind (bind x f) g = bind x (fun a => bind (f a) g)} & 処理列の括弧の付け方を変えても意味は変わらない \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{softwarebox}
+モナド則は「実行順序を自由に入れ替えてよい」という意味ではない。
+特に状態更新や非同期処理では、順序そのものは重要である。
+モナド則が保証するのは、同じ順序の処理列について、\texttt{bind} の括弧や不要な \texttt{pure} を整理しても意味が変わらない、ということである。
+\end{softwarebox}
+
+\FigurePlaceholder{fig-ch17-monad-laws.png}{0.92}{モナド則を effectful code のリファクタリング規則として読む}{fig:ch17-monad-laws}
+
+\section{Lean で \texttt{Option} の小さな性質を証明する}
+
+\texttt{Option} の三つの法則は、場合分けで証明できる。
+\texttt{x : Option A} には \texttt{none} と \texttt{some a} の二通りしかない。
+Lean の \texttt{cases} は、この二通りを漏れなく分解する。
+
+\begin{leanbox}
+左単位律は定義を展開すればすぐ同じ式になるので \texttt{rfl} で証明できる。
+右単位律と結合律は、\texttt{x} が \texttt{none} か \texttt{some} かで分けると、どちらのケースも \texttt{rfl} で閉じる。
+\texttt{<;>} は、直前のタクティクで発生したすべてのゴールに同じ後続タクティクを適用する記法である。
+\end{leanbox}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+theorem option_left_identity {α β : Type} (a : α) (f : α → Option β) :
+    optBind (optPure a) f = f a := by
+  rfl
+
+theorem option_right_identity {α : Type} (x : Option α) :
+    optBind x optPure = x := by
+  cases x <;> rfl
+
+theorem option_assoc {α β γ : Type}
+    (x : Option α) (f : α → Option β) (g : β → Option γ) :
+    optBind (optBind x f) g =
+      optBind x (fun a => optBind (f a) g) := by
+  cases x <;> rfl
+\end{minted}
+\caption{Option のモナド則}
+\label{lst:ch17_option_laws}
+\end{listing}
+
+ここで証明しているのは、\texttt{Option} の中身について特別な性質ではない。
+どんな型 \texttt{A}、\texttt{B}、\texttt{C} であっても、\texttt{Option} の失敗伝播の形そのものがこの法則に従う、という主張である。
+この点が、テストと証明の違いである。
+特定の入力例だけではなく、\texttt{Option} の全パターンについて確認している。
+
+\section{サンプル：失敗するマイグレーションを安全に合成する}
+
+次に、失敗しうるマイグレーションを考える。
+旧データ \texttt{UserDraft} には、メールアドレスと年齢があるかもしれないし、ないかもしれない。
+新データ \texttt{UserV2} では、メールアドレスと年齢を必須にしたい。
+この場合、移行は常に成功するとは限らない。
+
+\begin{softwarebox}
+実務では、これは「旧データに欠損があると新スキーマへ完全には移せない」という状況である。
+ここで重要なのは、失敗ケースを例外的な裏口として扱わず、返り値の型 \texttt{Option UserV2} に明示することである。
+型に失敗可能性を入れると、後続処理はその失敗可能性を無視できなくなる。
+\end{softwarebox}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+structure UserDraft where
+  id : Nat
+  emailOpt : Option String
+  ageOpt : Option Nat
+  deriving Repr, DecidableEq
+
+structure UserWithEmail where
+  id : Nat
+  email : String
+  ageOpt : Option Nat
+  deriving Repr, DecidableEq
+
+structure UserV2 where
+  id : Nat
+  email : String
+  age : Nat
+  deriving Repr, DecidableEq
+\end{minted}
+\caption{移行前後の小さなデータモデル}
+\label{lst:ch17_user_model}
+\end{listing}
+
+移行を一気に書くのではなく、二段階に分ける。
+まずメールアドレスを必須化し、次に年齢を必須化する。
+どちらも失敗する可能性があるので、返り値は \texttt{Option} になる。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def requireEmail (u : UserDraft) : Option UserWithEmail :=
+  match u.emailOpt with
+  | none => none
+  | some email => some { id := u.id, email := email, ageOpt := u.ageOpt }
+
+def requireAge (u : UserWithEmail) : Option UserV2 :=
+  match u.ageOpt with
+  | none => none
+  | some age => some { id := u.id, email := u.email, age := age }
+
+def migrateUser (u : UserDraft) : Option UserV2 :=
+  optBind (requireEmail u) requireAge
+\end{minted}
+\caption{失敗しうる移行ステップを bind で合成する}
+\label{lst:ch17_user_migration}
+\end{listing}
+
+\texttt{requireEmail u} が \texttt{none} なら、\texttt{requireAge} は実行されない。
+\texttt{requireEmail u} が \texttt{some withEmail} なら、\texttt{withEmail} が \texttt{requireAge} へ渡される。
+これにより、失敗の検査を各ステップに閉じ込めながら、全体の移行を一本の処理として組み立てられる。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def goodDraft : UserDraft :=
+  { id := 7, emailOpt := some "a@example.com", ageOpt := some 20 }
+
+def missingEmailDraft : UserDraft :=
+  { id := 8, emailOpt := none, ageOpt := some 20 }
+
+def missingAgeDraft : UserDraft :=
+  { id := 9, emailOpt := some "b@example.com", ageOpt := none }
+
+#eval migrateUser goodDraft  -- => some { id := 7, email := "a@example.com", age := 20 }
+#eval migrateUser missingEmailDraft  -- => none
+#eval migrateUser missingAgeDraft  -- => none
+\end{minted}
+\caption{成功例と失敗例}
+\label{lst:ch17_user_examples}
+\end{listing}
+
+この例では、成功時だけ \texttt{some UserV2} が得られる。
+メールアドレスが欠けている場合も、年齢が欠けている場合も、結果は \texttt{none} になる。
+\texttt{Option} では失敗理由は残らない。
+失敗理由まで必要なら、次節の \texttt{Except} を使う。
+
+\FigurePlaceholder{fig-ch17-migration-pipeline.png}{0.92}{失敗しうる移行ステップを \texttt{bind} で合成する}{fig:ch17-migration-pipeline}
+
+\subsection{do 記法は bind の読みやすい書き方}
+
+Lean では、\texttt{Option} や \texttt{Except} のようなモナド的な型に対して \texttt{do} 記法を使える。
+これは \texttt{bind} を読みやすく書くための構文である。
+次の二つの移行関数は、同じ意味を持つ。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def migrateUserDo (u : UserDraft) : Option UserV2 := do
+  let withEmail ← requireEmail u
+  requireAge withEmail
+
+theorem migrateUser_refactor (u : UserDraft) :
+    migrateUser u = migrateUserDo u := by
+  cases u with
+  | mk id emailOpt ageOpt =>
+      cases emailOpt <;> cases ageOpt <;> rfl
+\end{minted}
+\caption{bind 版と do 記法版の同値性}
+\label{lst:ch17_do_notation}
+\end{listing}
+
+\begin{syntaxbox}
+\texttt{do} は、段階的な処理を上から順に書くための構文である。
+\begin{itemize}
+\item \texttt{x <- action} は、文脈つきの計算 \texttt{action} から中身を取り出して \texttt{x} として使う。
+\item \texttt{Option} の文脈では、途中で \texttt{none} になると後続の処理へ進まない。
+\item 本質的には \texttt{bind} を読みやすく書くための記法である。
+\end{itemize}
+\end{syntaxbox}
+
+
+証明では、\texttt{UserDraft} の中身を分解し、\texttt{emailOpt} と \texttt{ageOpt} の有無を場合分けしている。
+これは「すべての欠損パターンについて、\texttt{bind} 版と \texttt{do} 記法版が同じ結果になる」と確認している、という意味である。
+
+\section{\texttt{Except}：失敗理由を残す}
+
+\texttt{Option} は、失敗したかどうかだけを表す。
+一方、実務では失敗理由が必要になることが多い。
+欠損メールなのか、欠損年齢なのか、フォーマット不正なのかを区別したい。
+その場合は \texttt{Except E A} を使う。
+
+\begin{definitionbox}
+\texttt{Except E A} は、成功時に \texttt{A} の値を返し、失敗時に \texttt{E} 型のエラーを返す型である。
+\texttt{Option A} が「失敗するかもしれない \texttt{A}」なら、\texttt{Except E A} は「理由 \texttt{E} つきで失敗するかもしれない \texttt{A}」である。
+\end{definitionbox}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+inductive MigrationError where
+  | missingEmail
+  | missingAge
+  deriving Repr, DecidableEq
+
+def requireEmailE (u : UserDraft) : Except MigrationError UserWithEmail :=
+  match u.emailOpt with
+  | none => Except.error MigrationError.missingEmail
+  | some email => Except.ok { id := u.id, email := email, ageOpt := u.ageOpt }
+
+def requireAgeE (u : UserWithEmail) : Except MigrationError UserV2 :=
+  match u.ageOpt with
+  | none => Except.error MigrationError.missingAge
+  | some age => Except.ok { id := u.id, email := u.email, age := age }
+\end{minted}
+\caption{Except による失敗理由つき移行}
+\label{lst:ch17_except}
+\end{listing}
+
+\texttt{Except} でも、成功時だけ次へ進み、失敗時はそのエラーを保ったまま止まる。
+\texttt{Option} と \texttt{Except} の違いは、失敗の情報量である。
+合成の形は同じである。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def exceptBind {ε α β : Type}
+    (x : Except ε α) (f : α → Except ε β) : Except ε β :=
+  match x with
+  | Except.error e => Except.error e
+  | Except.ok a => f a
+
+theorem except_right_identity {ε α : Type} (x : Except ε α) :
+    exceptBind x exceptPure = x := by
+  cases x <;> rfl
+
+theorem except_assoc {ε α β γ : Type}
+    (x : Except ε α) (f : α → Except ε β) (g : β → Except ε γ) :
+    exceptBind (exceptBind x f) g =
+      exceptBind x (fun a => exceptBind (f a) g) := by
+  cases x <;> rfl
+\end{minted}
+\caption{Except 用の bind とモナド則}
+\label{lst:ch17_except_laws}
+\end{listing}
+
+このコードでは、\texttt{Except.error}なら後続処理へ進まず、\texttt{Except.ok}なら中身を取り出して関数\texttt{f}へ渡す\texttt{exceptBind}を定義している。
+\texttt{except\_right\_identity}と\texttt{except\_assoc}は、失敗理由を持つ計算でも\texttt{Option}と同じ形の合成法則が成り立つことを示している。
+
+\section{\texttt{State}：値と一緒に状態を渡す}
+
+状態つき計算も、同じ発想で扱える。
+状態 \texttt{S} を受け取り、値 \texttt{A} と新しい状態 \texttt{S} を返す関数を考える。
+これは \texttt{S -> (A, S)} という形になる。
+
+\begin{definitionbox}
+本章では、状態つき計算を \texttt{SimpleState S A = S -> (A, S)} として表す。
+これは「状態 \texttt{S} を受け取り、値 \texttt{A} と更新後の状態 \texttt{S} を返す処理」である。
+\end{definitionbox}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+abbrev SimpleState (σ α : Type) := σ → (α × σ)
+
+def statePure {σ α : Type} (a : α) : SimpleState σ α :=
+  fun s => (a, s)
+
+def stateBind {σ α β : Type}
+    (m : SimpleState σ α) (f : α → SimpleState σ β) : SimpleState σ β :=
+  fun s =>
+    let r := m s
+    f r.fst r.snd
+\end{minted}
+\caption{状態つき計算の最小モデル}
+\label{lst:ch17_state}
+\end{listing}
+
+\texttt{stateBind} は、まず計算 \texttt{m} を現在の状態 \texttt{s} で実行する。
+その結果として、値 \texttt{r.fst} と新しい状態 \texttt{r.snd} が得られる。
+次に、値を後続処理 \texttt{f} へ渡し、更新後の状態でその処理を実行する。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def getState : SimpleState Nat Nat :=
+  fun s => (s, s)
+
+def putState (s : Nat) : SimpleState Nat Unit :=
+  fun _ => ((), s)
+
+def tick : SimpleState Nat Nat :=
+  stateBind getState (fun n =>
+    stateBind (putState (n + 1)) (fun _ =>
+      statePure n))
+
+#eval tick 10  -- => (10, 11)
+\end{minted}
+\caption{カウンタ状態を更新する例}
+\label{lst:ch17_state_example}
+\end{listing}
+
+この例では、\texttt{tick 10} は現在の状態 \texttt{10} を値として返し、状態を \texttt{11} に更新する。
+状態つき処理では、順序が特に重要である。
+ただし、同じ順序の処理列について、\texttt{bind} の括弧を整理できることはリファクタリング上大きな意味を持つ。
+
+\section{非同期処理をどう読むか}
+
+非同期処理も、モナド的な合成として読める。
+たとえば、\texttt{Task A} や \texttt{Future A} のような型を考えると、それは「今すぐではないが、将来 \texttt{A} が得られる計算」である。
+\texttt{pure} は、すでに手元にある値を完了済みの非同期結果として包む。
+\texttt{bind} は、前の非同期結果が完了してから、その値を使う次の非同期処理を開始する。
+
+\begin{warningbox}
+本章では、実際のスケジューリング、キャンセル、タイムアウト、並行実行、外部 I/O の意味論までは形式化しない。
+非同期を扱う現実のシステムでは、順序、失敗、再試行、リソース解放などが別途重要になる。
+ここでは、非同期処理も「文脈を持つ値を次の処理へ渡す」という形で読める、という範囲に留める。
+\end{warningbox}
+
+\section{実務上の読み替え：合成則をレビューの言葉にする}
+
+モナドを実務に持ち込むとき、最初から「これはモナドである」と言う必要はない。
+むしろ、次の問いに答えられることが重要である。
+
+\begin{itemize}
+\item この処理の返り値には、どのような文脈が付いているか。
+\item 失敗、エラー、状態、非同期性を、返り値の型に明示しているか。
+\item 次の処理へ進む条件は \texttt{bind} の形で一箇所に閉じ込められているか。
+\item 不要な \texttt{pure} や括弧の整理をしても、意味が変わらない形になっているか。
+\item 失敗理由が必要なのに \texttt{Option} だけで潰していないか。
+\end{itemize}
+
+\begin{softwarebox}
+例外処理、バリデーション、状態更新、非同期 API 呼び出しは、どれも「途中で普通の関数合成から外れる」処理である。
+モナド的な見方を使うと、これらを場当たり的な制御フローではなく、合成可能な処理列として設計できる。
+\end{softwarebox}
+
+\section{よくある誤解}
+
+\begin{warningbox}
+モナドは「副作用をなくす魔法」ではない。
+失敗、状態、非同期性を消すのではなく、それらを型と合成規則の中に明示する道具である。
+また、モナド則は処理順序を勝手に入れ替えてよいという許可ではない。
+同じ順序の処理列について、\texttt{pure} と \texttt{bind} の構文的な整理が安全であることを述べている。
+\end{warningbox}
+
+\section{本章のまとめ}
+
+\texttt{Option A}、\texttt{Except E A}、\texttt{S -> (A, S)} は、いずれも文脈を持つ値として読める。
+
+\texttt{pure} は普通の値を文脈に入れ、\texttt{bind} は文脈つきの値を次の文脈つき処理へつなぐ。
+
+モナド則は、effectful code の左単位、右単位、結合律というリファクタリング規則として読める。
+
+Lean では、\texttt{Option} の \texttt{none} と \texttt{some} を場合分けすることで、モナド則を小さく証明できる。
+
+失敗しうるマイグレーションでは、失敗可能性を返り値の型に入れ、\texttt{bind} で段階的に合成すると、失敗ケースを漏らしにくくなる。
+
+失敗理由が必要な場合は \texttt{Option} ではなく \texttt{Except} を使う。
+
+状態つき処理や非同期処理も、値だけでなく文脈を次へ渡す合成として読むことができる。

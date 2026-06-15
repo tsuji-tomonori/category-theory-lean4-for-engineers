@@ -1,0 +1,141 @@
+% !TEX root = ../main.tex
+\chapter{値・型・関数}
+\label{chap:ch02_values_types_functions}
+
+\begin{chapterabstract}
+本章では、Lean の基本的な型と値、そして \texttt{def} による関数定義を扱う。
+前章で読み方を固定した \texttt{:}、\texttt{:=}、\texttt{\#check}、\texttt{\#eval} を使いながら、
+\texttt{Nat}、\texttt{Bool}、\texttt{String} の値を評価し、引数を取る関数を定義し、その型を確認する。
+ここでも新しい概念は小さく区切って導入し、命題や証明にはまだ進まない。
+\end{chapterabstract}
+
+\begin{learninggoals}
+\item \texttt{Nat}、\texttt{Bool}、\texttt{String} の値の書き方と評価結果を読める。
+\item \texttt{def} で、引数のない値と、引数を取る関数を定義できる。
+\item 関数の型 \texttt{A -> B} を「\texttt{A} を受け取り \texttt{B} を返す」と読める。
+\end{learninggoals}
+
+\section{この章を読む理由}
+
+ソフトウェアでは、値の種類を取り違えると、動いていても意味が崩れる。
+数値、真偽値、文字列は、それぞれ別の型として扱われる。
+Lean では、この区別が型として明示され、関数にも入力と出力の型が付く。
+本章では、その基本型と関数定義を、確認コマンドで結果を見ながら身につける。
+
+\FigurePlaceholder{fig-ch02-types-values-functions.png}{0.90}{型・値・関数の関係}{fig:ch02-types-values-functions}
+
+\section{基本型の値}
+
+\texttt{Nat} は自然数、\texttt{Bool} は真偽値、\texttt{String} は文字列の型である。
+それぞれの値は、\texttt{0}、\texttt{1} のような数値、\texttt{true}、\texttt{false}、そして二重引用符で囲んだ文字列として書く。
+演算子は型ごとに異なり、\texttt{+} は加算、\texttt{\&\&} は論理積、\texttt{++} は文字列連結である。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+#eval (3 : Nat) + 4
+#eval true && false
+#eval "lean" ++ "4"
+\end{minted}
+\caption{基本型の値を評価する}
+\label{lst:ch02_values}
+\end{listing}
+
+コード\ref{lst:ch02_values}では、\texttt{(3 : Nat) + 4} が \texttt{7} に、\texttt{true \&\& false} が \texttt{false} に、\texttt{"lean" ++ "4"} が \texttt{"lean4"} に評価される。
+型が違えば使える演算子も違う、という点が読み取れれば十分である。
+
+\begin{syntaxbox}
+基本型と演算子を固定する。
+\begin{itemize}
+\item \texttt{Nat} の値は \texttt{0}、\texttt{1}、\texttt{2 + 3} のように書く。
+\item \texttt{Bool} の値は \texttt{true}、\texttt{false}。\texttt{\&\&} は「かつ」。
+\item \texttt{String} の値は \texttt{"lean"} のように二重引用符で囲む。\texttt{++} は連結。
+\end{itemize}
+\end{syntaxbox}
+
+\section{\texttt{def} による値と関数}
+
+\texttt{def} は、名前付きの定義を作る構文である。
+引数のない値も、引数を取る関数も、同じ \texttt{def} で定義できる。
+形は \texttt{def 名前 (引数 : 型) : 返り値の型 := 本体} である。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def answer : Nat :=
+  42
+
+def addOne (n : Nat) : Nat :=
+  n + 1
+
+def add (m : Nat) (n : Nat) : Nat :=
+  m + n
+
+#eval answer
+#eval addOne 5
+#eval add 2 3
+\end{minted}
+\caption{\texttt{def} による値と関数の定義}
+\label{lst:ch02_def}
+\end{listing}
+
+コード\ref{lst:ch02_def}では、\texttt{answer} は \texttt{Nat} 型の値、\texttt{addOne} は引数を一つ取る関数、\texttt{add} は引数を二つ取る関数である。
+複数の引数は \texttt{(m : Nat) (n : Nat)} のように並べて書き、呼び出すときも \texttt{add 2 3} と空白で並べる。
+
+\begin{warningbox}
+\texttt{def} は可変変数への代入ではない。
+\texttt{def answer : Nat := 42} は「\texttt{answer} という名前を \texttt{42} に結びつける」という意味であり、
+あとから別の値に更新する、という読み方はしない。
+\end{warningbox}
+
+\section{関数の型}
+
+関数にも型がある。
+\texttt{A -> B} は「\texttt{A} 型の値を受け取り、\texttt{B} 型の値を返す関数」の型である。
+前節の \texttt{addOne} は \texttt{Nat} を受け取り \texttt{Nat} を返すので、その型は \texttt{Nat -> Nat} である。
+\texttt{\#check} で関数の型を確認できる。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def addOne (n : Nat) : Nat :=
+  n + 1
+
+def add (m : Nat) (n : Nat) : Nat :=
+  m + n
+
+#check addOne
+#check add
+\end{minted}
+\caption{関数の型を確認する}
+\label{lst:ch02_function_type}
+\end{listing}
+
+コード\ref{lst:ch02_function_type}では、\texttt{\#check addOne} が \texttt{addOne} の型を、\texttt{\#check add} が \texttt{add} の型を表示する。
+\texttt{addOne} は \texttt{Nat -> Nat}、\texttt{add} は二つの \texttt{Nat} を受け取る関数として読める。
+
+\begin{leanbox}
+\texttt{A -> B -> C} という型は、右に結合して \texttt{A -> (B -> C)} と読む。
+つまり \texttt{add} は「\texttt{Nat} を受け取り、\texttt{Nat -> Nat} を返す関数」とも読める。
+本章では「複数の引数を順に受け取る」と読めれば十分である。
+\end{leanbox}
+
+\section{本章のまとめ}
+
+\texttt{Nat}、\texttt{Bool}、\texttt{String} は、それぞれ別の型であり、使える演算子も異なる。
+
+\texttt{def} は、引数のない値も、引数を取る関数も定義できる。
+
+関数の型 \texttt{A -> B} は「\texttt{A} を受け取り \texttt{B} を返す」と読む。
+
+\begin{summarybox}
+この章で新しく出た記法
+\begin{itemize}
+\item \texttt{+} / \texttt{\&\&} / \texttt{++} \quad 加算・論理積・文字列連結。
+\item \texttt{def 名前 (引数 : 型) : 返り値の型 := 本体} \quad 関数定義の基本形。
+\item \texttt{A -> B} \quad 「\texttt{A} を受け取り \texttt{B} を返す」関数の型。
+\end{itemize}
+\end{summarybox}
+
+\section{次章への接続}
+
+ここまでで、値・型・関数を読み書きできるようになった。
+次章では、これらの関数について「\texttt{hasDiscount true} の結果は \texttt{true} と等しい」のような\emph{等式}を扱う。
+そこで初めて、\texttt{=} を「代入」ではなく「主張（命題）」として読む練習を始める。

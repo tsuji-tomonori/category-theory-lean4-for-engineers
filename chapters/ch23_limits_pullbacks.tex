@@ -1,0 +1,384 @@
+% !TEX root = ../main.tex
+\chapter{極限・引き戻し：制約を満たす合流点}
+\label{chap:limits-pullbacks}
+
+\begin{chapterabstract}
+本章では、極限と引き戻しを、ソフトウェア上の「整合条件を満たす合流点」として導入する。抽象的な一般圏論を完全に形式化するのではなく、二つのデータが同じキー、同じバージョン、同じ権限範囲を指しているかを確認しながら合成する場面に集中する。Lean 4 では、まず構造体と述語を使って「整合するペア」を表す。これにより、DB join、複数APIレスポンスの統合、設定合成、後続のDBスキーマ変更の証明へ進むための足場を作る。
+\end{chapterabstract}
+
+\begin{learninggoals}
+\item 極限を「複数の条件を同時に満たす対象」として説明できる。
+\item Pullbackを「共通の比較先で一致するペア」として読める。
+\item DB joinやAPI統合を、単なるペアではなく整合条件つきデータとしてモデル化できる。
+\item Lean 4で、構造体と述語を使って整合するペアを表せる。
+\item 変換後にも整合性が保存される、という性質を小さな定理として書ける。
+\end{learninggoals}
+
+\section{この章を読む理由}
+
+ソフトウェアでは、二つの値をただ並べるだけなら簡単である。プロフィール情報と注文情報をペアにする。設定ファイルAと設定ファイルBをまとめる。ユーザーAPIのレスポンスと権限APIのレスポンスを同時に扱う。この程度なら、積やレコードで十分に見える。
+
+しかし実務で本当に欲しいのは、たいてい「任意のペア」ではない。欲しいのは、同じユーザーを指すプロフィールと注文、同じ環境に属する設定の組、同じリクエストIDに対応する複数APIの結果である。つまり、二つの値をまとめる前に、それらが同じものについて語っているかを確認する必要がある。
+
+\begin{intuitionbox}
+積は「両方を持つ」構造である。一方、Pullbackは「両方を持ち、さらに共通の比較先で一致している」構造である。
+
+たとえば、プロフィールと注文をまとめるだけなら、\texttt{Profile} と \texttt{Order} のペアでよい。しかし、同じ \texttt{userId} を持つものだけをまとめたいなら、そこには追加の制約がある。この制約を持つ合流点が、本章で扱う Pullback の直感である。
+\end{intuitionbox}
+
+\FigurePlaceholder{fig-ch23-pullback-join.png}{0.90}{プロフィールと注文が共通のユーザーIDで整合する合流点}{fig:ch23-pullback-join}
+
+この章の目的は、圏論の極限を網羅的に学ぶことではない。目的は、実務でよく現れる「整合条件つきの結合」を、Leanで扱える小さなモデルに落とすことである。
+
+\section{ソフトウェア上の問題：ペアにすればよいとは限らない}
+
+次のような状況を考える。
+
+\begin{softwarebox}
+注文詳細画面を表示するために、注文DBから \texttt{Order} を取得し、プロフィールAPIから \texttt{Profile} を取得する。画面には、注文金額とユーザー表示名を一緒に出したい。
+
+このとき、\texttt{Order} と \texttt{Profile} を単純なペアにすると、異なるユーザーの情報を組み合わせてしまう可能性がある。必要なのは、\texttt{Order.userId} と \texttt{Profile.userId} が一致するという条件つきのペアである。
+\end{softwarebox}
+
+型だけを見ると、次のようなペアは作れてしまう。
+
+\begin{quote}
+\texttt{(profileOfUser10, orderOfUser20)}
+\end{quote}
+
+しかし、これは業務的には誤った組み合わせである。型としては \texttt{Profile \ensuremath{\times} Order} に入るが、表示してよい注文詳細ではない。
+
+この問題はDB joinだけに限らない。
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+場面 & 単なるペアでは足りない理由 & 必要な整合条件 \\
+\midrule
+DB join & 違う行同士を結合できてしまう & 主キー・外部キーの一致 \\
+複数API統合 & 別リクエストの結果を混ぜる恐れがある & ユーザーID、リクエストIDの一致 \\
+設定合成 & 環境が違う設定を混ぜる恐れがある & 環境名、バージョンの一致 \\
+権限つき表示 & データと権限が別ユーザーを指す恐れがある & 対象ID、権限スコープの一致 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+ここで重要なのは、「結合する」ことそのものではなく、「何によって整合していると言えるのか」を明示することである。Pullbackは、この「共通の比較先で一致する」という構図を抽象化した言葉である。
+
+\section{極限を「条件を同時に満たすもの」として読む}
+
+圏論でいう極限は、非常に広い概念である。積、等化子、Pullbackなど、多くの構成を統一的に扱う。しかし本章では、次の直感だけを先に押さえればよい。
+
+\begin{definitionbox}
+本章では、極限を「与えられた複数の情報源や制約に対して、それらを同時に満たす最も自然な合流点」として読む。
+
+厳密には、極限は図式に対する普遍性で特徴づけられる対象である。ただし、初学者向けには、まず「複数の条件をまとめて満たす構造」と考えると理解しやすい。
+\end{definitionbox}
+
+たとえば、積は二つの情報を同時に持つ対象である。
+
+\[
+A \times B
+\]
+
+これは、\texttt{A} と \texttt{B} の両方を持つという条件を満たす。しかし、\texttt{A} と \texttt{B} の間に追加の整合条件はない。したがって、任意の \texttt{A} と任意の \texttt{B} を組み合わせられる。
+
+Pullbackでは、もう一つ条件が加わる。\texttt{A} と \texttt{B} がそれぞれ共通の比較先 \texttt{C} に写るとき、その比較結果が一致するものだけを集める。
+
+\[
+A \times_C B = \{(a,b) \mid f(a) = g(b)\}
+\]
+
+ここで \texttt{C} は、整合性を判定するための共通の場所である。ユーザーIDでjoinするなら \texttt{C} はユーザーIDの型である。設定ファイルの環境名で整合させるなら、\texttt{C} は環境名の型である。バージョン整合性を見るなら、\texttt{C} はバージョン番号の型である。
+
+\section{Pullbackを「整合するペア」として読む}
+
+Pullbackの基本形は、次のような図式で表される。
+
+\[
+A \xrightarrow{f} C \xleftarrow{g} B
+\]
+
+このとき、Pullbackは「\texttt{A} の値と \texttt{B} の値のペアで、\texttt{C} に写した結果が一致するもの」である。
+
+\begin{definitionbox}
+写像 \(f : A \to C\) と \(g : B \to C\) があるとする。このとき Pullback は、直感的には次のようなデータである。
+
+\[
+\{(a,b) \mid f(a) = g(b)\}
+\]
+
+ソフトウェア的には、\texttt{A} と \texttt{B} の値を同時に持ち、さらに「共通キーが一致している」という証拠を持つ構造体として読める。
+\end{definitionbox}
+
+この定義には二つのポイントがある。
+
+第一に、Pullbackは単なるペアではない。ペアに加えて、整合条件の証拠を持つ。
+
+第二に、整合条件は外から後付けするコメントではない。型や構造の一部として持たせる。Leanでは、この「証拠を持つ」という表現が非常に自然である。
+
+\begin{softwarebox}
+DB joinをPullback的に読むなら、片側のテーブルからキーを取り出す関数と、もう片側のテーブルからキーを取り出す関数がある。
+
+\begin{itemize}
+\item \texttt{orderToUserId : Order \ensuremath{\to} UserId}
+\item \texttt{profileToUserId : Profile \ensuremath{\to} UserId}
+\end{itemize}
+
+Pullbackは、\texttt{orderToUserId order = profileToUserId profile} を満たす注文とプロフィールの組である。
+\end{softwarebox}
+
+\FigurePlaceholder{fig-ch23-universal-property.png}{0.90}{任意の整合データはPullbackへ一意に写る}{fig:ch23-universal-property}
+
+\subsection{普遍性を怖がらずに読む}
+
+Pullbackには普遍性という条件がある。これは、初めて読むと抽象的に感じるかもしれない。しかし、実務的には次のように読めばよい。
+
+\begin{intuitionbox}
+すでに何らかのデータ \texttt{X} があり、そこから \texttt{Profile} も \texttt{Order} も取り出せるとする。さらに、取り出した \texttt{Profile} と \texttt{Order} のユーザーIDが必ず一致するとする。
+
+その場合、\texttt{X} から「整合するプロフィールと注文の組」へ自然に変換できる。Pullbackは、このような整合データの受け皿として最も自然な構造である。
+\end{intuitionbox}
+
+この見方は、設計上も役に立つ。複数の入力を統合する関数を書くとき、出力型が単なるペアなら、整合条件は呼び出し側の暗黙の約束になる。Pullback的な型を使えば、その約束を出力型に含められる。
+
+\section{Lean 4 で表す：まず構造体と述語で十分}
+
+本章では、Mathlibの \texttt{CategoryTheory} API を使って一般のPullbackを形式化しない。まずは、実務で使える小さな定義から始める。
+
+\begin{leanbox}
+Leanでは、「整合するペア」を構造体として表せる。構造体の通常フィールドにデータを置き、追加フィールドに整合条件の証明を置く。
+
+この章では、\texttt{Profile} と \texttt{Order} が同じ \texttt{userId} を持つことを、\texttt{ProfileOrder.consistent} というフィールドで表す。
+\end{leanbox}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+namespace Ch17
+
+abbrev UserId := Nat
+
+structure Profile where
+  userId : UserId
+  displayName : String
+deriving Repr, DecidableEq
+
+structure Order where
+  orderId : Nat
+  userId : UserId
+  total : Nat
+deriving Repr, DecidableEq
+
+structure ProfileOrder where
+  profile : Profile
+  order : Order
+  consistent : profile.userId = order.userId
+\end{minted}
+\caption{プロフィール、注文、整合するペア}
+\label{lst:ch23-profile-order}
+\end{listing}
+
+\texttt{ProfileOrder} は、\texttt{Profile} と \texttt{Order} を持つだけではない。\texttt{consistent} というフィールドに、\texttt{profile.userId = order.userId} の証明を持っている。
+
+この形にしておくと、以後の関数は「整合しているはず」と仮定する必要がない。値そのものが整合性の証拠を含むからである。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def joinProfileOrder (p : Profile) (o : Order)
+    (h : p.userId = o.userId) : ProfileOrder :=
+  { profile := p, order := o, consistent := h }
+
+theorem joined_profile_id_eq_order_id
+    (j : ProfileOrder) : j.profile.userId = j.order.userId :=
+  j.consistent
+
+def orderToUserId (o : Order) : UserId := o.userId
+
+def profileToUserId (p : Profile) : UserId := p.userId
+
+theorem pullback_square_commutes (j : ProfileOrder) :
+    profileToUserId j.profile = orderToUserId j.order :=
+  j.consistent
+\end{minted}
+\caption{Pullbackの四角形を等式として読む}
+\label{lst:ch23-pullback-square}
+\end{listing}
+
+\texttt{pullback\_square\_commutes} は、Pullbackで出てくる可換四角形を、Leanの等式として書いたものである。ここで言っていることは単純である。整合するペアからプロフィール側に射影してユーザーIDを取り出しても、注文側に射影してユーザーIDを取り出しても、同じ値になる。
+
+\subsection{普遍性の最小モデル}
+
+Pullbackの普遍性も、小さな関数として表せる。任意の型 \texttt{X} から \texttt{Profile} と \texttt{Order} を取り出せて、かつそれらの \texttt{userId} が常に一致するなら、\texttt{X} から \texttt{ProfileOrder} への関数を作れる。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def toProfileOrder {X : Type}
+    (f : X -> Profile) (g : X -> Order)
+    (h : forall x, (f x).userId = (g x).userId) :
+    X -> ProfileOrder :=
+  fun x =>
+    { profile := f x, order := g x, consistent := h x }
+
+theorem toProfileOrder_profile {X : Type}
+    (f : X -> Profile) (g : X -> Order)
+    (h : forall x, (f x).userId = (g x).userId)
+    (x : X) :
+    (toProfileOrder f g h x).profile = f x := rfl
+
+theorem toProfileOrder_order {X : Type}
+    (f : X -> Profile) (g : X -> Order)
+    (h : forall x, (f x).userId = (g x).userId)
+    (x : X) :
+    (toProfileOrder f g h x).order = g x := rfl
+\end{minted}
+\caption{任意の整合データからPullback的構造へ写す}
+\label{lst:ch23-universal-map}
+\end{listing}
+
+このコードは、圏論の教科書でいう普遍性を完全に一般化したものではない。しかし、ソフトウェアエンジニアが最初に使うには十分である。「整合しているデータは、整合するペアの型へまとめられる」という形になっているからである。
+
+\section{整合性を保存する変換}
+
+整合するペアを作った後に、片側のデータを変換したいことがある。たとえば、注文金額に手数料を加える、注文表示用に金額を正規化する、注文のメタ情報だけを更新する、などである。
+
+このとき、変換が \texttt{userId} を変えないなら、整合性は保存される。
+
+\begin{softwarebox}
+注文の \texttt{total} だけを変更する処理は、注文の所有者を変えない。したがって、プロフィールと注文がもともと同じ \texttt{userId} で整合していたなら、変換後の注文も同じプロフィールと整合する。
+\end{softwarebox}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def upgradeOrder (o : Order) : Order :=
+  { o with total := o.total + 1 }
+
+theorem upgradeOrder_preserves_userId (o : Order) :
+    (upgradeOrder o).userId = o.userId := rfl
+
+def liftJoinedOrder (j : ProfileOrder) : ProfileOrder :=
+  { profile := j.profile,
+    order := upgradeOrder j.order,
+    consistent := by
+      simpa [upgradeOrder] using j.consistent }
+
+theorem liftJoinedOrder_preserves_consistency
+    (j : ProfileOrder) :
+    (liftJoinedOrder j).profile.userId =
+      (liftJoinedOrder j).order.userId :=
+  (liftJoinedOrder j).consistent
+\end{minted}
+\caption{注文変換が整合性を保存すること}
+\label{lst:ch23-preserve-consistency}
+\end{listing}
+
+証明方針は単純である。\texttt{upgradeOrder} は \texttt{total} だけを変え、\texttt{userId} を変えない。したがって、もとの \texttt{j.consistent} を、変換後の注文にも使える形へ書き換えればよい。
+
+このような性質は、スキーマ移行や表示用変換でよく現れる。変換関数がキーを保存することを先に証明しておくと、join結果や整合データ全体にも安全に持ち上げられる。
+
+\section{実務に近いミニケース：注文、プロフィール、配送}
+
+二つの情報源だけでなく、三つ以上の情報源を照合したいこともある。注文、プロフィール、配送情報をまとめる場合、少なくとも次のような条件が必要になる。
+
+\begin{itemize}
+\item 注文とプロフィールの \texttt{userId} が一致する。
+\item 配送情報と注文の \texttt{orderId} が一致する。
+\item 配送情報と注文の \texttt{userId} も一致する。
+\end{itemize}
+
+ここでは、まず注文と配送の整合性だけを小さく切り出す。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+structure Shipment where
+  orderId : Nat
+  userId : UserId
+  delivered : Bool
+deriving Repr, DecidableEq
+
+def shipmentMatchesOrder (s : Shipment) (o : Order) : Prop :=
+  s.userId = o.userId /\ s.orderId = o.orderId
+
+structure OrderShipment where
+  order : Order
+  shipment : Shipment
+  matched : shipmentMatchesOrder shipment order
+
+theorem orderShipment_userId_eq (os : OrderShipment) :
+    os.shipment.userId = os.order.userId :=
+  os.matched.left
+
+theorem orderShipment_orderId_eq (os : OrderShipment) :
+    os.shipment.orderId = os.order.orderId :=
+  os.matched.right
+\end{minted}
+\caption{注文と配送情報の整合条件}
+\label{lst:ch23-order-shipment}
+\end{listing}
+
+\texttt{shipmentMatchesOrder} は、二つの条件を同時に持つ述語である。Leanでは \lstinline|/\| が「かつ」を表す。この構造により、\texttt{OrderShipment} の値を持っているだけで、ユーザーIDの一致と注文IDの一致の両方を取り出せる。
+
+\FigurePlaceholder{fig-ch23-api-db-consistency.png}{0.92}{DB、API、配送情報を共通キーで整合させる}{fig:ch23-api-db-consistency}
+
+実務では、制約はさらに増えることがある。テナントID、リージョン、データのバージョン、権限スコープ、削除済みフラグなどである。Pullbackの見方は、そうした制約を「なんとなく確認するもの」ではなく、「合流点の型に含めるもの」として整理するのに役立つ。
+
+\section{DB join、設定合成、複数APIレスポンスへの読み替え}
+
+\subsection{DB join}
+
+DB joinでは、二つのテーブルの行を共通キーで結びつける。SQLでは、\texttt{ON orders.user\_id = profiles.user\_id} のように条件を書く。この条件が、Pullback的な等式である。
+
+Leanの小さなモデルでは、DBエンジンそのものは扱わない。代わりに、「join結果として返してよい値とは何か」を型で表す。これにより、後続の第32章で、スキーマ変更後にもjoin結果が保存されるとはどういうことかを説明しやすくなる。
+
+\subsection{設定合成}
+
+設定ファイルを複数の層から合成する場合にも、整合条件が必要になる。
+
+\begin{itemize}
+\item base設定とoverride設定が同じ環境を指しているか。
+\item 同じアプリケーション名か。
+\item 対応するスキーマバージョンか。
+\end{itemize}
+
+設定を単純にマージするだけならモノイド的に見える。しかし、マージしてよい組み合わせを制限するなら、Pullback的な整合条件が前面に出てくる。
+
+\subsection{複数APIレスポンス}
+
+複数APIから情報を集める場合、レスポンスが同じユーザー、同じリクエスト、同じ時点を指しているかを確認しなければならない。
+
+このとき、各レスポンスから共通の比較先へ写す関数を考える。
+
+\begin{itemize}
+\item \texttt{profileResponseToUserId}
+\item \texttt{permissionResponseToUserId}
+\item \texttt{billingResponseToUserId}
+\end{itemize}
+
+それらの結果が一致しているときだけ、統合レスポンスを作る。この統合レスポンスは、単なるレコードではなく、整合性の証拠を持つレコードである。
+
+\section{よくある誤解}
+
+\begin{warningbox}
+Pullbackは「joinの別名」ではない。joinは実装やクエリの操作であり、Pullbackは「共通の比較先で一致するものだけを集める」という構造の見方である。
+
+また、本章のLeanコードは実DBの完全な意味論を証明しているわけではない。インデックス、NULL、トランザクション、分散整合性、権限チェック、パフォーマンスなどは別の問題である。本章で証明しているのは、モデル化した範囲で、整合条件が型と命題として明示されているという点である。
+\end{warningbox}
+
+もう一つの誤解は、「整合条件はテストで十分」という考え方である。もちろんテストは必要である。しかし、テストだけでは代表例しか確認できない。Leanで整合条件を型に含めると、その型の値を作る時点で証拠が必要になる。これにより、整合していない値を後続処理へ渡す経路を減らせる。
+
+\section{本章のまとめ}
+
+極限は、本章では「複数の条件を同時に満たす合流点」として読んだ。
+
+Pullbackは、\(A \to C \leftarrow B\) という形に対し、\texttt{A} と \texttt{B} の値が \texttt{C} 上で一致するペアとして読める。
+
+ソフトウェアでは、PullbackはDB join、複数APIレスポンスの統合、設定合成、データ照合の直感に対応する。
+
+Leanでは、一般の圏論APIを使わなくても、構造体と述語で「整合するペア」を表せる。
+
+変換が共通キーを保存するなら、整合するペア全体へ安全に持ち上げられる。
+
+本章の証明は実システム全体の完全検証ではなく、仕様の核を小さく明示するためのモデルである。
+
+\section{次章への接続}
+
+次章からは、ここまで整えてきた証明道具を使って、自然言語の仕様書をLeanへ移す方法を扱う。本章のPullback的な見方は、後のDBスキーマ変更やクエリ保存のケーススタディで再登場する。特に、「保存されるべき結果は何か」「どの整合条件を前提にしているか」を明示する場面で重要になる。

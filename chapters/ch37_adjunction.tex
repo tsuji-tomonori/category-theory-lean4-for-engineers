@@ -1,0 +1,345 @@
+% !TEX root = ../main.tex
+\chapter{随伴：自由構成と忘却}
+\label{chap:ch37_adjunction}
+
+\begin{chapterabstract}
+この章では、圏論の発展概念である随伴を、ソフトウェアエンジニアが使える直感に絞って導入する。中心に置くのは「自由に作る」と「構造を忘れる」という対応である。型 \texttt{A} からリスト \texttt{List A} を作る操作は、要素を順番に並べるための最小限の結合構造を自動的に与える。一方、モノイドをただの型として見る操作は、結合演算や単位元という構造を忘れる。本章では、この二つがなぜ一対の操作として自然に対応するのかを、free monoid と list を通じて説明する。
+\end{chapterabstract}
+
+\begin{learninggoals}
+\item 随伴を、まず「自由構成」と「忘却」の対応として説明できる。
+\item \texttt{List A} が free monoid の具体例であることを、\texttt{foldMap} の一意性として読める。
+\item 設計上の「最小構造を自動生成する」考え方を、DSL、設定、ログ集約に結びつけられる。
+\item Galois 接続を、前順序における随伴の例として位置づけられる。
+\item Mathlib の本格的な随伴へ進む前に、どこまでを本章のミニモデルで扱ったかを説明できる。
+\end{learninggoals}
+
+\section{この章を読む理由}
+\label{sec:ch37-why}
+
+前の章までで、読者は型、関数、同型、関手、自然変換、モノイド、モナド、Pullback、Galois 接続を見てきた。これらは、ソフトウェアでよく出会う「変換」「合成」「保存性」「互換性」を整理する道具だった。
+
+随伴は、これらより一段抽象的な概念である。初めて見ると、定義に出てくる hom 集合の自然同型や単位・余単位が難しく感じられる。しかし、随伴の入口として最も大切なのは、「ある方向では構造を自由に作り、反対方向では構造を忘れる」という直感である。
+
+\begin{intuitionbox}
+自由構成は、「最低限の約束だけを満たす構造を自動的に作る」操作である。忘却は、「いま持っている構造のうち、注目しない部分を落として、土台のデータだけを見る」操作である。この二つがぴったり対応するとき、背後に随伴がある。
+\end{intuitionbox}
+
+ソフトウェアで考えると、これは珍しい話ではない。生のイベント列からログ集約用の構造を作る。文字列トークン列から DSL の構文木を作る。設定項目の列から設定マージ用の構造を作る。逆に、構文木や設定オブジェクトから「含まれる値だけ」を取り出して、追加の規則を一旦忘れる。随伴は、このような作る操作と忘れる操作の関係を、非常に一般的に説明する言葉である。
+
+\FigurePlaceholder{fig-ch37-free-forgetful-overview.png}{0.90}{自由構成と忘却の概念図}{fig:ch37-free-forgetful-overview}
+
+\section{「自由に作る」と「構造を忘れる」}
+\label{sec:ch37-free-forgetful}
+
+\subsection{構造を作る操作}
+
+まず、集合や型 \texttt{A} があるとする。この段階では、\texttt{A} の値をどう結合するかは決まっていない。たとえば、\texttt{A} がイベント型なら、イベントを一つずつ持つだけであり、「イベント列を結合する」「空のイベント列を持つ」という構造はまだ明示されていない。
+
+ここで \texttt{List A} を作ると、状況が変わる。リストには空リスト \texttt{[]} があり、リスト同士を連結する \texttt{++} がある。さらに、連結は結合律を満たし、空リストは単位元として振る舞う。つまり、\texttt{List A} は自然にモノイドになる。
+
+\begin{definitionbox}
+モノイドとは、型 \texttt{M}、単位元 \texttt{unit : M}、結合演算 \texttt{op : M -> M -> M} を持ち、次の三つの法則を満たす構造である。
+\[
+  \mathrm{op}(\mathrm{unit}, x) = x,
+  \quad
+  \mathrm{op}(x, \mathrm{unit}) = x,
+  \quad
+  \mathrm{op}(\mathrm{op}(x,y),z) = \mathrm{op}(x,\mathrm{op}(y,z)).
+\]
+リストでは、単位元は空リスト、結合演算はリスト連結である。
+\end{definitionbox}
+
+\subsection{構造を忘れる操作}
+
+反対に、モノイド \texttt{M} があるとする。\texttt{M} には、単位元と結合演算と法則が付いている。しかし、場面によっては、その構造を一旦忘れて、ただの値の型として扱いたいことがある。
+
+たとえば、ログ集約用の \texttt{LogBuffer} がモノイド構造を持っていても、UI に一覧表示するときには、中身の値だけに注目するかもしれない。設定オブジェクトがマージ演算を持っていても、ある検査関数は「設定値の集合」としてだけ見るかもしれない。
+
+\begin{softwarebox}
+忘却は、構造を破壊する操作ではない。単に、その文脈で見ない情報を見ないことにする操作である。型に付いている API、法則、制約、インスタンスを一時的に脇に置き、土台の値だけを扱うと考えるとよい。
+\end{softwarebox}
+
+\subsection{随伴の最初の形}
+
+自由構成と忘却が随伴になるとは、次のような対応が自然に成り立つという意味である。
+
+\begin{definitionbox}
+自由モノイドと忘却関手の随伴は、直感的には次の対応で表せる。
+\[
+  \{\texttt{List A} \to \texttt{M} \text{ のモノイド準同型}\}
+  \cong
+  \{\texttt{A} \to \texttt{M} \text{ の関数}\}.
+\]
+左辺は「リスト全体をモノイド \texttt{M} へ構造を保って写す方法」である。右辺は「要素一つを \texttt{M} へ写す方法」である。この二つが一対一に対応する、というのが free monoid の普遍性である。
+\end{definitionbox}
+
+ここで重要なのは、\texttt{List A} から \texttt{M} への写像が、ただの関数ではなくモノイド準同型であることだ。つまり、空リストを単位元へ送り、リスト連結を \texttt{M} の結合演算へ送らなければならない。
+
+この条件があるため、\texttt{List A} 全体での振る舞いは、各要素 \texttt{a : A} をどこへ送るかだけで完全に決まる。その拡張を実装する関数が \texttt{foldMap} である。
+
+\section{free monoid と list}
+\label{sec:ch37-free-monoid-list}
+
+\subsection{リストは「順番に並べる」最小構造}
+
+型 \texttt{A} の値を使ってモノイドを作りたいとする。いきなり \texttt{A} の値同士を足したり、掛けたり、マージしたりする規則を決める必要はない。最も素朴な方法は、値を並べるだけである。
+
+\texttt{[a1, a2, a3]} は、\texttt{a1}、\texttt{a2}、\texttt{a3} をこの順番で並べたものを表す。二つのリストを連結すれば、並びをつなげられる。空リストは何も並べていない状態である。この構造は、\texttt{A} に余計な演算を要求しない。
+
+\begin{intuitionbox}
+\texttt{List A} は、\texttt{A} の値を材料として、「空」と「連結」だけを持つ最小の世界を作る。要素同士を勝手に同一視しない。順序を勝手に入れ替えない。余計な簡約もしない。この「余計なことをしない」ことが、自由構成の大事な感覚である。
+\end{intuitionbox}
+
+\FigurePlaceholder{fig-ch37-free-monoid-list.png}{0.90}{要素の写像からリスト全体の準同型が一意に決まる}{fig:ch37-free-monoid-list}
+
+\subsection{foldMap が普遍性を実装する}
+
+モノイド \texttt{M} と関数 \texttt{f : A -> M} があるとする。\texttt{f} は、\texttt{A} の要素を一つずつ \texttt{M} の値へ変換するだけである。これをリスト全体へ拡張するには、次のようにする。
+
+\begin{itemize}
+\item 空リストは、\texttt{M} の単位元へ送る。
+\item \texttt{x :: xs} は、\texttt{f x} と \texttt{xs} の変換結果を \texttt{M} の演算で結合する。
+\end{itemize}
+
+これが \texttt{foldMap} である。
+
+\begin{leanbox}
+本章では、Mathlib の \texttt{Monoid} や \texttt{CategoryTheory.Adjunction} には進まず、自作の小さな \texttt{TinyMonoid} で説明する。目的は、随伴の完全な形式化ではなく、free monoid の普遍性を「要素への関数から、リスト全体の準同型が一意に決まる」という形で読むことである。
+\end{leanbox}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+structure TinyMonoid (M : Type) where
+  unit : M
+  op : M -> M -> M
+  unit_left : forall x : M, op unit x = x
+  unit_right : forall x : M, op x unit = x
+  assoc : forall x y z : M,
+    op (op x y) z = op x (op y z)
+
+def foldMap {A M : Type} (mon : TinyMonoid M)
+    (f : A -> M) : List A -> M
+  | [] => mon.unit
+  | x :: xs => mon.op (f x) (foldMap mon f xs)
+
+theorem foldMap_singleton {A M : Type}
+    (mon : TinyMonoid M) (f : A -> M) (a : A) :
+    foldMap mon f [a] = f a := by
+  simp [foldMap, mon.unit_right]
+\end{minted}
+\caption{小さなモノイドと foldMap}
+\label{lst:ch37_tiny_monoid}
+\end{listing}
+
+\begin{syntaxbox}
+リストを再帰的に読むときは、空リストと「先頭 + 残り」に分ける。
+\begin{itemize}
+\item \texttt{| [] => ...} は、リストが空の場合の枝である。
+\item \texttt{| x :: xs => ...} は、先頭要素 \texttt{x} と残りのリスト \texttt{xs} に分解する枝である。
+\item \texttt{::} は cons と呼ばれ、値をリストの先頭に付ける構成子である。
+\item この形の定義では、各枝の右側にその場合の結果を書く。
+\end{itemize}
+\end{syntaxbox}
+
+コード \ref{lst:ch37_tiny_monoid} では、\texttt{TinyMonoid} に単位元、二項演算、三つの法則を持たせている。\texttt{foldMap} は、リストを \texttt{M} の値へ畳み込む。\texttt{foldMap\_singleton} は、1要素リストに対しては元の関数 \texttt{f} と同じ働きをすることを示している。
+
+\subsection{モノイド準同型としての拡張}
+
+\texttt{foldMap} が単なる便利関数で終わらない理由は、リスト連結を保存するからである。つまり、\texttt{xs ++ ys} を一度に \texttt{foldMap} しても、\texttt{xs} と \texttt{ys} を別々に \texttt{foldMap} してから \texttt{M} 側で結合しても、結果が一致する。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+theorem foldMap_append {A M : Type}
+    (mon : TinyMonoid M) (f : A -> M) :
+    forall xs ys : List A,
+      foldMap mon f (xs ++ ys) =
+        mon.op (foldMap mon f xs) (foldMap mon f ys) := by
+  intro xs
+  induction xs with
+  | nil =>
+      intro ys
+      simp [foldMap, mon.unit_left]
+  | cons x xs ih =>
+      intro ys
+      simp [foldMap, ih, mon.assoc]
+
+structure MonoidHom (M N : Type)
+    (monM : TinyMonoid M) (monN : TinyMonoid N) where
+  toFun : M -> N
+  map_unit : toFun monM.unit = monN.unit
+  map_op : forall x y : M,
+    toFun (monM.op x y) = monN.op (toFun x) (toFun y)
+\end{minted}
+\caption{foldMap はリスト連結をモノイド演算へ送る}
+\label{lst:ch37_foldmap_hom}
+\end{listing}
+
+この定理は、\texttt{foldMap} がモノイド構造を保存することを表している。証明にはリストの帰納法を使っている。空リストの場合は単位元の法則を使い、\texttt{x :: xs} の場合は帰納法の仮定と結合律を使う。
+
+ここまでで、次の対応が見えてくる。
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+視点 & 右辺のデータ & 左辺の構造保存写像 \\
+\midrule
+自由構成 & 要素ごとの関数 \texttt{A -> M} & \texttt{List A -> M} のモノイド準同型 \\
+実装 & 1件変換 & バッチ全体の畳み込み \\
+設計 & 材料の意味づけ & 構造を壊さない集約 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{一意性が意味すること}
+
+free monoid の普遍性では、\texttt{f : A -> M} を拡張するモノイド準同型は存在するだけではなく、一意である。これは実務的にも重要である。
+
+たとえば、イベント一つをログ集約値に変換する規則 \texttt{f} を決める。空イベント列の扱いは単位元にし、イベント列の連結はログ集約値の結合に対応させる。この二つの条件を守る限り、イベント列全体の処理は \texttt{foldMap f} 以外にない。
+
+\begin{softwarebox}
+一意性は、「実装の選択肢を減らす」効果を持つ。要素レベルの意味づけと、空・結合を保つという設計方針が決まれば、リスト全体の処理は自動的に決まる。これは、バッチ処理、ログ集約、設定生成、DSL の評価器で役に立つ見方である。
+\end{softwarebox}
+
+本章の Lean ファイルでは、この一意性も小さな定理として示している。本文では証明の全行を追わないが、考え方は単純である。リストに対する帰納法を使い、空リストでは単位元保存、\texttt{x :: xs} では \texttt{[x] ++ xs} と見て、準同型が結合を保存することを使う。
+
+\section{随伴の定義を少しだけ見る}
+\label{sec:ch37-adjunction-definition}
+
+ここで、一般の随伴の定義を少しだけ覗いておく。二つの圏 \(\mathcal{C}\) と \(\mathcal{D}\) があり、関手
+\[
+  F : \mathcal{C} \to \mathcal{D},
+  \qquad
+  U : \mathcal{D} \to \mathcal{C}
+\]
+があるとする。\(F\) が左随伴、\(U\) が右随伴であるとは、\(\mathcal{C}\) の対象 \(A\) と \(\mathcal{D}\) の対象 \(M\) について、次の対応が自然にあることを言う。
+\[
+  \mathrm{Hom}_{\mathcal{D}}(F A, M)
+  \cong
+  \mathrm{Hom}_{\mathcal{C}}(A, U M).
+\]
+
+free monoid の例では、\(\mathcal{C}\) は型と関数の世界、\(\mathcal{D}\) はモノイドとモノイド準同型の世界である。\(F A\) は \texttt{List A}、\(U M\) はモノイド \texttt{M} から構造を忘れた土台の型である。
+
+\begin{definitionbox}
+随伴 \(F \dashv U\) は、「\(F A\) から \(M\) へ構造を保って写すこと」と、「\(A\) から \(U M\) へ普通に写すこと」が同じ情報を持つ、という対応である。free monoid では、\texttt{List A} から \texttt{M} への準同型と、\texttt{A} から \texttt{M} への関数が対応する。
+\end{definitionbox}
+
+\begin{warningbox}
+随伴は、二つの型が同型であるという主張ではない。\texttt{A} と \texttt{List A} が同じだという意味でもない。随伴が比較しているのは、対象そのものではなく、「そこから、またはそこへの写し方」である。この点を混同すると、随伴が単なる双方向変換のように見えてしまう。
+\end{warningbox}
+
+\section{設計上の意味：最小の構造を自動生成する}
+\label{sec:ch37-design}
+
+\subsection{DSL の構文を自由に作る}
+
+DSL を設計するとき、最初から複雑な意味論を持たせる必要はない。まずは、コマンドを並べる、選択肢を作る、名前を束縛する、という構文を自由に作る。その後、別の世界へ解釈する関数を与える。
+
+リストの例では、材料 \texttt{A} から \texttt{List A} を作る。DSL では、トークンや命令の集合から構文木を作る。自由構成は、「材料から、指定した形の構造を最も一般的に作る」考え方として使える。
+
+\subsection{設定生成とログ集約}
+
+設定項目の列から設定オブジェクトを作る場合も、同じ見方ができる。単一の設定項目をどう解釈するかを決め、それらを結合する規則をモノイドとして用意すれば、設定項目のリスト全体は \texttt{foldMap} で処理できる。
+
+ログ集約でも同様である。イベント一つをログ断片へ変換する関数と、ログ断片を結合するモノイドがあれば、イベント列全体のログは自然に決まる。
+
+\begin{softwarebox}
+この見方は「集約処理をきれいに書ける」というだけではない。要素ごとの変換、空入力の扱い、結合の扱いが分離されるため、仕様レビューで確認すべき点が明確になる。\texttt{foldMap} は、自由構成から生じる設計パターンとして読める。
+\end{softwarebox}
+
+\subsection{実装と仕様の距離}
+
+本章の Lean モデルは非常に小さい。現実のログ集約や設定マージでは、順序依存、重複キー、優先順位、エラー、外部状態などが入る。それでも、核となる性質がモノイドとして切り出せるなら、\texttt{foldMap} 的な設計が使える。
+
+ここで重要なのは、「実装すべてを自由モノイドとして見る」ことではない。重要なのは、どこに自由構成の形が現れているかを見つけることである。
+
+\section{Galois 接続との関係}
+\label{sec:ch37-galois}
+
+第22章では、Galois 接続を抽象化と具体化の対応として見た。随伴を学ぶと、Galois 接続は特別な随伴として理解できる。
+
+前順序は、圏として見ることができる。対象は値であり、\(a \leq b\) が成り立つとき、\(a\) から \(b\) へただ一つの射があると考える。すると、二つの前順序の間の単調写像 \(\alpha\) と \(\gamma\) が次を満たすとき、これは随伴である。
+\[
+  \alpha(a) \leq b
+  \quad\Longleftrightarrow\quad
+  a \leq \gamma(b).
+\]
+
+\FigurePlaceholder{fig-ch37-galois-adjunction.png}{0.90}{前順序における随伴としての Galois 接続}{fig:ch37-galois-adjunction}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+structure GaloisConnection {A B : Type}
+    (leA : A -> A -> Prop) (leB : B -> B -> Prop)
+    (lower : A -> B) (upper : B -> A) : Prop where
+  condition : forall a b,
+    leB (lower a) b <-> leA a (upper b)
+\end{minted}
+\caption{Galois 接続を命題として表す最小モデル}
+\label{lst:ch37_galois}
+\end{listing}
+
+\begin{syntaxbox}
+\texttt{<->} は、二つの命題が同値であることを表す構文である。
+\begin{itemize}
+\item \texttt{P <-> Q} は、「\texttt{P} ならば \texttt{Q}」と「\texttt{Q} ならば \texttt{P}」の両方を持つ命題である。
+\item 数学記号では \(\leftrightarrow\) と書かれ、「if and only if」や「同値」と読む。
+\item Galois 接続では、片方の順序関係で比較できることと、もう片方の順序関係で比較できることが同値になる。
+\end{itemize}
+\end{syntaxbox}
+
+\begin{intuitionbox}
+自由モノイドの随伴では、「構造を保つ写像」と「要素への写像」が対応した。Galois 接続では、「抽象側で比較できること」と「具体側で比較できること」が対応する。どちらも、片方の世界での問いを、もう片方の世界での問いへ翻訳している。
+\end{intuitionbox}
+
+この関係は、静的解析、権限設計、公開ログへのマスキング、仕様弱化で役に立つ。詳細な世界から抽象的な世界へ移るとき、何が保存され、何が戻せるのかを、等式ではなく順序で表す。そのときの対応が Galois 接続であり、圏論的には前順序上の随伴である。
+
+\section{本章では扱わないこと}
+\label{sec:ch37-boundary}
+
+随伴は非常に広い概念である。本章では、初学者が次の章以降へ進むための入口だけを扱った。
+
+\begin{warningbox}
+本章では、Mathlib の \texttt{CategoryTheory.Adjunction}、単位と余単位の三角恒等式、随伴からモナドが生じる一般論、Kan 拡張との関係は扱わない。これらは重要だが、ここで一度に扱うと、自由構成と忘却という実務上の直感が見えにくくなる。
+\end{warningbox}
+
+本章で扱ったことは、次の範囲である。
+
+\begin{itemize}
+\item \texttt{List A} を free monoid として見る。
+\item \texttt{foldMap} を、要素への関数からリスト全体の準同型を作る操作として見る。
+\item その準同型がリスト連結を保存することを Lean で確認する。
+\item Galois 接続を、前順序上の随伴として眺める。
+\end{itemize}
+
+これだけでも、随伴が「抽象数学だけの概念」ではなく、設計上の自然な対応を表す言葉であることは十分に見える。
+
+\section{発展読書への橋渡し}
+\label{sec:ch37-further-reading}
+
+圏論として随伴を本格的に学ぶなら、次に読むべきものは目的によって変わる。
+
+\begin{itemize}
+\item 基礎から丁寧に進むなら、随伴を早い段階で扱う入門書を読むとよい。特に、自由構成、普遍性、極限との関係を順に確認する。
+\item 現代的な数学として学ぶなら、随伴、モナド、Kan 拡張へ進む流れを追うとよい。
+\item 応用圏論として学ぶなら、前順序、Galois 接続、モノイダル構造、データベースや設計問題との接続を見るとよい。
+\item Lean で本格化するなら、まず本章の自作定義を理解し、その後で Mathlib の \texttt{CategoryTheory} 名前空間に進むとよい。
+\end{itemize}
+
+本書の文脈では、次章の米田の補題へ進む前に、「対象そのものを見るのではなく、写し方の対応を見る」という感覚を持っておくことが重要である。随伴も米田も、内部表現を直接触るより、外部との関係によって対象を理解するための言葉だからである。
+
+\section{本章のまとめ}
+\label{sec:ch37-summary}
+
+随伴は、まず「自由に作る操作」と「構造を忘れる操作」の対応として理解するとよい。
+
+\texttt{List A} は、型 \texttt{A} から自由モノイドを作る典型例である。
+
+\texttt{foldMap} は、要素ごとの関数 \texttt{A -> M} を、リスト全体のモノイド準同型 \texttt{List A -> M} へ拡張する。
+
+free monoid の普遍性は、「そのような拡張が一意に決まる」という設計上の強い制約を与える。
+
+Galois 接続は、前順序を圏として見たときの随伴であり、抽象化と具体化の対応を表す。
+
+本章では Mathlib の本格的な随伴 API までは扱わず、自作ミニ定義で直感を固めた。

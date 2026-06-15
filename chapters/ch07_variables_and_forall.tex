@@ -1,0 +1,187 @@
+% !TEX root = ../main.tex
+\chapter{変数・引数・任意の値}
+\label{chap:ch07_variables_and_forall}
+
+\begin{chapterabstract}
+本章では、値を一つに固定しない主張を扱う。
+「任意の価格について」「すべてのユーザーについて」という形の仕様を書くために、
+引数を取る定理、\texttt{forall}、証明を始める \texttt{intro} を導入する。
+あわせて、無名関数・型パラメータ・関数合成と、\texttt{Option} と \texttt{match} を使った小さなパイプラインも扱い、
+後続の圏論の章への橋渡しとする。
+\end{chapterabstract}
+
+\begin{learninggoals}
+\item 引数を取る定理で「任意の入力について成り立つ」主張を書ける。
+\item \texttt{forall} と \texttt{intro} を使い、すべての値についての仕様を証明できる。
+\item 無名関数 \texttt{fun}、型パラメータ、関数合成を読める。
+\item \texttt{Option} と \texttt{match} を使った小さなパイプラインを読める。
+\end{learninggoals}
+
+\section{この章を読む理由}
+
+テストは、選んだ具体例についての確認である。
+一方、仕様で本当に言いたいのは、しばしば「すべての入力でこの性質が成り立つ」という主張である。
+本章では、値を固定しない主張の書き方と証明の始め方を学ぶ。
+これは、後のマイグレーション証明や圏論の法則確認で何度も使う基本形になる。
+
+\section{任意の値についての定理}
+
+定理が引数を取ると、その引数は「任意の値」を表す。
+次は、税額が \texttt{0} のとき、税込金額が元の価格と一致することを、任意の \texttt{price} について示す定理である。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def addTax (price tax : Nat) : Nat :=
+  price + tax
+
+theorem addTax_zero (price : Nat) :
+    addTax price 0 = price := by
+  rfl
+\end{minted}
+\caption{任意の \texttt{price} についての定理}
+\label{lst:ch07_forall_price}
+\end{listing}
+
+コード\ref{lst:ch07_forall_price}の \texttt{addTax\_zero} は、特定の価格ではなく、任意の \texttt{price} についての主張である。
+\texttt{addTax price 0} は定義により \texttt{price + 0} になり、これは \texttt{price} に展開されるので、\texttt{rfl} で閉じられる。
+
+\begin{intuitionbox}
+具体例 \texttt{addTax 1000 0 = 1000} は一つの入力の確認だが、
+\texttt{addTax\_zero (price : Nat)} は\emph{すべての}価格についての主張である。
+引数を取る定理は「どんな値が来ても成り立つ」と読む。
+\end{intuitionbox}
+
+\section{\texttt{forall} と \texttt{intro}}
+
+「すべての \texttt{x} について \texttt{P x}」という主張は、\texttt{forall x, P x} と書ける。
+これを証明するには、任意の値を一つ \texttt{intro} で受け取り、その値について示す。
+次は、ID を取り出す処理が値を変えない、という仕様である。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def toDtoId (id : Nat) : Nat :=
+  id
+
+def PreservesId (f : Nat -> Nat) : Prop :=
+  forall id, f id = id
+
+theorem toDtoId_preservesId : PreservesId toDtoId := by
+  intro id
+  rfl
+\end{minted}
+\caption{\texttt{forall} と \texttt{intro} で全入力の仕様を示す}
+\label{lst:ch07_forall_intro}
+\end{listing}
+
+コード\ref{lst:ch07_forall_intro}の \texttt{PreservesId} は「すべての \texttt{id} について \texttt{f id = id}」という仕様である。
+\texttt{intro id} で任意の ID を一つ受け取り、\texttt{toDtoId} の定義から値がそのまま返るので、\texttt{rfl} で閉じる。
+
+\begin{syntaxbox}
+全称量化と導入の記法を固定する。
+\begin{itemize}
+\item \texttt{forall x, P x} は「任意の \texttt{x} について \texttt{P x}」と読む。\texttt{∀ x, P x} も同じ。
+\item \texttt{intro x} は、任意の値 \texttt{x} を仮に受け取って証明を始める。
+\end{itemize}
+\end{syntaxbox}
+
+\section{無名関数・型パラメータ・関数合成}
+
+関数はその場で名前なしに書ける。
+\texttt{fun n => n + 1} は「\texttt{n} を受け取り \texttt{n + 1} を返す関数」である。
+また、型を引数に取る関数合成は、出力の型と入力の型が合う関数をつなぐ。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def inc : Nat -> Nat :=
+  fun n => n + 1
+
+def applyTwice (f : Nat -> Nat) (x : Nat) : Nat :=
+  f (f x)
+
+def compose {A B C : Type} (g : B -> C) (f : A -> B) : A -> C :=
+  fun x => g (f x)
+
+#eval applyTwice inc 10
+#eval compose inc inc 10
+\end{minted}
+\caption{無名関数・型パラメータ・関数合成}
+\label{lst:ch07_compose}
+\end{listing}
+
+コード\ref{lst:ch07_compose}では、\texttt{inc} は無名関数に名前を付けた定義、\texttt{applyTwice} は関数を引数に取る関数である。
+\texttt{compose} は \texttt{\{A B C : Type\}} という型パラメータを取り、\texttt{compose g f} を「先に \texttt{f}、後で \texttt{g}」と読む。
+波括弧の型パラメータは、呼び出し側の型から Lean が推論する。
+
+\begin{leanbox}
+関数合成で大切なのは、型がつながることである。
+\texttt{A -> B} の出力 \texttt{B} が \texttt{B -> C} の入力と一致するからつなげられる。
+この見方が、後の章で扱う「射の合成」につながる。
+\end{leanbox}
+
+\FigurePlaceholder{fig-ch07-pipeline.png}{0.90}{関数合成による文字列変換パイプライン}{fig:ch07-pipeline}
+
+\section{\texttt{Option} と \texttt{match} の小さなパイプライン}
+
+値が「あるかもしれない／ないかもしれない」ことは \texttt{Option} で表す。
+値がある場合は \texttt{some x}、ない場合は \texttt{none} と書き、\texttt{match} で場合分けする。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def surround (s : String) : String :=
+  "[" ++ s ++ "]"
+
+def nonempty (s : String) : Option String :=
+  if s == "" then none else some s
+
+def decorateIfNonempty (s : String) : Option String :=
+  match nonempty s with
+  | none => none
+  | some value => some (surround value)
+
+def decorateAll (xs : List String) : List (Option String) :=
+  xs.map decorateIfNonempty
+
+#eval decorateIfNonempty ""
+#eval decorateIfNonempty "lean"
+#eval decorateAll ["a", "", "b"]
+\end{minted}
+\caption{\texttt{Option}・\texttt{match}・\texttt{List.map} のパイプライン}
+\label{lst:ch07_pipeline}
+\end{listing}
+
+コード\ref{lst:ch07_pipeline}では、\texttt{nonempty} が空文字列を \texttt{none}、それ以外を \texttt{some s} に変換する。
+\texttt{decorateIfNonempty} は \texttt{match} で \texttt{Option} を場合分けし、値があるときだけ装飾する。
+\texttt{decorateAll} は \texttt{xs.map} で各要素に同じ処理を適用する。
+
+\begin{syntaxbox}
+\texttt{Option}・場合分け・一括適用の記法を固定する。
+\begin{itemize}
+\item \texttt{some x} は「値あり」、\texttt{none} は「値なし」。
+\item \texttt{match x with | pattern => result} は、\texttt{x} の形ごとに処理を分ける。
+\item \texttt{xs.map f} は、リスト \texttt{xs} の各要素に \texttt{f} を適用する。
+\end{itemize}
+\end{syntaxbox}
+
+\section{本章のまとめ}
+
+引数を取る定理は、任意の入力についての主張を表す。
+
+\texttt{forall} は全入力の仕様、\texttt{intro} は任意の値を受け取って証明を始める道具である。
+
+無名関数・型パラメータ・関数合成・\texttt{Option}・\texttt{match}・\texttt{List.map} は、後の圏論の章への部品になる。
+
+\begin{summarybox}
+この章で新しく出た記法
+\begin{itemize}
+\item \texttt{forall x, P x} / \texttt{intro x} \quad 全称量化と、その導入。
+\item \texttt{fun x => 本体} \quad 無名関数。
+\item \texttt{\{A : Type\}} \quad 推論される型パラメータ。
+\item \texttt{some} / \texttt{none} / \texttt{match} / \texttt{xs.map} \quad \texttt{Option} と一括適用。
+\end{itemize}
+\end{summarybox}
+
+\section{次章への接続}
+
+ここまでの証明は \texttt{rfl} だけで閉じてきた。
+次章では、\texttt{rfl} だけでは届かない場面のために、\texttt{simp} と \texttt{rw} という次の道具を導入する。
+\texttt{simp} は明らかな整理を任せ、\texttt{rw} は既知の等式で書き換える。

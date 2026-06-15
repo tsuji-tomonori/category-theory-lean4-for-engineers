@@ -12,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 LEAN_DIR = ROOT / "lean"
-MATHLIB_CHAPTER = "ch34_mathlib_category_theory"
+MATHLIB_CHAPTER = "ch40_mathlib_category_theory"
 
 
 def snippet_files(paths: list[str]) -> list[Path]:

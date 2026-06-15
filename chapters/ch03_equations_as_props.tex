@@ -1,0 +1,140 @@
+% !TEX root = ../main.tex
+\chapter{等式を命題として読む}
+\label{chap:ch03_equations_as_props}
+
+\begin{chapterabstract}
+本章では、\texttt{hasDiscount true = true} のような\emph{等式}を読む練習をする。
+プログラミングの多くの場面で \texttt{=} は代入を意味するが、Lean で仕様を書くときの \texttt{=} は代入ではない。
+それは「左辺と右辺が等しい」という\emph{主張}である。
+本章では、この主張を「命題」と呼ぶことだけを先に体験し、証明の道具（\texttt{rfl} など）は次章に回す。
+一つのコードで、一つの新しい読み方だけを導入する。
+\end{chapterabstract}
+
+\begin{learninggoals}
+\item \texttt{Bool} を返す関数の結果を \texttt{\#eval} で確認できる。
+\item \texttt{hasDiscount true = true} を「等しいという主張」として読める。
+\item \texttt{=} が代入ではなく、成り立つかどうかを問える主張であると説明できる。
+\end{learninggoals}
+
+\section{この章を読む理由}
+
+仕様で本当に確認したいのは、しばしば「ある入力でこの関数はこの値になる」という形の主張である。
+たとえば「会員なら割引対象になる」は、\texttt{hasDiscount true} が \texttt{true} になる、と言い換えられる。
+この「\texttt{hasDiscount true} は \texttt{true} と等しい」を、Lean では \texttt{hasDiscount true = true} と書く。
+本章の目標は、この一行を正しく読めるようになることである。
+
+\FigurePlaceholder{fig-ch03-overview.png}{0.90}{関数・実行結果・等式（命題）の関係}{fig:ch03-overview}
+
+\section{まず関数と実行結果を見る}
+
+題材として、会員かどうかで割引対象を判定する小さな関数を使う。
+ここでは単純に、引数 \texttt{member} をそのまま返す関数にする。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def hasDiscount (member : Bool) : Bool :=
+  member
+
+#eval hasDiscount true
+#eval hasDiscount false
+\end{minted}
+\caption{\texttt{Bool} を返す関数と実行結果}
+\label{lst:ch03_hasdiscount}
+\end{listing}
+
+コード\ref{lst:ch03_hasdiscount}の \texttt{hasDiscount} は、\texttt{member} を受け取り、そのまま返す関数である。
+したがって \texttt{hasDiscount true} は \texttt{true} に計算され、\texttt{hasDiscount false} は \texttt{false} に計算される。
+ここでの \texttt{member} は、あとから \texttt{true} や \texttt{false} が入る引数である。
+
+\begin{intuitionbox}
+\texttt{\#eval hasDiscount true} は、関数を実際に\emph{計算}して値を見ている。
+これはテストで特定の入力の結果を確かめる感覚に近い。
+次の節では、この計算結果を「主張」として書き直す。
+\end{intuitionbox}
+
+\section{等式を主張として読む}
+
+\texttt{hasDiscount true} が \texttt{true} になることを、Lean では次のように\emph{主張}として書ける。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def hasDiscount (member : Bool) : Bool :=
+  member
+
+#check (hasDiscount true = true)
+\end{minted}
+\caption{等式を主張として読む}
+\label{lst:ch03_equation}
+\end{listing}
+
+コード\ref{lst:ch03_equation}の \texttt{hasDiscount true = true} は、代入ではない。
+これは「\texttt{hasDiscount true} の結果は \texttt{true} と等しい」という主張である。
+\texttt{\#check} で確認すると、Lean はこれを値ではなく、成り立つかどうかを問える\emph{命題}として扱っていることが分かる。
+
+この一行は、次のように読める。
+段階を分けて読むと、なぜこれが「成り立ちそう」なのかが見えてくる。
+
+\begin{table}[htbp]
+\centering
+\caption{\texttt{hasDiscount true = true} の読み方}
+\label{tab:ch03-reading}
+\begin{tabular}{ll}
+\toprule
+読む段階 & Lean が見ている形 \\
+\midrule
+最初の主張 & \texttt{hasDiscount true = true} \\
+\texttt{hasDiscount} を展開 & \texttt{true = true} \\
+結論 & 左右が同じなので成り立ちそう \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{warningbox}
+プログラミングでは \texttt{=} を代入に使う言語が多い。
+しかし Lean の仕様では、\texttt{=} は「左辺と右辺が等しい」という主張である。
+代入したいわけではなく、「等しいと言える」と主張している、と読む。
+\end{warningbox}
+
+\section{成り立たない主張も書ける}
+
+主張は「書けること」と「成り立つこと」が別である。
+たとえば、非会員でも割引がある、という間違った主張も\emph{書く}ことはできる。
+
+\begin{table}[htbp]
+\centering
+\caption{成り立つ主張と成り立たない主張}
+\label{tab:ch03-true-false}
+\begin{tabular}{lll}
+\toprule
+書いた主張 & 展開後 & 成り立つか \\
+\midrule
+\texttt{hasDiscount true = true} & \texttt{true = true} & 成り立つ \\
+\texttt{hasDiscount false = true} & \texttt{false = true} & 成り立たない \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+表\ref{tab:ch03-true-false}のように、\texttt{hasDiscount false = true} は展開すると \texttt{false = true} になり、左右が違うので成り立たない。
+このように、主張はまず「読めること」が大切で、それが本当に成り立つかどうかは、次章で \texttt{rfl} を使って確かめる。
+
+\section{本章のまとめ}
+
+\texttt{hasDiscount true = true} は代入ではなく、「左右が等しい」という主張である。
+
+このような主張を、本書では命題と呼ぶ。
+
+主張は書けても成り立つとは限らない。\texttt{hasDiscount false = true} は成り立たない主張である。
+
+\begin{summarybox}
+この章で新しく出た記法
+\begin{itemize}
+\item \texttt{=} \quad 代入ではなく、左右が等しいという主張。
+\item \texttt{\#check (式 = 式)} \quad 等式が命題として扱われることを確認する。
+\end{itemize}
+\end{summarybox}
+
+\section{次章への接続}
+
+本章では、等式を主張として読んだ。
+次章では、その主張が本当に成り立つことを Lean に確かめさせる。
+最初の証明道具 \texttt{rfl} を使い、\texttt{hasDiscount true = true} を閉じる過程と、\texttt{hasDiscount false = true} が閉じられない過程を並べて見る。

@@ -1,0 +1,130 @@
+% !TEX root = ../main.tex
+\chapter{\texttt{example} と \texttt{theorem}}
+\label{chap:ch06_example_theorem}
+
+\begin{chapterabstract}
+本章では、証明に名前を付けるかどうかの違い、すなわち \texttt{example} と \texttt{theorem} を扱う。
+前章で定義した \texttt{DiscountSpec} を使い、\texttt{theorem member\_hasDiscount : DiscountSpec true := by rfl} に到達する。
+ここまで来ると、定理を見ただけで、仕様名の展開から \texttt{rfl} で閉じるまでの流れを追えるようになる。
+\end{chapterabstract}
+
+\begin{learninggoals}
+\item \texttt{example} と \texttt{theorem} の違いを、名前の有無と再利用可否で説明できる。
+\item 仕様名に対する定理を書き、\texttt{rfl} で証明できる。
+\item 定理のゴールが、仕様名の展開を通じてどう閉じるかを表で追える。
+\end{learninggoals}
+
+\section{この章を読む理由}
+
+前章までで、仕様に名前を付け、その意味を展開できるようになった。
+本章では、その仕様が成り立つことを証明として保存する。
+証明には、名前を付けない \texttt{example} と、名前を付ける \texttt{theorem} の二種類がある。
+使い分けの基準は、後からその証明を参照したいかどうかである。
+
+\FigurePlaceholder{fig-ch06-spec-proof-flow.png}{0.92}{仕様を、関数・命題・証明へ分解する流れ}{fig:ch06-spec-proof-flow}
+
+\section{名前付きの定理を書く}
+
+仕様名に対する証明に名前を付けると、後から別の証明や設計文書で参照できる。
+\texttt{DiscountSpec true} が成り立つことを、名前付きの定理として書く。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def hasDiscount (member : Bool) : Bool :=
+  member
+
+def DiscountSpec (member : Bool) : Prop :=
+  hasDiscount member = true
+
+theorem member_hasDiscount : DiscountSpec true := by
+  rfl
+
+-- これは証明できない。
+-- DiscountSpec false は展開すると false = true になる。
+-- theorem nonmember_hasDiscount : DiscountSpec false := by
+--   rfl
+\end{minted}
+\caption{仕様名に対する名前付きの定理}
+\label{lst:ch06_theorem}
+\end{listing}
+
+コード\ref{lst:ch06_theorem}の \texttt{member\_hasDiscount} は、\texttt{DiscountSpec true} が成り立つことを示す定理である。
+なぜ \texttt{rfl} で閉じるのかは、ゴールの展開を順に追うと分かる。
+一方、コメントアウトした \texttt{nonmember\_hasDiscount} は、\texttt{DiscountSpec false} が \texttt{false = true} に展開されるため証明できない。
+
+\begin{table}[htbp]
+\centering
+\caption{\texttt{member\_hasDiscount} のゴール展開}
+\label{tab:ch06-goal}
+\begin{tabular}{ll}
+\toprule
+読む段階 & 内容 \\
+\midrule
+定理名 & \texttt{member\_hasDiscount} \\
+証明したいこと & \texttt{DiscountSpec true} \\
+\texttt{DiscountSpec} を展開 & \texttt{hasDiscount true = true} \\
+\texttt{hasDiscount} を展開 & \texttt{true = true} \\
+使う証明 & \texttt{rfl} \\
+なぜ閉じるか & 左右が同じだから \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{syntaxbox}
+\texttt{theorem} の記法を固定する。
+\begin{itemize}
+\item \texttt{theorem 名前 : P := by ...} は、命題 \texttt{P} を名前付きで証明する。
+\item \texttt{:} の右側 \texttt{P} が、証明すべきゴールである。
+\item 後から参照したい仕様には \texttt{theorem}、その場限りの確認には \texttt{example} を使う。
+\end{itemize}
+\end{syntaxbox}
+
+\section{名前のない確認は \texttt{example} で書く}
+
+その場限りの確認には、名前を付けない \texttt{example} が向いている。
+ここでは、税込金額の具体例を \texttt{example} で確かめる。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def addTax (price tax : Nat) : Nat :=
+  price + tax
+
+def TaxSpec (price tax total : Nat) : Prop :=
+  total = addTax price tax
+
+example : TaxSpec 1000 100 1100 := by
+  rfl
+\end{minted}
+\caption{\texttt{example} による具体例の確認}
+\label{lst:ch06_example}
+\end{listing}
+
+コード\ref{lst:ch06_example}の \texttt{TaxSpec 1000 100 1100} は、\texttt{1100 = addTax 1000 100}、すなわち \texttt{1100 = 1000 + 100} に展開され、\texttt{1100 = 1100} になる。
+この \texttt{example} には名前がないため、後から別の証明で参照することはできない。
+
+\begin{definitionbox}
+本書では、\texttt{example} を「その場限りの確認」、\texttt{theorem} を「名前を付けて再利用したい仕様」として使い分ける。
+設計文書と対応させたい重要な性質には、\texttt{theorem} 名を付けるとよい。
+\end{definitionbox}
+
+\section{本章のまとめ}
+
+\texttt{theorem} は名前付きの証明であり、後から参照できる。
+
+\texttt{example} は名前のない証明であり、その場限りの確認に向く。
+
+\texttt{member\_hasDiscount : DiscountSpec true} は、仕様名を展開すると \texttt{true = true} になり、\texttt{rfl} で閉じる。
+
+\begin{summarybox}
+この章で新しく出た記法
+\begin{itemize}
+\item \texttt{theorem 名前 : P := by ...} \quad 名前付きの証明。
+\item \texttt{example : P := by ...} \quad 名前のない証明（再掲）。
+\end{itemize}
+\end{summarybox}
+
+\section{次章への接続}
+
+ここまでは、\texttt{true} や \texttt{1000} のような具体的な値についての主張を扱ってきた。
+次章では、「任意の価格について」「すべてのユーザーについて」といった、値を一つに固定しない主張を扱う。
+そのために、引数を取る定理、\texttt{forall}、そして証明を始める \texttt{intro} を導入する。

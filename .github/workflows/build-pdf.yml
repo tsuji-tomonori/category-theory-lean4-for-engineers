@@ -33,7 +33,7 @@ jobs:
       - name: Compile Lean snippet files
         run: |
           python3 tools/check_lean_snippets.py \
-            $(find lean -mindepth 1 -maxdepth 1 -type d ! -name ch34_mathlib_category_theory | sort)
+            $(find lean -mindepth 1 -maxdepth 1 -type d ! -name ch40_mathlib_category_theory | sort)
 
       - name: Fetch Mathlib cache
         run: |
@@ -41,7 +41,7 @@ jobs:
           lake exe cache get
 
       - name: Compile Mathlib Lean snippet files
-        run: python3 tools/check_lean_snippets.py lean/ch34_mathlib_category_theory
+        run: python3 tools/check_lean_snippets.py lean/ch40_mathlib_category_theory
 
   build-pdf:
     runs-on: ubuntu-latest

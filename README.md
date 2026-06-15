@@ -40,7 +40,7 @@ python3 tools/check_lean_snippets.py
 ```sh
 lake update mathlib
 lake exe cache get
-python3 tools/check_lean_snippets.py lean/ch34_mathlib_category_theory
+python3 tools/check_lean_snippets.py lean/ch40_mathlib_category_theory
 ```
 
 ## 補助チェック

@@ -1,6 +1,6 @@
 # 付録C 画像生成プロンプト
 
-## fig-appC-property-pattern-map.png
+## fig-appc-property-pattern-map.png
 
 - 対応箇所: 付録C 章冒頭
 - 目的: 証明したい性質のパターンを、実務上の変更対象と Lean の命題形へ対応づけて示す。

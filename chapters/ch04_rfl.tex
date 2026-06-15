@@ -1,0 +1,154 @@
+% !TEX root = ../main.tex
+\chapter{\texttt{rfl}：定義を展開すれば同じ}
+\label{chap:ch04_rfl}
+
+\begin{chapterabstract}
+本章では、最初の証明道具 \texttt{rfl} だけを扱う。
+\texttt{rfl} は、左辺と右辺が定義を展開すると同じ形になる等式を閉じる道具である。
+前章で読んだ \texttt{hasDiscount true = true} を実際に \texttt{rfl} で証明し、
+\texttt{hasDiscount false = true} がなぜ閉じられないかも並べて確認する。
+\texttt{simp} や \texttt{rw} はまだ出さない。一つの道具に集中する。
+\end{chapterabstract}
+
+\begin{learninggoals}
+\item \texttt{example : 命題 := by rfl} の形で、定義どおりの等式を証明できる。
+\item \texttt{rfl} が「定義を展開すると左右が同じになる」ときに使えると説明できる。
+\item 成り立たない等式では \texttt{rfl} が使えないことを、展開の過程から説明できる。
+\end{learninggoals}
+
+\section{この章を読む理由}
+
+前章で、\texttt{hasDiscount true = true} は「成り立つ主張」だと読んだ。
+しかし「成り立ちそう」と「Lean が成り立つと認める」は違う。
+本章では、Lean にその主張を確かめさせる。
+最初の証明道具は \texttt{rfl} 一つだけにする。
+\texttt{rfl} の使える条件をはっきりさせることが、後の証明の土台になる。
+
+\section{\texttt{rfl} で成り立つ等式を閉じる}
+
+証明を書くには、命題の後に \texttt{:= by} と書いて証明モードに入り、そこで \texttt{rfl} を使う。
+名前を付けない小さな証明は \texttt{example} で書ける。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def hasDiscount (member : Bool) : Bool :=
+  member
+
+example : hasDiscount true = true := by
+  rfl
+\end{minted}
+\caption{\texttt{rfl} で定義どおりの等式を閉じる}
+\label{lst:ch04_rfl_success}
+\end{listing}
+
+コード\ref{lst:ch04_rfl_success}では、\texttt{hasDiscount true = true} を \texttt{rfl} で証明している。
+なぜ閉じられるのかは、ゴールの展開を順に追うと分かる。
+
+\begin{table}[htbp]
+\centering
+\caption{\texttt{hasDiscount true = true} を \texttt{rfl} で閉じる}
+\label{tab:ch04-success}
+\begin{tabular}{ll}
+\toprule
+段階 & Lean が見ているゴール \\
+\midrule
+最初のゴール & \texttt{hasDiscount true = true} \\
+\texttt{hasDiscount} を展開 & \texttt{true = true} \\
+結論 & 左右が同じなので \texttt{rfl} で閉じられる \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{syntaxbox}
+ここで証明に関する記法を固定する。
+\begin{itemize}
+\item \texttt{example : P := by ...} は、名前を付けずに命題 \texttt{P} を証明する。
+\item \texttt{by} は証明モードへの入口である。
+\item \texttt{rfl} は、定義を展開して左右が同じ形になる等式を閉じる。
+\end{itemize}
+\end{syntaxbox}
+
+\section{成り立たない等式は \texttt{rfl} で閉じられない}
+
+\texttt{rfl} は何でも証明する魔法ではない。
+左右が違う形に展開される等式には使えない。
+次は、わざと成り立たない主張を書いた例である（証明できないのでコメントにしてある）。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def hasDiscount (member : Bool) : Bool :=
+  member
+
+-- これは証明できない（false = true になるため）
+-- example : hasDiscount false = true := by
+--   rfl
+\end{minted}
+\caption{成り立たない等式は \texttt{rfl} で閉じられない}
+\label{lst:ch04_rfl_failure}
+\end{listing}
+
+コード\ref{lst:ch04_rfl_failure}のコメントを外すと、Lean はエラーを出す。
+その理由も、展開を追うと分かる。
+
+\begin{table}[htbp]
+\centering
+\caption{\texttt{hasDiscount false = true} が閉じられない理由}
+\label{tab:ch04-failure}
+\begin{tabular}{ll}
+\toprule
+段階 & Lean が見ているゴール \\
+\midrule
+最初のゴール & \texttt{hasDiscount false = true} \\
+\texttt{hasDiscount} を展開 & \texttt{false = true} \\
+結論 & 左右が違うので \texttt{rfl} では閉じられない \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{intuitionbox}
+成功例と失敗例を並べると、\texttt{rfl} の使える条件がはっきりする。
+\texttt{rfl} は「定義を展開した結果、左右が文字どおり同じになる」ときだけ使える。
+\texttt{true = true} は閉じられるが、\texttt{false = true} は閉じられない。
+\end{intuitionbox}
+
+\section{数値の計算でも \texttt{rfl} は使える}
+
+\texttt{rfl} は \texttt{Bool} だけでなく、定義どおりに計算が進む等式なら数値でも使える。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def addTax (price tax : Nat) : Nat :=
+  price + tax
+
+example : addTax 100 0 = 100 := by
+  rfl
+\end{minted}
+\caption{数値の等式を \texttt{rfl} で閉じる}
+\label{lst:ch04_rfl_addtax}
+\end{listing}
+
+コード\ref{lst:ch04_rfl_addtax}では、\texttt{addTax 100 0} は定義により \texttt{100 + 0} になり、これは \texttt{100} に計算される。
+左右が同じ \texttt{100} になるので、\texttt{rfl} で閉じられる。
+
+\section{本章のまとめ}
+
+\texttt{example : P := by rfl} で、定義どおりに成り立つ等式を証明できる。
+
+\texttt{rfl} は、定義を展開すると左右が同じ形になる等式に使える。
+
+\texttt{hasDiscount false = true} のように左右が違う等式には \texttt{rfl} は使えない。
+
+\begin{summarybox}
+この章で新しく出た記法
+\begin{itemize}
+\item \texttt{example : P := by ...} \quad 名前のない証明。
+\item \texttt{by} \quad 証明モードへの入口。
+\item \texttt{rfl} \quad 定義展開で左右が同じになる等式を閉じる。
+\end{itemize}
+\end{summarybox}
+
+\section{次章への接続}
+
+ここまでは、具体的な値（\texttt{true} や \texttt{100}）についての等式を扱った。
+次章では、これまで何度も出てきた \texttt{hasDiscount member = true} という形の主張に名前を付ける。
+そこで初めて \texttt{Prop} という言葉と、仕様に名前を与える \texttt{DiscountSpec} を導入する。

@@ -1,0 +1,475 @@
+% !TEX root = ../main.tex
+\chapter{自然変換：どの型でも一貫する adapter}
+\label{chap:natural-transformation}
+
+\begin{chapterabstract}
+本章では、自然変換を「どの型に対しても同じ方針で動く adapter」として導入する。
+前章では、\texttt{List.map} や \texttt{Option.map} を通じて、関手を「構造を保ったまま中身を変える仕組み」として見た。
+本章では、その関手どうしをつなぐ変換を考える。
+典型例は、\texttt{Option A} を \texttt{List A} に変換する処理である。
+\texttt{A} が \texttt{Nat} でも \texttt{String} でもユーザー型でも、\texttt{none} は空リストへ、\texttt{some a} は1要素リストへ、という同じ規則で動く。
+この「型ごとに特別扱いしない一貫性」を、自然性という等式で表す。
+
+実務上は、自然変換は API response wrapper、SDK adapter、nullable 値からリストへの変換、旧形式から新形式への wrapper 変換を考えるときに役立つ。
+adapter を業務ロジックの前に置いても後に置いても結果が同じなら、その adapter は業務ロジックと干渉していないと言える。
+本章では、まず \texttt{Option} から \texttt{List} への小さな例で自然性を Lean 4 の等式として証明し、次に API response wrapper のミニケースへ接続する。
+\end{chapterabstract}
+
+\begin{learninggoals}
+\item 自然変換を「関手どうしを一貫してつなぐ adapter」として説明できる。
+\item 自然性の四角形を「adapter と業務ロジックの順序を入れ替えてもよい」という等式として読める。
+\item \texttt{Option A -> List A} のような型に依存しない変換を Lean 4 で定義できる。
+\item API response wrapper の変更に対して、adapter と \texttt{map} が可換であることを仕様として書ける。
+\end{learninggoals}
+
+\section{この章を読む理由}
+
+API のレスポンス形式を変える場面を考える。
+旧 API では、1件あるかもしれない値を \texttt{Option A} のように返していた。
+新 API では、0件以上の値を \texttt{List A} のように返す設計に変える。
+このとき、旧形式を新形式へ変換する adapter は簡単に書ける。
+\texttt{none} は空リストにし、\texttt{some a} は1要素リストにするだけである。
+
+しかし、adapter があるだけでは不十分である。
+多くの実務コードでは、レスポンスの中身に業務ロジックを適用する。
+たとえば、ユーザー ID をマスクする、価格を税込みに変換する、内部DTOを公開DTOに変換する、といった処理である。
+このとき次の二つの順序が考えられる。
+
+\begin{itemize}
+\item 先に旧形式の中身を変換してから、新形式へ adapter を通す。
+\item 先に新形式へ adapter を通してから、新形式の中身を変換する。
+\end{itemize}
+
+この二つが常に同じ結果になるなら、adapter は中身の業務ロジックと干渉していない。
+自然変換は、この性質を圏論の言葉で整理する概念である。
+
+\begin{intuitionbox}
+自然変換とは、「コンテナの形を変えるが、中身の変換とは衝突しない adapter」である。
+先に中身を変えてから adapter を通しても、先に adapter を通してから中身を変えても、同じ結果になる。
+この順序交換できる性質を自然性という。
+\end{intuitionbox}
+
+\FigurePlaceholder{fig-ch15-overview.png}{0.90}{自然変換を adapter として読む概念地図}{fig:ch15-overview}
+
+\section{ソフトウェア上の問題：adapter は業務ロジックと干渉していないか}
+
+\subsection{wrapper 変更は単なる型変換ではない}
+
+レスポンス wrapper の変更は、単なるフィールド名変更より少し難しい。
+中身の値 \texttt{A} だけでなく、その値を包む構造も変わるからである。
+たとえば次のような変更を考える。
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+観点 & 旧形式 & 新形式 \\
+\midrule
+値がない場合 & \texttt{none} & \texttt{[]} \\
+値が1件ある場合 & \texttt{some a} & \texttt{[a]} \\
+中身の変換 & \texttt{Option.map f} & \texttt{List.map f} \\
+adapter & \texttt{Option A -> List A} & wrapper の形を変える処理 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+この変換は、\texttt{A} が具体的に何であるかを見ない。
+\texttt{Nat} でも \texttt{String} でも \texttt{User} でも、規則は同じである。
+この型に依存しない一貫性が、本章の主題である。
+
+\begin{softwarebox}
+実務での問いは、「adapter を通す場所を変えても、業務ロジックの結果は変わらないか」である。
+この問いを、\texttt{map} と adapter の可換性として書く。
+可換性とは、二つの経路で計算しても同じ結果になるという意味である。
+\end{softwarebox}
+
+\subsection{よくある危険：値の中身を勝手に見る adapter}
+
+自然な adapter は、中身の型 \texttt{A} の具体的な性質に依存しない。
+\texttt{Option A -> List A} の例では、\texttt{none} か \texttt{some} かだけを見る。
+\texttt{some a} の中身 \texttt{a} が偶数か、名前が空文字か、価格が高いか、といった業務判断はしない。
+
+もし adapter が中身を見て条件分岐し始めると、業務ロジックとの順序を入れ替えたときに結果が変わる可能性がある。
+それはもはや単なる wrapper 変換ではなく、業務変換を混ぜ込んだ処理である。
+自然性は、この混入を検出するための設計上の物差しとして使える。
+
+\section{自然変換を定義する}
+
+\subsection{関手どうしをつなぐ変換}
+
+前章で、\texttt{Option} や \texttt{List} は「中身を変える操作」を持つものとして見た。
+\texttt{Option.map f} は、値があれば中身に \texttt{f} を適用し、値がなければ \texttt{none} のままにする。
+\texttt{List.map f} は、リストの各要素に \texttt{f} を適用し、リストという構造を保つ。
+
+自然変換は、このような二つの構造の間に、型ごとの変換を与える。
+\texttt{Option} から \texttt{List} への場合、各型 \texttt{A} について次の変換を持つ。
+
+\[
+  \eta_A : \mathrm{Option}\ A \to \mathrm{List}\ A
+\]
+
+ここで \(\eta_A\) は、\texttt{none} を \texttt{[]} に、\texttt{some a} を \texttt{[a]} に変換する。
+添字 \(A\) は「型 \texttt{A} に対する成分」を表す。
+成分という言葉は難しく聞こえるが、実務的には「各 payload 型ごとに用意される adapter 関数」と読めばよい。
+
+\begin{definitionbox}
+本書の範囲では、自然変換を次のように読む。
+二つの「中身を \texttt{map} できる構造」\(F\) と \(G\) があるとする。
+自然変換 \(\eta : F \Rightarrow G\) は、各型 \(A\) について変換
+\[
+  \eta_A : F A \to G A
+\]
+を与え、任意の関数 \(f : A \to B\) について次の等式を満たすものと考える。
+\[
+  \eta_B(\mathrm{map}_F(f)(x))
+  =
+  \mathrm{map}_G(f)(\eta_A(x))
+\]
+左辺は「中身を変えてから adapter」、右辺は「adapter してから中身を変える」である。
+\end{definitionbox}
+
+\subsection{自然性の四角形}
+
+自然性は、図で見ると理解しやすい。
+左上に \(F A\)、右上に \(F B\)、左下に \(G A\)、右下に \(G B\) を置く。
+上向きではなく横方向の矢印は中身の変換 \(f : A \to B\) を \texttt{map} したもの、縦方向の矢印は adapter \(\eta\) である。
+
+\FigurePlaceholder{fig-ch15-naturality-square.png}{0.86}{自然性の四角形：中身の変換と adapter の順序交換}{fig:ch15-naturality-square}
+
+この四角形が可換であるとは、左上から右下へ行く二つの経路が同じ結果になるという意味である。
+
+\begin{itemize}
+\item 上に進んでから下に進む：\(F A\) の中身を \(f\) で変換し、その後 \(G B\) へ adapter する。
+\item 下に進んでから右に進む：先に \(F A\) を \(G A\) へ adapter し、その後 \(G\) 側で中身を \(f\) で変換する。
+\end{itemize}
+
+この二つが一致することを、式で書く。
+
+\[
+  \eta_B(\mathrm{map}_F(f)(x))
+  =
+  \mathrm{map}_G(f)(\eta_A(x))
+\]
+
+自然性の四角形は、実務の言葉では「adapter と業務ロジックの順序を入れ替えてもよい」という仕様である。
+
+\section{例：\texttt{Option A -> List A}}
+
+\subsection{型に依存しない変換}
+
+最初の例として、\texttt{Option A} を \texttt{List A} に変換する。
+値がなければ空リスト、値があれば1要素リストにする。
+この変換は、\texttt{A} の中身には触れない。
+\texttt{A} が何であっても、\texttt{Option} の外側の形だけを見て変換する。
+
+\begin{leanbox}
+Lean では、まず \texttt{optionMap} と \texttt{optionToList} を小さく自作する。
+標準ライブラリにも似た操作はあるが、本章では自然性の式を読みやすくするために、最小限の定義を置く。
+\end{leanbox}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+namespace Chapter09
+
+def optionMap {A B : Type} (f : A -> B) : Option A -> Option B
+  | none => none
+  | some a => some (f a)
+
+def optionToList {A : Type} : Option A -> List A
+  | none => []
+  | some a => [a]
+
+#eval optionToList (some 10)  -- => [10]
+#eval optionToList (none : Option Nat)  -- => []
+
+theorem optionToList_naturality {A B : Type}
+    (f : A -> B) (x : Option A) :
+    optionToList (optionMap f x) =
+      List.map f (optionToList x) := by
+  cases x <;> rfl
+\end{minted}
+\caption{OptionからListへのadapterと自然性}
+\label{lst:ch15_option_to_list}
+\end{listing}
+
+証明は \texttt{cases x} だけでよい。
+\texttt{x} は \texttt{none} か \texttt{some a} のどちらかである。
+\texttt{none} の場合、左辺も右辺も空リストになる。
+\texttt{some a} の場合、左辺も右辺も \texttt{[f a]} になる。
+したがって、どちらのケースでも \texttt{rfl}、つまり定義を展開すれば同じ形になる。
+
+\subsection{この証明が言っていること}
+
+この定理は、すべての型 \texttt{A} と \texttt{B}、すべての関数 \texttt{f : A -> B}、すべての \texttt{x : Option A} に対して成り立つ。
+つまり、特定の入力例だけの確認ではない。
+\texttt{Nat} の例、\texttt{String} の例、\texttt{User} の例をいくつかテストした、という話でもない。
+
+\begin{softwarebox}
+\texttt{optionToList\_naturality} は、adapter の順序独立性を表している。
+旧形式の \texttt{Option} の中で業務変換をしてから \texttt{List} へ移しても、先に \texttt{List} へ移してから業務変換をしても、結果は同じである。
+この性質があるため、adapter を業務ロジックの外側へ移動しやすくなる。
+\end{softwarebox}
+
+\section{Lean 4で自然変換を小さな構造として表す}
+
+\subsection{成分と自然性を持つ構造}
+
+ここまでの例では、\texttt{optionToList\_naturality} という定理を単独で書いた。
+少しだけ抽象化すると、「各型に対する adapter」と「自然性の証明」を一つの構造体にまとめられる。
+
+本格的な圏論では、一般の関手 \(F\) と \(G\) の間の自然変換を扱う。
+しかし本章では、初学者向けに \texttt{Option} から \texttt{List} への自然変換だけを小さく表す。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+structure NatTransOptionList where
+  app : {A : Type} -> Option A -> List A
+  naturality :
+    {A B : Type} -> (f : A -> B) -> (x : Option A) ->
+      app (optionMap f x) = List.map f (app x)
+
+def optionToListNT : NatTransOptionList where
+  app := fun x => optionToList x
+  naturality := by
+    intro A B f x
+    cases x <;> rfl
+\end{minted}
+\caption{自然変換を成分と自然性のペアとして表す}
+\label{lst:ch15_nattrans_structure}
+\end{listing}
+
+\texttt{app} は、各型 \texttt{A} に対する adapter の本体である。
+名前は application、つまり「適用」を短くしたものだと読めばよい。
+\texttt{naturality} は、その adapter が \texttt{map} と可換であることの証明である。
+
+\begin{warningbox}
+ここで定義した \texttt{NatTransOptionList} は、学習用の最小モデルである。
+Mathlib の \texttt{CategoryTheory.NatTrans} を直接使っているわけではない。
+本書のこの段階では、抽象的な category theory API を覚えるより、自然性がどの等式を意味するかを理解することを優先する。
+\end{warningbox}
+
+\subsection{自然変換は型ごとの関数の寄せ集めではない}
+
+自然変換は、各型 \texttt{A} について関数を持つ。
+しかし、単に関数をたくさん集めただけでは自然変換とは言えない。
+それらが \texttt{map} と整合していなければならない。
+
+たとえば、\texttt{Nat} のときだけ特別な値を足す、\texttt{String} のときだけ空文字を消す、\texttt{User} のときだけ管理者を除外する、といった処理は、型に依存した業務ロジックである。
+そのような処理は有用なこともあるが、自然変換としては扱いにくい。
+自然変換として設計したい adapter は、payload の型固有の意味を知らないまま動く必要がある。
+
+\section{自然性を実務の仕様として読む}
+
+\subsection{自然性は順序交換の仕様である}
+
+自然性の等式をもう一度見る。
+
+\[
+  \eta_B(\mathrm{map}_F(f)(x))
+  =
+  \mathrm{map}_G(f)(\eta_A(x))
+\]
+
+この式に出てくる \(f\) は、任意の業務ロジックだと読める。
+たとえば次のような変換である。
+
+\begin{itemize}
+\item 内部ユーザーを公開ユーザーへ変換する。
+\item 税抜価格を税込価格へ変換する。
+\item DB レコードを API DTO へ変換する。
+\item 機微情報をマスクする。
+\end{itemize}
+
+自然性が成り立つとき、adapter はこれらの変換と衝突しない。
+つまり、adapter の導入位置を変えても、最終結果は変わらない。
+これは、レイヤー分離や互換層の設計で重要な性質である。
+
+\begin{intuitionbox}
+自然性は、「adapter は箱の形だけを変え、中身の意味には口を出さない」という約束である。
+この約束が守られていれば、中身の変換は adapter の前後どちらに置いてもよい。
+\end{intuitionbox}
+
+\subsection{テストではなく仕様として切り出す}
+
+自然性は、具体例をいくつかテストするだけでは確認しきれない。
+\texttt{Nat} の変換、\texttt{String} の変換、特定の \texttt{User} の変換でうまくいっても、すべての型、すべての関数、すべての値で成り立つとは限らない。
+
+Lean で定理として書くと、この性質を一般的な仕様として扱える。
+もちろん、Lean 上でモデル化した範囲に限られる。
+しかし、adapter の核となる変換規則が小さければ、自然性を証明する価値は高い。
+
+\section{ミニケース：API response wrapper の変更}
+
+\subsection{旧レスポンスと新レスポンス}
+
+次に、少し実務に近い例へ進む。
+旧レスポンスは、trace ID と、あるかもしれない payload を持つとする。
+新レスポンスは、trace ID、状態、payload のリストを持つとする。
+ここでは、値がない場合は \texttt{empty}、値がある場合は \texttt{ok} という単純な状態を使う。
+
+\FigurePlaceholder{fig-ch15-api-adapter.png}{0.90}{API response wrapper 変更と自然性の対応}{fig:ch15-api-adapter}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+inductive Status where
+  | ok
+  | empty
+  deriving Repr, DecidableEq
+
+structure OldResponse (A : Type) where
+  traceId : Nat
+  payload : Option A
+  deriving Repr
+
+structure NewResponse (A : Type) where
+  traceId : Nat
+  status : Status
+  items : List A
+  deriving Repr
+
+def statusOf {A : Type} : Option A -> Status
+  | none => Status.empty
+  | some _ => Status.ok
+\end{minted}
+\caption{旧レスポンスと新レスポンスの最小モデル}
+\label{lst:ch15_api_model}
+\end{listing}
+
+ここで \texttt{OldResponse} と \texttt{NewResponse} は、それぞれ型引数 \texttt{A} を持つ。
+これは、payload の中身が何であるかを抽象化しているという意味である。
+\texttt{A} がユーザーでも注文でも価格でも、wrapper の形は同じである。
+
+\subsection{map と adapter を定義する}
+
+次に、旧レスポンスと新レスポンスのそれぞれに \texttt{map} 相当の操作を定義する。
+\texttt{oldMap} は \texttt{payload} の中身だけを変換する。
+\texttt{newMap} は \texttt{items} の各要素だけを変換し、\texttt{traceId} と \texttt{status} はそのままにする。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def oldMap {A B : Type} (f : A -> B)
+    (r : OldResponse A) : OldResponse B :=
+  { traceId := r.traceId,
+    payload := optionMap f r.payload }
+
+def newMap {A B : Type} (f : A -> B)
+    (r : NewResponse A) : NewResponse B :=
+  { traceId := r.traceId,
+    status := r.status,
+    items := List.map f r.items }
+
+def adapt {A : Type} (r : OldResponse A) : NewResponse A :=
+  { traceId := r.traceId,
+    status := statusOf r.payload,
+    items := optionToList r.payload }
+
+#eval adapt ({ traceId := 7, payload := some 42 } : OldResponse Nat)  -- => { traceId := 7, status := Chapter09.Status.ok, items := [42] }
+\end{minted}
+\caption{レスポンスwrapperのmapとadapter}
+\label{lst:ch15_api_map_adapt}
+\end{listing}
+
+\texttt{adapt} は、旧形式から新形式への adapter である。
+この adapter は、payload の中身そのものには触れない。
+値が存在するかどうかだけを見て、\texttt{status} と \texttt{items} を作る。
+
+\subsection{adapter と map が可換であることを証明する}
+
+証明したいことは、次の等式である。
+
+\[
+  \mathrm{adapt}(\mathrm{oldMap}(f)(r))
+  =
+  \mathrm{newMap}(f)(\mathrm{adapt}(r))
+\]
+
+左辺は、旧レスポンスの中で業務ロジック \(f\) を適用してから新レスポンスへ変換する経路である。
+右辺は、先に新レスポンスへ変換してから、新レスポンスの中で業務ロジック \(f\) を適用する経路である。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+theorem adapt_naturality {A B : Type}
+    (f : A -> B) (r : OldResponse A) :
+    adapt (oldMap f r) = newMap f (adapt r) := by
+  cases r with
+  | mk trace payload =>
+    cases payload <;> rfl
+
+theorem adapt_naturality_as_function_equality {A B : Type}
+    (f : A -> B) :
+    (fun r : OldResponse A => adapt (oldMap f r)) =
+      (fun r : OldResponse A => newMap f (adapt r)) := by
+  funext r
+  exact adapt_naturality f r
+
+end Chapter09
+\end{minted}
+\caption{API adapter の自然性}
+\label{lst:ch15_api_naturality}
+\end{listing}
+
+最初の定理 \texttt{adapt\_naturality} は、任意のレスポンス \texttt{r} について二つの経路が同じであることを述べている。
+証明では、まず \texttt{r} を \texttt{trace} と \texttt{payload} に分解する。
+次に、\texttt{payload} が \texttt{none} か \texttt{some} かで場合分けする。
+どちらの場合も、定義を展開すれば左右は同じ形になる。
+
+二つ目の定理 \texttt{adapt\_naturality\_as\_function\_equality} は、同じ事実を「関数どうしが等しい」という形で書き直している。
+これは第21章で扱う関数外延性への橋渡しである。
+二つの関数がすべての入力 \texttt{r} で同じ結果を返すなら、関数として同じだと扱える。
+
+\section{実務上の読み替え：adapter が業務ロジックと干渉しないこと}
+
+\subsection{adapter の責務を小さく保つ}
+
+自然性が成り立つ adapter は、責務が小さい。
+wrapper の形を変えるだけで、中身の意味を変えない。
+このように設計された adapter は、次のような判断をしやすくする。
+
+\begin{itemize}
+\item 業務ロジックを旧 wrapper 側に残すか、新 wrapper 側へ移すかを選びやすい。
+\item adapter の導入によって payload の意味が変わらないと説明しやすい。
+\item API バージョニングや SDK 互換層のレビューで、確認すべき性質を明確にできる。
+\item 後続の第31章で扱う API adapter のケーススタディへ自然に接続できる。
+\end{itemize}
+
+\begin{softwarebox}
+実務では、adapter に業務判断を混ぜないことが重要である。
+旧形式から新形式への変換層は、できるだけ wrapper の構造変換に限定する。
+中身の値に関する判断は、\texttt{map} される業務ロジック側へ分離する。
+この分離ができているかを、自然性の等式で確認する。
+\end{softwarebox}
+
+\subsection{自然性が壊れる典型例}
+
+自然性が壊れる典型例は、adapter が中身を見て別の値へ変えてしまう場合である。
+たとえば、\texttt{some a} を \texttt{[a]} にするだけでなく、特定条件の \texttt{a} を捨てたり、別の値を補ったりする adapter を考える。
+その条件が業務ロジック \(f\) の前後で変わるなら、自然性の四角形は可換でなくなる。
+
+もう一つの典型例は、型ごとに ad hoc な変換を差し込むことである。
+\texttt{Nat} のときだけ \texttt{0} を追加する、\texttt{String} のときだけ空文字を消す、といった処理は、payload 型の意味を知っている。
+それは wrapper 変換ではなく、業務ルールである。
+このような処理を adapter と呼んでしまうと、設計上の責務境界が曖昧になる。
+
+\begin{warningbox}
+自然性は「どんな実装でも自動的に成り立つ便利な性質」ではない。
+adapter が中身の意味を変えないように設計されているからこそ成り立つ。
+自然性を証明できない場合は、adapter が業務ロジックを含んでいないか、または本当に順序交換できる仕様なのかを見直す必要がある。
+\end{warningbox}
+
+\section{本章のまとめ}
+
+自然変換は、二つの関手的な構造の間をつなぐ、型に依存しない一貫した adapter として読める。
+
+自然性の四角形は、「中身を変えてから adapter」と「adapter してから中身を変える」が一致するという仕様である。
+
+\texttt{Option A -> List A} の例では、\texttt{none} を空リストへ、\texttt{some a} を1要素リストへ変換する adapter が自然性を満たす。
+
+Lean では、自然性を通常の等式として書ける。\texttt{cases} による場合分けで、\texttt{none} と \texttt{some} の両方を確認できる。
+
+API response wrapper の変更では、adapter と \texttt{map} が可換であることを示すと、adapter が業務ロジックと干渉しないことを説明できる。
+
+\section{次章への接続}
+
+本章では、adapter と \texttt{map} の順序交換を扱った。
+次章では、結合できる値や処理を扱う。
+ログ、設定、文字列、リストのように、空の値と結合操作を持つ構造をモノイドとして読む。
+自然変換が「構造間の一貫した変換」を扱ったのに対し、モノイドは「同じ構造の値をどう安全にまとめるか」を扱う。

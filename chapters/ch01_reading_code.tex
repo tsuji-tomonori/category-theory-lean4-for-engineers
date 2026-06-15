@@ -1,0 +1,153 @@
+% !TEX root = ../main.tex
+\chapter{Lean コードの読み方}
+\label{chap:ch01_reading_code}
+
+\begin{chapterabstract}
+本章では、Lean 4 のコードを「書く」前に、まず「読む」ことに集中する。
+Lean のコードには、\texttt{:}、\texttt{:=}、引数、関数適用といった、最初に意味を取り違えやすい記号が出てくる。
+本章ではそれらを一つずつ取り上げ、\texttt{\#check} で型を確かめ、\texttt{\#eval} で結果を確かめながら、
+「この式は何を表し、何に評価されるのか」を上から下に読めるようにする。
+新しい概念は一度に一つだけ導入する。命題や証明はまだ扱わない。
+\end{chapterabstract}
+
+\begin{learninggoals}
+\item \texttt{:} を「左の式を右の型として読む」注釈として読める。
+\item \texttt{:=} を「右の内容で名前を定義する」記号として読める。
+\item 関数適用が空白で書かれること、\texttt{f x} が「\texttt{f} を \texttt{x} に適用する」ことを読める。
+\item \texttt{\#check} で式の型を、\texttt{\#eval} で式の評価結果を確認できる。
+\end{learninggoals}
+
+\section{この章を読む理由}
+
+プログラミング言語を新しく学ぶとき、最初の障害は構文そのものである。
+とくに Lean では、見慣れた記号が、ふだんと少し違う意味を持つことがある。
+たとえば \texttt{:} は型注釈であり、\texttt{:=} は定義であり、関数呼び出しには括弧を使わない。
+これらを最初に正しく読めるようにしておくと、以降の章のコードがずっと読みやすくなる。
+
+\begin{intuitionbox}
+本章のゴールは、コードを書けるようになることではなく、コードを\emph{読めるように}なることである。
+一つの記号につき一つの読み方を覚え、\texttt{\#check} と \texttt{\#eval} で実際に確かめる。
+この「読んでから書く」順番が、初学者には最も負担が少ない。
+\end{intuitionbox}
+
+\section{\texttt{:} は型注釈である}
+
+Lean では、すべての式に型がある。
+式がどの型を持つかを明示したいときは、\texttt{(式 : 型)} と書く。
+この \texttt{:} は「左の式を、右の型として読む」という注釈であり、代入でも変換でもない。
+
+式の型を確認するには \texttt{\#check} を使う。
+\texttt{\#check} は「この式の型は何か」を Lean に尋ねるコマンドである。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+#check (3 : Nat)
+#check (true : Bool)
+#check ("lean" : String)
+\end{minted}
+\caption{型注釈と \texttt{\#check}}
+\label{lst:ch01_check}
+\end{listing}
+
+コード\ref{lst:ch01_check}では、\texttt{3} を \texttt{Nat}、\texttt{true} を \texttt{Bool}、\texttt{"lean"} を \texttt{String} として読むよう注釈している。
+\texttt{\#check (3 : Nat)} を実行すると、Lean は \texttt{3 : Nat} と返す。
+これは「\texttt{3} は \texttt{Nat} 型である」という意味である。
+
+\begin{syntaxbox}
+本章で最初に固定する記号は \texttt{:} と \texttt{\#check} である。
+\begin{itemize}
+\item \texttt{(式 : 型)} の \texttt{:} は、左の式を右の型として読むという注釈である。
+\item \texttt{Nat} は自然数、\texttt{Bool} は真偽値、\texttt{String} は文字列の型である。
+\item \texttt{\#check} は式や名前の型を表示するコマンドである。
+\end{itemize}
+\end{syntaxbox}
+
+\section{\texttt{\#eval} は式を評価する}
+
+\texttt{\#check} が型を尋ねるコマンドなのに対し、\texttt{\#eval} は式を実際に計算して結果を表示するコマンドである。
+型を見たいときは \texttt{\#check}、結果を見たいときは \texttt{\#eval} と使い分ける。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+#eval (3 : Nat)
+#eval 2 + 3
+#eval "lean" ++ "4"
+\end{minted}
+\caption{\texttt{\#eval} で評価結果を見る}
+\label{lst:ch01_eval}
+\end{listing}
+
+コード\ref{lst:ch01_eval}では、\texttt{2 + 3} は \texttt{5} に、\texttt{"lean" ++ "4"} は \texttt{"lean4"} に評価される。
+\texttt{++} は文字列の連結である。
+\texttt{\#eval} は計算結果を表示するだけで、何かを証明しているわけではない。
+
+\begin{leanbox}
+\texttt{\#check} と \texttt{\#eval} は、どちらも \texttt{\#} で始まる確認用コマンドである。
+\texttt{\#check} は型、\texttt{\#eval} は値を見せる。
+本書ではコードの意味を確かめるために、この二つを繰り返し使う。
+\end{leanbox}
+
+\section{\texttt{:=} と関数適用}
+
+名前を定義するときは \texttt{def} を使い、\texttt{:=} の右側に中身を書く。
+この \texttt{:=} は「右の内容でこの名前を定義する」という記号であり、後から書き換える代入とは異なる。
+引数を取る関数は、名前の後ろに \texttt{(引数 : 型)} を並べて書く。
+
+定義した関数を呼び出すときは、括弧ではなく空白を使う。
+\texttt{addOne 5} は「\texttt{addOne} という関数を \texttt{5} に適用する」と読む。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def greeting : String :=
+  "hello"
+
+def addOne (n : Nat) : Nat :=
+  n + 1
+
+#check addOne
+#eval greeting
+#eval addOne 5
+\end{minted}
+\caption{\texttt{:=} による定義と関数適用}
+\label{lst:ch01_def}
+\end{listing}
+
+コード\ref{lst:ch01_def}では、\texttt{greeting} は引数を取らない \texttt{String} 型の定義である。
+\texttt{addOne} は \texttt{Nat} を一つ受け取り、\texttt{Nat} を返す関数である。
+\texttt{(n : Nat)} は「引数 \texttt{n} は \texttt{Nat} 型である」と読む。
+\texttt{\#eval addOne 5} は、\texttt{addOne} を \texttt{5} に適用した結果 \texttt{6} を表示する。
+
+\begin{syntaxbox}
+ここで \texttt{:=} と関数適用の読み方を固定する。
+\begin{itemize}
+\item \texttt{def 名前 ... := 本体} の \texttt{:=} は、右の本体で名前を定義する記号である。
+\item \texttt{(n : Nat)} は関数の引数で、あとから渡される値である。
+\item \texttt{f x} は「関数 \texttt{f} を \texttt{x} に適用する」。括弧は使わず空白で並べる。
+\end{itemize}
+\end{syntaxbox}
+
+\section{本章のまとめ}
+
+\texttt{:} は型注釈であり、\texttt{(式 : 型)} と書いて式の型を明示する。
+
+\texttt{:=} は定義であり、\texttt{def 名前 := 本体} で名前を中身に結びつける。
+
+関数適用は空白で書き、\texttt{f x} は \texttt{f} を \texttt{x} に適用する。
+
+\texttt{\#check} は型を、\texttt{\#eval} は評価結果を表示する。
+
+\begin{summarybox}
+この章で新しく出た記法
+\begin{itemize}
+\item \texttt{(式 : 型)} \quad 型注釈。左の式を右の型として読む。
+\item \texttt{def 名前 := 本体} \quad 名前の定義。
+\item \texttt{f x} \quad 関数適用（空白で書く）。
+\item \texttt{\#check} \quad 式の型を表示。
+\item \texttt{\#eval} \quad 式の評価結果を表示。
+\end{itemize}
+\end{summarybox}
+
+\section{次章への接続}
+
+本章では、記号と確認コマンドの読み方を固定した。
+次章では、これらを使って \texttt{Nat}、\texttt{Bool}、\texttt{String} などの基本型の値と、\texttt{def} による関数定義を、もう少しまとめて扱う。

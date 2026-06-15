@@ -1,0 +1,431 @@
+% !TEX root = ../main.tex
+\chapter{モノイドとモノイダルな見方：結合できる処理}
+\label{chap:monoids-monoidal}
+
+\begin{chapterabstract}
+本章では、モノイドを「空の値」と「結合できる操作」を持つ構造として導入する。
+文字列結合、ログ集約、リスト連結、設定マージ、数値集計など、多くの処理は同じ形で考えられる。
+重要なのは、結合できることそのものではなく、結合の括弧を変えても意味が変わらないことと、空の入力を自然に扱えることである。
+Lean 4 では、これらを等式として表し、結合律と単位元の法則が実務上どのような安全性を与えるかを確認する。
+最後に、モノイダル圏を「逐次合成だけでなく、並列合成も扱うための言語」として軽く眺める。
+\end{chapterabstract}
+
+\begin{learninggoals}
+\item モノイドを「結合演算」と「単位元」を持つ構造として説明できる。
+\item 結合律と単位元が、ログ集約や設定マージの安全性にどう関係するかを説明できる。
+\item Lean 4 で、リスト結合や小さな設定マージの法則を等式として書ける。
+\item モノイダル圏を、並列合成や資源合成を考えるための発展的な見方として位置づけられる。
+\end{learninggoals}
+
+\section{この章を読む理由}
+
+ログを集める。設定をマージする。複数のバッチ結果を一つにまとめる。
+このような処理では、「二つを一つに結合する」操作が繰り返し現れる。
+最初は単純に見えるが、実務ではすぐに次のような問いが出てくる。
+
+\begin{itemize}
+\item 空のログを混ぜても結果は変わらないか。
+\item バッチ結果を分割して集約しても、最後の結果は同じか。
+\item 並列に処理した結果を後で結合しても安全か。
+\item 設定マージの括弧を変えても、同じ設定になるか。
+\end{itemize}
+
+\begin{intuitionbox}
+モノイドは、「空」と「結合」に対する最低限の約束である。
+空の値は初期値になる。
+結合演算は、二つの結果を一つにまとめる。
+結合律があれば、三つ以上をまとめるときに括弧の付け方を気にしなくてよくなる。
+ただし、順序を入れ替えてよいとは限らない。
+\end{intuitionbox}
+
+\FigurePlaceholder{fig-ch16-monoid-overview.png}{0.90}{モノイドを「空」と「結合」と「法則」から見る}{fig:ch16-monoid-overview}
+
+前章までで、圏、同型、積・余積、関手、自然変換を見てきた。
+それらは主に「型の間の変換」や「構造を保った変換」を扱うための言葉だった。
+本章のモノイドは、少し見え方が違う。
+一つの型の中で、値どうしを安全にまとめるための言葉である。
+
+\section{モノイドは「空」と「結合」を持つ構造}
+
+\subsection{まずはログで考える}
+
+ログをリストとして表すとする。
+一つの処理がログを返し、別の処理もログを返す。
+二つの処理をつなげたら、二つのログを連結したくなる。
+
+\begin{softwarebox}
+ログ集約では、単体のログ値よりも「どう結合するか」が重要になる。
+空のログは \texttt{[]} であり、二つのログはリスト連結でまとめられる。
+このとき、空ログを前後に足しても結果が変わらないなら、初期値として安心して使える。
+\end{softwarebox}
+
+ここで、ログを一つの型 \texttt{Log} として見る。
+空ログを \texttt{emptyLog}、結合を \texttt{combineLog} と呼ぶことにする。
+この二つだけなら、単なる便利関数である。
+モノイドになるためには、法則が必要である。
+
+\begin{definitionbox}
+型 \(M\) に対して、次の三つがあるとき、\(M\) はモノイドとして扱える。
+\begin{itemize}
+\item 単位元 \(e : M\)。これは「空」や「何もない値」を表す。
+\item 結合演算 \(\diamond : M \to M \to M\)。これは二つの値を一つにまとめる。
+\item 単位元の法則と結合律。
+\end{itemize}
+法則は次の形で書ける。
+\[
+  e \diamond x = x, \qquad
+  x \diamond e = x, \qquad
+  (x \diamond y) \diamond z = x \diamond (y \diamond z).
+\]
+\end{definitionbox}
+
+\subsection{モノイドは「便利な結合関数」ではない}
+
+結合関数があるだけでは、まだモノイドとは呼べない。
+たとえば、二つの設定ファイルをマージする関数を作ったとしても、その関数がどのような法則を満たすかを確認しなければならない。
+
+\begin{warningbox}
+「二つをまとめる関数がある」ことと、「モノイドとして安全に使える」ことは違う。
+モノイドとして使いたいなら、少なくとも単位元と結合律を確認する必要がある。
+特に設定マージは、競合解決の仕様によって法則が壊れることがある。
+\end{warningbox}
+
+本章では、すべての現実的な設定マージがモノイドになるとは主張しない。
+むしろ、どの条件を満たせばモノイドとして扱えるかを明示するために、Lean で小さなモデルを作る。
+
+\section{文字列結合、ログ結合、設定のマージ}
+
+ソフトウェアでよく出会うモノイド的な構造を整理しておく。
+次の表では、「値の型」「空の値」「結合演算」「注意点」を並べている。
+
+\begin{small}
+\begin{longtable}{@{}p{0.17\linewidth}p{0.18\linewidth}p{0.21\linewidth}p{0.32\linewidth}@{}}
+\toprule
+例 & 空の値 & 結合演算 & 注意点 \\
+\midrule
+文字列 & 空文字列 & 文字列結合 & 順序は通常入れ替えられない。 \\
+リスト & 空リスト & リスト連結 & 要素順序を保つ。 \\
+ログ & 空ログ & ログ連結 & 並列集約では時刻や順序の扱いを設計する。 \\
+自然数の合計 & \(0\) & 加算 & 順序を入れ替えてもよい例。 \\
+自然数の積 & \(1\) & 乗算 & 空の積を \(1\) と見られる。 \\
+設定 & 空設定 & マージ & 競合解決が結合律を満たすか確認が必要。 \\
+\bottomrule
+\end{longtable}
+\end{small}
+
+\begin{intuitionbox}
+モノイドの発想は、「処理結果をあとからまとめられる形にしておく」ことである。
+各処理が部分結果を返し、それらを結合すれば全体結果になる。
+この形にしておくと、分割処理、バッチ処理、ストリーム処理、並列処理の設計がしやすくなる。
+\end{intuitionbox}
+
+\subsection{順序を変えてよいとは限らない}
+
+モノイドで保証されるのは、括弧の付け方を変えてよいことである。
+つまり、次の二つは同じ結果になる。
+
+\[
+  (a \diamond b) \diamond c
+  =
+  a \diamond (b \diamond c)
+\]
+
+しかし、\(a \diamond b = b \diamond a\) は別の法則である。
+これは可換性と呼ばれる。
+モノイド一般には要求されない。
+
+\begin{warningbox}
+ログ連結では、\texttt{frontend ++ backend} と \texttt{backend ++ frontend} は通常同じではない。
+モノイドだからといって、並列処理の結果を任意の順序で混ぜてよいわけではない。
+順序を入れ替えたい場合は、可換性やソートなど、別の仕様が必要になる。
+\end{warningbox}
+
+\section{結合律と単位元}
+
+\subsection{結合律は括弧を忘れさせる}
+
+三つのログ \texttt{a}, \texttt{b}, \texttt{c} を考える。
+まず \texttt{a} と \texttt{b} を結合してから \texttt{c} を結合する場合と、\texttt{b} と \texttt{c} を先に結合してから \texttt{a} を結合する場合がある。
+結合律は、この二つが同じ結果になるという約束である。
+
+\FigurePlaceholder{fig-ch16-associativity.png}{0.90}{結合律により括弧の付け方を変えても結果が一致する}{fig:ch16-associativity}
+
+この法則があると、実装上の分割単位を変えやすくなる。
+たとえば、次の二つの集約計画は同じ意味として扱える。
+
+\begin{itemize}
+\item \texttt{((batch1 ++ batch2) ++ batch3)}
+\item \texttt{(batch1 ++ (batch2 ++ batch3))}
+\end{itemize}
+
+これは、バッチ処理の粒度やツリー集約の形を変えてもよい、という設計上の余裕を生む。
+ただし、要素の順序そのものを変えているわけではない。
+
+\subsection{単位元は空ケースを扱いやすくする}
+
+集約処理でよく問題になるのが、入力が空のときである。
+ログが一件もなければ空ログを返したい。
+合計なら \(0\) を返したい。
+積なら \(1\) を返したい。
+
+単位元があると、空入力を例外扱いしなくてよい。
+初期値として単位元を置き、あとは同じ結合演算を繰り返せばよい。
+
+\begin{softwarebox}
+単位元は、集約処理における自然な初期値である。
+空のリストを集約しても値が返せるため、空ケースだけを特別な分岐として扱う必要が減る。
+このことは、実装を単純にするだけでなく、仕様も読みやすくする。
+\end{softwarebox}
+
+\section{Lean 4 で小さなモノイド法則を使う}
+
+ここでは、Mathlib の高度な代数ライブラリには進まない。
+まずは標準的なリスト連結を使い、ログ結合の法則を等式として確認する。
+
+\begin{leanbox}
+Lean では、モノイド法則を「すべての値について成り立つ等式」として書く。
+ログ結合なら、\texttt{[]} が単位元であり、\texttt{++} が結合演算である。
+結合律と単位元の法則を定理として書くことで、ログ集約の括弧を変えても安全であることを確認できる。
+\end{leanbox}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+namespace Chapter10
+
+abbrev Log := List String
+
+def emptyLog : Log := []
+
+def combineLog (a b : Log) : Log :=
+  a ++ b
+
+#eval combineLog ["start"] ["end"]  -- => ["start", "end"]
+
+theorem combineLog_empty_left (xs : Log) :
+    combineLog emptyLog xs = xs := by
+  rfl
+
+theorem combineLog_empty_right (xs : Log) :
+    combineLog xs emptyLog = xs := by
+  simpa [combineLog, emptyLog] using List.append_nil xs
+
+theorem combineLog_assoc (a b c : Log) :
+    combineLog (combineLog a b) c = combineLog a (combineLog b c) := by
+  simpa [combineLog] using List.append_assoc a b c
+\end{minted}
+\caption{ログ結合の単位元と結合律}
+\label{lst:ch16_log_laws}
+\end{listing}
+
+このコードで重要なのは、\texttt{combineLog} の実装そのものではない。
+本当に重要なのは、\texttt{combineLog\_assoc} が仕様として残ることである。
+この定理があれば、ログ集約の括弧を変えるリファクタリングを、単なる気分ではなく等式として説明できる。
+
+\subsection{自作の小さなモノイド構造}
+
+次に、「空」「結合」「法則」をまとめた小さな構造体を作る。
+これは Mathlib の本格的な \texttt{Monoid} を置き換えるものではない。
+本章の目的に合わせた、学習用の最小モデルである。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+structure SimpleMonoid (M : Type) where
+  empty : M
+  append : M -> M -> M
+  empty_left : forall x, append empty x = x
+  empty_right : forall x, append x empty = x
+  append_assoc : forall x y z,
+    append (append x y) z = append x (append y z)
+
+-- List Nat は、空リストとリスト連結でモノイドになる。
+def listNatMonoid : SimpleMonoid (List Nat) where
+  empty := []
+  append := fun xs ys => xs ++ ys
+  empty_left := by
+    intro xs
+    rfl
+  empty_right := by
+    intro xs
+    simpa using List.append_nil xs
+  append_assoc := by
+    intro xs ys zs
+    simpa using List.append_assoc xs ys zs
+\end{minted}
+\caption{学習用の小さなモノイド構造}
+\label{lst:ch16_simple_monoid}
+\end{listing}
+
+ここでは、\texttt{SimpleMonoid} のフィールドに証明を含めている。
+この設計は、「この型には結合関数があります」という宣言ではなく、「この型は指定した法則を満たします」という宣言になる。
+
+\section{サンプル：ログ集約・設定マージの順序安全性}
+
+\subsection{ログ集約では、分割の仕方を変えたい}
+
+ログ収集では、全ログを一度に集められるとは限らない。
+サービス単位、時間帯単位、リクエスト単位で分割されることが多い。
+後でそれらをまとめるとき、括弧の付け方に依存しないなら、集約計画を変更しやすくなる。
+
+\begin{softwarebox}
+結合律があると、集約木の形を変えられる。
+たとえば、三つのログチャンク \texttt{a}, \texttt{b}, \texttt{c} をまとめるとき、先に \texttt{a} と \texttt{b} をまとめても、先に \texttt{b} と \texttt{c} をまとめても、順序を保っている限り最終結果は同じになる。
+\end{softwarebox}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def planLeft (a b c : Log) : Log :=
+  combineLog (combineLog a b) c
+
+def planRight (a b c : Log) : Log :=
+  combineLog a (combineLog b c)
+
+theorem log_plan_safe (a b c : Log) :
+    planLeft a b c = planRight a b c := by
+  simpa [planLeft, planRight] using combineLog_assoc a b c
+\end{minted}
+\caption{三つのログチャンクの集約計画は括弧に依存しない}
+\label{lst:ch16_log_plan}
+\end{listing}
+
+ここで証明しているのは、ログの順序を入れ替えてよいという性質ではない。
+証明しているのは、同じ順序のまま括弧の付け方だけを変えてよい、という性質である。
+これが、モノイドの結合律が与える安全性である。
+
+\subsection{設定マージは法則を確認してから使う}
+
+設定マージもモノイド的に扱えることがある。
+ただし、現実の設定マージは複雑になりやすい。
+ここでは、説明のために小さな設定型を作る。
+設定には、追加リトライ回数とタグ一覧があるとする。
+マージは、リトライ回数を足し、タグを連結する操作とする。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+structure Config where
+  retry : Nat
+  tags : List String
+  deriving Repr
+
+def emptyConfig : Config :=
+  { retry := 0, tags := [] }
+
+def mergeConfig (a b : Config) : Config :=
+  { retry := a.retry + b.retry,
+    tags := a.tags ++ b.tags }
+
+#eval mergeConfig { retry := 1, tags := ["api"] }
+                  { retry := 2, tags := ["db"] }
+-- => { retry := 3, tags := ["api", "db"] }
+
+theorem mergeConfig_empty_left (c : Config) :
+    mergeConfig emptyConfig c = c := by
+  cases c
+  simp [mergeConfig, emptyConfig]
+
+theorem mergeConfig_empty_right (c : Config) :
+    mergeConfig c emptyConfig = c := by
+  cases c
+  simp [mergeConfig, emptyConfig]
+\end{minted}
+\caption{設定マージの小さなモデル}
+\label{lst:ch16_config_merge}
+\end{listing}
+
+単位元の法則は、\texttt{emptyConfig} を前後どちらからマージしても元の設定が戻ることを述べている。
+Lean では、構造体を \texttt{cases} で分解し、各フィールドの等式に落とす。
+\texttt{retry} については \(0\) の加算、\texttt{tags} については空リストの連結が使われる。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+theorem mergeConfig_assoc (a b c : Config) :
+    mergeConfig (mergeConfig a b) c =
+    mergeConfig a (mergeConfig b c) := by
+  cases a
+  cases b
+  cases c
+  simp [mergeConfig, Nat.add_assoc, List.append_assoc]
+
+end Chapter10
+\end{minted}
+\caption{設定マージの結合律}
+\label{lst:ch16_config_assoc}
+\end{listing}
+
+この小さなモデルでは、設定マージは結合律を満たす。
+そのため、\texttt{(base <> env) <> service} と \texttt{base <> (env <> service)} は同じ意味になる。
+
+\FigurePlaceholder{fig-ch16-config-merge.png}{0.90}{設定マージをモノイドとして扱うときの単位元と結合律}{fig:ch16-config-merge}
+
+\subsection{このモデルが証明していないこと}
+
+この証明は、本番システムのすべての設定マージが安全だと主張しているわけではない。
+証明したのは、ここで定義した \texttt{Config} と \texttt{mergeConfig} に関する性質だけである。
+
+\begin{warningbox}
+本番の設定マージでは、キーの競合、優先順位、環境変数の展開、機密情報の扱い、外部ファイルの読み込み順序などが関わる。
+Lean の小さなモデルを使うときは、「どの仕様だけをモデル化したか」を必ず明記する必要がある。
+\end{warningbox}
+
+\section{発展：モノイダル圏は「並列合成」の言語}
+
+ここまでは、一つの型の中で値を結合するモノイドを見てきた。
+圏論では、さらに一般化して、対象や射を横に並べて合成する構造を考える。
+これがモノイダル圏の入口である。
+
+\begin{intuitionbox}
+普通の圏では、射を縦に合成する。
+たとえば \texttt{A -> B} と \texttt{B -> C} をつないで、\texttt{A -> C} を作る。
+モノイダル圏では、これに加えて、射を横に並べる操作も考える。
+たとえば \texttt{A -> B} と \texttt{C -> D} を並べて、\texttt{(A, C) -> (B, D)} のような処理として見る。
+\end{intuitionbox}
+
+ソフトウェアでは、次のような場面でこの見方が役に立つ。
+
+\begin{itemize}
+\item 二つの独立した入力を別々に検証し、結果をペアとしてまとめる。
+\item 複数のサービス呼び出しを独立に実行し、最後に結果を結合する。
+\item 画像処理やETLで、別々の列やチャネルを並列に変換する。
+\item リソースや権限を合成し、全体として使える処理を作る。
+\end{itemize}
+
+\FigurePlaceholder{fig-ch16-monoidal-category.png}{0.90}{逐次合成と並列合成を区別するモノイダルな見方}{fig:ch16-monoidal-category}
+
+本章では、モノイダル圏の厳密な定義には進まない。
+ここでは、圏の合成が「処理を縦につなぐ」言語だったのに対して、モノイダルな見方は「処理を横に並べる」言語を加える、と理解すればよい。
+本格的には、対象どうしを並べるテンソル積、単位対象、結合の自然な同一視などを扱う。
+
+\section{よくある誤解}
+
+\subsection{モノイドなら順序を入れ替えてよいのか}
+
+よくない。
+モノイドは結合律を要求するが、可換性は要求しない。
+文字列、リスト、ログの結合は、典型的に順序を入れ替えられない。
+順序を入れ替える処理を安全にしたいなら、可換モノイド、ソート済み表現、集合化、重複の扱いなど、追加の仕様が必要になる。
+
+\subsection{単位元はただのデフォルト値か}
+
+単なるデフォルト値ではない。
+単位元は、結合演算と一緒に使ったときに値を変えない、という法則を満たす値である。
+たとえば、空文字列は文字列結合の単位元だが、\texttt{"default"} は通常そうではない。
+
+\subsection{設定マージは常にモノイドになるのか}
+
+ならない。
+設定マージの仕様による。
+右優先、左優先、優先度つき、時刻つき、エラー蓄積つきなど、設計によって法則は変わる。
+実務では、「モノイドとして扱えるはず」と決め打ちするのではなく、空の値と結合律を明示的に確認するのが安全である。
+
+\section{本章のまとめ}
+
+モノイドは、単位元と結合演算を持ち、単位元の法則と結合律を満たす構造である。
+
+ログ、リスト、文字列、合計、設定マージなど、多くの実務上の集約処理はモノイド的に設計できる。
+
+結合律は、括弧の付け方を変えてもよいことを保証するが、順序を入れ替えてよいことは保証しない。
+
+単位元は、空入力や初期値を自然に扱うための仕様である。
+
+Lean 4 では、モノイド法則を等式として書き、ログ集約や設定マージの小さな安全性を確認できる。
+
+モノイダル圏は、逐次合成に加えて並列合成を扱う発展的な言語として理解できる。

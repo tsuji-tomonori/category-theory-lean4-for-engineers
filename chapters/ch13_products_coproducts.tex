@@ -1,0 +1,433 @@
+% !TEX root = ../main.tex
+\chapter{積と余積：レコード、ペア、Either}
+\label{chap:products-coproducts}
+
+\begin{chapterabstract}
+本章では、圏論の基本構成である\textbf{積}と\textbf{余積}を、ソフトウェアのデータ設計として読む。積は「両方を持つ」構造であり、ペア、レコード、複数フィールドを持つDTOとして現れる。余積は「どちらか一方」の構造であり、\texttt{Either}、\texttt{Result}、エラー分岐、選択肢を持つレスポンス型として現れる。
+
+圏論では、積や余積を単なるデータ構造としてではなく、「その構造を作る・使う関数がどのように一意に決まるか」で特徴づける。この見方を\textbf{普遍性}という。本章では、Lean 4 の \texttt{Prod}、構造体、\texttt{Sum}、\texttt{Option} を使い、積と余積の性質を小さく証明する。最後に、APIレスポンスやエラーハンドリングの設計を題材に、積で表すべき情報と余積で表すべき分岐を区別する。
+\end{chapterabstract}
+
+\begin{learninggoals}
+\item 積を「両方を持つ」構造として説明できる。
+\item 余積を「どちらか一方」の構造として説明できる。
+\item \texttt{Prod}、構造体、\texttt{Sum}、\texttt{Option} の対応を読める。
+\item 普遍性を「作り方・使い方が一意に決まる」という実務的な言葉で説明できる。
+\item エラーを値と同時に持つべきか、成功または失敗の分岐として持つべきかを判断できる。
+\end{learninggoals}
+
+\section{この章を読む理由}
+
+APIのレスポンス型を設計するとき、次のような迷いが起きる。
+
+\begin{itemize}
+\item ユーザーIDと名前をまとめたい。
+\item 成功時には値を返し、失敗時にはエラーを返したい。
+\item エラー情報と成功値を同じ構造体に入れてよいのか迷う。
+\item \texttt{null}、\texttt{Option}、\texttt{Either}、例外のどれを使うべきか判断したい。
+\end{itemize}
+
+これらは、すべて「データをどう組み合わせるか」という問題である。ただし、組み合わせ方には二種類ある。ひとつは、複数の情報を同時に持つ組み合わせである。もうひとつは、複数の候補のうち一つだけを選ぶ組み合わせである。
+
+\begin{intuitionbox}
+積は「この値も、あの値も、両方ある」という構造である。余積は「この値か、あの値か、どちらか一方である」という構造である。
+
+ログインリクエストにユーザーIDとトークンが両方必要なら、それは積で考える。APIレスポンスが成功値またはエラーのどちらかなら、それは余積で考える。
+\end{intuitionbox}
+
+\FigurePlaceholder{fig-ch13-product-coproduct-overview.png}{0.90}{積は「両方」、余積は「どちらか一方」を表す}{fig:ch13-product-coproduct-overview}
+
+\section{ソフトウェア上の問題：同時に持つのか、分岐するのか}
+
+\subsection{DTOは多くの場合、積である}
+
+たとえば、次のようなユーザー概要を考える。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+structure UserSummary where
+  id   : Nat
+  name : String
+\end{minted}
+\caption{複数フィールドを持つレコード}
+\label{lst:ch13_record_intuition}
+\end{listing}
+
+この値は、\texttt{id} と \texttt{name} の両方を持つ。どちらか片方ではない。したがって、構造としては積に近い。フィールド名が付いているので、実務コードではペアよりも読みやすいが、圏論的には「複数の射影を持つ値」として理解できる。
+
+\begin{softwarebox}
+\texttt{UserSummary} のようなレコードは、実務では「名前付きの積」と読める。各フィールドへのアクセスは、積から成分を取り出す射影である。
+\end{softwarebox}
+
+\subsection{エラーレスポンスは多くの場合、余積である}
+
+一方、APIレスポンスが次のどちらかである場面を考える。
+
+\begin{itemize}
+\item 成功したので、本文を返す。
+\item 失敗したので、エラーを返す。
+\end{itemize}
+
+この場合、成功値とエラー値が同時にあるとは限らない。むしろ「成功または失敗」のどちらか一方である。ここで使うべき形は、積ではなく余積である。
+
+\begin{softwarebox}
+\texttt{(Error, Value)} は「エラーと値が両方ある」と読む。一方、\texttt{Either Error Value} や \texttt{Result Value Error} は「エラーか値のどちらか」と読む。エラー処理では、この違いがバグの混入を防ぐ。
+\end{softwarebox}
+
+\section{積：両方持つ構造}
+\label{sec:ch13-product}
+
+積は、二つの型 \(A\) と \(B\) から、両方を同時に持つ型 \(A \times B\) を作る構成である。Leanでは \texttt{Prod A B}、または記法として \texttt{A × B} を使う。
+
+\begin{definitionbox}
+型 \(A\) と型 \(B\) の積は、\(A\) の値と \(B\) の値を一つずつ持つ型である。積からは、第一成分を取り出す射影 \(\pi_1 : A \times B \to A\) と、第二成分を取り出す射影 \(\pi_2 : A \times B \to B\) がある。
+\end{definitionbox}
+
+Leanでは、ペア \texttt{(a, b)} を作り、\texttt{p.1} と \texttt{p.2} で取り出す。
+
+\begin{leanbox}
+\texttt{Prod A B} は、二つの値を同時に保持する最小の構造である。\texttt{p.1} と \texttt{p.2} は、それぞれ第一成分と第二成分を取り出す射影である。
+\end{leanbox}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+namespace Ch07
+
+-- Lean の A × B は Prod A B の記法である。
+def loginPair : Nat × String := (42, "token")
+
+example : loginPair.1 = 42 := rfl
+example : loginPair.2 = "token" := rfl
+
+-- ペアは、取り出した二つの成分から元に戻せる。
+theorem prod_eta {A B : Type} (p : A × B) : (p.1, p.2) = p := by
+  cases p
+  rfl
+\end{minted}
+\caption{Prodの基本操作}
+\label{lst:ch13_prod_basic}
+\end{listing}
+
+\begin{syntaxbox}
+積の値を扱うときの基本構文は、ペアの作成と射影である。
+\begin{itemize}
+\item \texttt{A × B} は \texttt{Prod A B} の記法で、「\texttt{A} の値と \texttt{B} の値を一つずつ持つ型」と読む。
+\item \texttt{(a, b)} はペアを作る構文である。
+\item \texttt{p.1} はペア \texttt{p} の第一成分、\texttt{p.2} は第二成分を取り出す。
+\item \texttt{(p.1, p.2)} は、取り出した二つの成分からペアを作り直している。
+\end{itemize}
+\end{syntaxbox}
+
+ここでの定理 \texttt{prod\_eta} は、積が余計な情報を持っていないことを表している。ペアから第一成分と第二成分を取り出し、それをもう一度ペアにすれば、元のペアに戻る。
+
+\subsection{レコードは名前付きの積}
+
+実務では、\texttt{Nat × String} のような位置だけで意味を決めるペアよりも、名前付きフィールドを持つ構造体のほうが安全である。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+structure LoginInput where
+  userId : Nat
+  token  : String
+
+-- レコードをペアへ変換する。
+def loginAsPair (x : LoginInput) : Nat × String :=
+  (x.userId, x.token)
+
+-- ペアからレコードを作る。
+def pairAsLogin (p : Nat × String) : LoginInput :=
+  { userId := p.1, token := p.2 }
+
+theorem pair_login_roundtrip (p : Nat × String) :
+    loginAsPair (pairAsLogin p) = p := by
+  cases p
+  rfl
+\end{minted}
+\caption{構造体は名前付きの積として読める}
+\label{lst:ch13_record_as_product}
+\end{listing}
+
+ペアは軽量だが、フィールドの意味を位置に依存させる。レコードは少し冗長だが、フィールド名によって意図が明確になる。圏論の積としては同じ方向の構造を持つが、実務上の可読性や保守性は異なる。
+
+\begin{warningbox}
+積として読めるからといって、常にペアを使えばよいわけではない。業務上の意味がある値には、名前付きフィールドを持つ構造体を使うほうが安全である。圏論は「構造の形」を教えてくれるが、命名やドメイン表現の責任まで自動化してくれるわけではない。
+\end{warningbox}
+
+\section{余積：どちらか一方の構造}
+\label{sec:ch13-coproduct}
+
+余積は、二つの型 \(A\) と \(B\) から、\(A\) の値か \(B\) の値のどちらか一方を持つ型を作る構成である。Leanでは \texttt{Sum A B} を使う。多くの言語で \texttt{Either A B} と呼ばれる型に対応する。
+
+\begin{definitionbox}
+型 \(A\) と型 \(B\) の余積は、\(A\) 側の値または \(B\) 側の値を持つ型である。\(A\) の値を余積へ入れる注入 \(\iota_1 : A \to A + B\) と、\(B\) の値を余積へ入れる注入 \(\iota_2 : B \to A + B\) がある。
+\end{definitionbox}
+
+Leanの \texttt{Sum A B} では、左側を \texttt{Sum.inl a}、右側を \texttt{Sum.inr b} として作る。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+inductive ParseError where
+  | empty
+  | badFormat
+
+abbrev ParseResult := Sum ParseError Nat
+
+-- 左側はエラー、右側は成功値として読むことにする。
+def parseEmpty : ParseResult := Sum.inl ParseError.empty
+def parseOk    : ParseResult := Sum.inr 200
+
+-- Sum を使う側は、左右の分岐を両方扱う。
+def showParseResult (r : ParseResult) : String :=
+  match r with
+  | Sum.inl _ => "parse failed"
+  | Sum.inr n => "parse ok"
+\end{minted}
+\caption{Sumの基本操作}
+\label{lst:ch13_sum_basic}
+\end{listing}
+
+\begin{syntaxbox}
+\texttt{inductive} は、値の形を列挙して新しい型を作る構文である。
+\begin{itemize}
+\item 各行の \texttt{| name ...} は、その型の値を作る方法を表す。
+\item \texttt{abbrev} は、既存の型や式に短い別名を付ける構文である。新しい構造を作るのではなく、長い名前を読みやすくするために使う。
+\item \texttt{Option} の \texttt{none} と \texttt{some} も、このような「候補の列挙」として理解できる。
+\item 後で \texttt{cases} や \texttt{match} を使うと、列挙した形ごとに場合分けできる。
+\end{itemize}
+\end{syntaxbox}
+
+
+\texttt{Sum} を受け取る関数は、原則として左右両方のケースを処理する必要がある。これが余積の大きな実務上の利点である。成功ケースだけを見てエラーケースを忘れる、という設計ミスを減らせる。
+
+\begin{softwarebox}
+余積は「ケースを明示する」ための型である。エラー、権限不足、未検出、成功など、排他的な状態を表したいときは、複数フィールドを持つレコードよりも余積や列挙型を検討する。
+\end{softwarebox}
+
+\section{\texttt{Option} は小さな余積として読める}
+
+\texttt{Option A} は、値がないか、\texttt{A} の値があるかを表す。これは「値なし」という一つだけのケースと、「値あり」というケースの余積として読める。
+
+\begin{intuitionbox}
+\texttt{Option A} は、おおまかに \texttt{Unit + A} と読める。\texttt{none} は \texttt{Unit} 側、\texttt{some a} は \texttt{A} 側である。
+\end{intuitionbox}
+
+Leanでは、\texttt{Unit} は値を一つだけ持つ型である。したがって、\texttt{Sum Unit A} は「左なら値なし、右なら値あり」と読める。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def optionToSum {A : Type} : Option A → Sum Unit A
+  | none   => Sum.inl ()
+  | some a => Sum.inr a
+
+def sumToOption {A : Type} : Sum Unit A → Option A
+  | Sum.inl _ => none
+  | Sum.inr a => some a
+
+theorem option_roundtrip {A : Type} (x : Option A) :
+    sumToOption (optionToSum x) = x := by
+  cases x with
+  | none => rfl
+  | some a => rfl
+\end{minted}
+\caption{OptionをSum Unit Aとして読む}
+\label{lst:ch13_option_sum}
+\end{listing}
+
+この見方を知っておくと、\texttt{Option}、\texttt{Either}、\texttt{Result}、\texttt{Except} をばらばらの機能ではなく、同じ「分岐を型で表す」設計パターンとして理解できる。
+
+\section{普遍性をソフトウェア的に読む}
+\label{sec:ch13-universal-property}
+
+積と余積は、単に「データの形」として説明できる。しかし圏論では、より重要な説明がある。それが普遍性である。
+
+\begin{intuitionbox}
+普遍性とは、「その構造を使う最も自然な方法が一意に決まる」という言い方である。
+
+積の場合、同じ入力から \(A\) と \(B\) を作れるなら、それらをまとめて \(A \times B\) を作る方法が一意に決まる。余積の場合、\(A\) の処理方法と \(B\) の処理方法を与えれば、\(A+B\) 全体を処理する方法が一意に決まる。
+\end{intuitionbox}
+
+\subsection{ペアを作る唯一の方法}
+
+同じ入力 \(C\) から \(A\) を作る関数 \(f : C \to A\) と、\(B\) を作る関数 \(g : C \to B\) があるとする。このとき、\(C\) から \(A \times B\) へ行く自然な関数は、\(c\) を \((f(c), g(c))\) に送る関数である。
+
+\FigurePlaceholder{fig-ch13-product-universal.png}{0.90}{積の普遍性：同じ入力から二つの値を作れるなら、ペアを作る関数が一意に決まる}{fig:ch13-product-universal}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def makePair {A B C : Type} (f : C → A) (g : C → B) : C → A × B :=
+  fun c => (f c, g c)
+
+theorem makePair_fst {A B C : Type}
+    (f : C → A) (g : C → B) (c : C) :
+    (makePair f g c).1 = f c := rfl
+
+theorem makePair_snd {A B C : Type}
+    (f : C → A) (g : C → B) (c : C) :
+    (makePair f g c).2 = g c := rfl
+\end{minted}
+\caption{積の普遍性を関数として表す}
+\label{lst:ch13_product_universal}
+\end{listing}
+
+このコードは、積の普遍性のうち「二つの関数からペアを作る」部分を表している。さらに、第一成分と第二成分がそれぞれ \(f\) と \(g\) に一致するなら、そのペア関数は点ごとに一意である。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+theorem makePair_unique_pointwise {A B C : Type}
+    (f : C → A) (g : C → B) (h : C → A × B)
+    (hfst : ∀ c, (h c).1 = f c)
+    (hsnd : ∀ c, (h c).2 = g c)
+    (c : C) : h c = makePair f g c := by
+  calc
+    h c = ((h c).1, (h c).2) := by
+      cases h c
+      rfl
+    _ = (f c, g c) := by
+      rw [hfst c, hsnd c]
+    _ = makePair f g c := rfl
+\end{minted}
+\caption{積から作る関数の点ごとの一意性}
+\label{lst:ch13_product_unique}
+\end{listing}
+
+ここでは関数そのものの等しさではなく、任意の入力 \texttt{c} に対する点ごとの等しさとして書いている。関数外延性は第21章であらためて扱うため、本章ではこの形で十分である。
+
+\subsection{分岐を処理する唯一の方法}
+
+余積では向きが逆になる。\(A\) を \(C\) へ処理する関数 \(f : A \to C\) と、\(B\) を \(C\) へ処理する関数 \(g : B \to C\) があるとする。この二つを与えると、\(A+B\) 全体を \(C\) へ処理する関数が一意に決まる。
+
+\FigurePlaceholder{fig-ch13-coproduct-universal.png}{0.90}{余積の普遍性：左右それぞれの処理を与えると、分岐全体の処理が一意に決まる}{fig:ch13-coproduct-universal}
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+def eitherElim {A B C : Type} (f : A → C) (g : B → C)
+    (s : Sum A B) : C :=
+  match s with
+  | Sum.inl a => f a
+  | Sum.inr b => g b
+
+theorem eitherElim_inl {A B C : Type}
+    (f : A → C) (g : B → C) (a : A) :
+    eitherElim f g (Sum.inl a) = f a := rfl
+
+theorem eitherElim_inr {A B C : Type}
+    (f : A → C) (g : B → C) (b : B) :
+    eitherElim f g (Sum.inr b) = g b := rfl
+\end{minted}
+\caption{余積の普遍性を関数として表す}
+\label{lst:ch13_coproduct_universal}
+\end{listing}
+
+この \texttt{eitherElim} は、実務のパターンマッチそのものである。左側の処理と右側の処理を渡せば、\texttt{Sum A B} 全体を処理できる。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+theorem eitherElim_unique_pointwise {A B C : Type}
+    (f : A → C) (g : B → C) (h : Sum A B → C)
+    (hl : ∀ a, h (Sum.inl a) = f a)
+    (hr : ∀ b, h (Sum.inr b) = g b)
+    (s : Sum A B) : h s = eitherElim f g s := by
+  cases s with
+  | inl a =>
+      rw [hl a]
+      rfl
+  | inr b =>
+      rw [hr b]
+      rfl
+\end{minted}
+\caption{余積から作る関数の点ごとの一意性}
+\label{lst:ch13_coproduct_unique}
+\end{listing}
+
+積では、同じ入力から二つの出力を作ってペアにした。余積では、二つの入力候補を一つの出力型へ処理する。向きが入れ替わっていることが重要である。
+
+\section{ミニケース：エラーハンドリングとレスポンス型設計}
+\label{sec:ch13-api-response}
+
+APIレスポンスを設計するとき、次のような型を考えたくなることがある。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+structure BadResponse where
+  errorCode : Nat
+  body      : String
+\end{minted}
+\caption{積でエラーと値を同時に持つ設計}
+\label{lst:ch13_bad_response}
+\end{listing}
+
+この設計は、成功時にもエラーコードがあり、失敗時にも本文があるように読めてしまう。業務仕様が本当に「常に両方ある」なら問題ない。しかし、多くのAPIでは「成功なら本文、失敗ならエラー」である。その場合は余積で表すほうが自然である。
+
+\FigurePlaceholder{fig-ch13-api-response-design.png}{0.90}{レスポンス設計：成功値とエラーを同時に持つのか、どちらか一方として持つのかを区別する}{fig:ch13-api-response-design}
+
+次のLeanコードでは、エラーまたは成功本文を \texttt{Sum} で表す。
+
+\begin{listing}[htbp]
+\begin{minted}{lean4}
+inductive ApiError where
+  | notFound
+  | invalidInput
+
+structure ResponseBody where
+  status : Nat
+  body   : String
+
+abbrev ApiResponse := Sum ApiError ResponseBody
+
+def handleResponse {C : Type}
+    (onError : ApiError → C)
+    (onOk : ResponseBody → C)
+    (r : ApiResponse) : C :=
+  eitherElim onError onOk r
+
+theorem handleResponse_ok (onError : ApiError → String)
+    (onOk : ResponseBody → String) (body : ResponseBody) :
+    handleResponse onError onOk (Sum.inr body) = onOk body := rfl
+\end{minted}
+\caption{APIレスポンスを余積として設計する}
+\label{lst:ch13_api_response}
+\end{listing}
+
+この設計では、レスポンスを使う側が、成功ケースと失敗ケースを明示的に処理する。これにより、「エラーなのに成功値を読もうとした」「成功なのにエラーコードを見てしまった」という混乱を減らせる。
+
+\begin{softwarebox}
+積は、データを同時に持つときに使う。余積は、状態や分岐を排他的に表すときに使う。APIレスポンス、バリデーション結果、パース結果、権限判定などでは、余積を使うことで仕様上の分岐が型に現れる。
+\end{softwarebox}
+
+\section{よくある誤解}
+
+\subsection{誤解1：余積は単なる列挙型である}
+
+列挙型は、値を持たない選択肢を表すことが多い。一方、余積は各分岐が値を持てる。\texttt{Sum Error User} なら、左側には \texttt{Error} の値が入り、右側には \texttt{User} の値が入る。したがって、余積は「タグだけ」ではなく「タグ付きデータ」として読むほうが実務に近い。
+
+\subsection{誤解2：エラー型は常に余積にすればよい}
+
+余積は便利だが、すべてのエラー設計を解決するわけではない。たとえば、複数の警告を成功値と一緒に返したい場合は、\texttt{Warnings × Value} のような積が適していることもある。重要なのは、同時に持つべき情報か、排他的な分岐かを見分けることである。
+
+\subsection{誤解3：普遍性は実務には関係ない}
+
+普遍性は抽象的な言葉だが、実務的には「この構造を作る・使う標準的な方法が一つに決まる」という意味を持つ。ペアは射影で特徴づけられ、分岐は各ケースのハンドラで特徴づけられる。この見方は、API設計やDTO設計のレビューで役に立つ。
+
+\begin{warningbox}
+積と余積の区別を曖昧にすると、型が業務仕様を正しく表さなくなる。成功値とエラー値を同時に持つ構造にしてしまうと、実装側で「どちらを信じるべきか」を毎回判断する必要が生じる。排他的な状態は、可能な限り余積として表す。
+\end{warningbox}
+
+\section{本章のまとめ}
+
+積は「両方持つ」構造であり、ペア、レコード、DTOとして現れる。
+
+余積は「どちらか一方」の構造であり、\texttt{Either}、\texttt{Result}、エラー分岐として現れる。
+
+Leanでは、積を \texttt{Prod} または \texttt{A × B}、余積を \texttt{Sum A B} として扱える。
+
+\texttt{Option A} は、値なしの場合と値ありの場合を持つ小さな余積として読める。
+
+積の普遍性は「二つの射影を持つペア関数が一意に決まる」こととして読める。
+
+余積の普遍性は「左右の処理を与えると、分岐全体の処理が一意に決まる」こととして読める。
+
+APIレスポンスやエラー処理では、同時に持つ情報か排他的な分岐かを区別することが重要である。
+
+\section{次章への接続}
+
+本章では、積と余積によってデータの形を整理した。次章では、\texttt{List.map} や \texttt{Option.map} のように、データの外側の構造を保ったまま中身を変換する考え方へ進む。この考え方が関手である。積や余積で作ったデータ構造を、どのように安全に変換へ持ち上げるかが次の主題になる。
