@@ -1,7 +1,7 @@
--- 出典: chapters/ch10_monoids_monoidal.tex:339
+-- 出典: chapters/ch16_monoids_monoidal.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Chapter10
+namespace Chapter16
 
 abbrev Log := List String
 
@@ -18,11 +18,11 @@ theorem combineLog_empty_left (xs : Log) :
 
 theorem combineLog_empty_right (xs : Log) :
     combineLog xs emptyLog = xs := by
-  simpa [combineLog, emptyLog] using List.append_nil xs
+  simp [combineLog, emptyLog]
 
 theorem combineLog_assoc (a b c : Log) :
     combineLog (combineLog a b) c = combineLog a (combineLog b c) := by
-  simpa [combineLog] using List.append_assoc a b c
+  simp [combineLog]
 
 structure SimpleMonoid (M : Type) where
   empty : M
@@ -40,10 +40,10 @@ def listNatMonoid : SimpleMonoid (List Nat) where
     rfl
   empty_right := by
     intro xs
-    simpa using List.append_nil xs
+    simp
   append_assoc := by
     intro xs ys zs
-    simpa using List.append_assoc xs ys zs
+    simp
 
 def planLeft (a b c : Log) : Log :=
   combineLog (combineLog a b) c
@@ -88,4 +88,4 @@ theorem mergeConfig_assoc (a b c : Config) :
   cases c
   simp [mergeConfig, Nat.add_assoc, List.append_assoc]
 
-end Chapter10
+end Chapter16

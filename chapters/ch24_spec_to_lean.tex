@@ -106,7 +106,7 @@ Lean では、データの形を \texttt{structure} で表し、操作を \textt
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
-namespace Chapter18
+namespace Chapter24
 
 -- 本章では、金額を Nat で単純化する。
 -- 現実の通貨、小数、丸めは後で境界として明示する。
@@ -126,7 +126,7 @@ def withdraw (a : Account) (amount : Nat) : Option Account :=
   else
     none
 
-end Chapter18
+end Chapter24
 \end{minted}
 \caption{口座出金仕様の最小モデル}
 \label{lst:ch24-account-model}
@@ -163,7 +163,7 @@ end Chapter18
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
-namespace Chapter18
+namespace Chapter24
 
 -- 成功時の事後条件。
 def PostSuccess
@@ -188,7 +188,7 @@ theorem withdraw_success_post
   exact Exists.intro { balance := a.balance - amount }
     (And.intro (withdraw_success_when_allowed a amount h) rfl)
 
-end Chapter18
+end Chapter24
 \end{minted}
 \caption{事後条件と小さな証明}
 \label{lst:ch24-postcondition}
@@ -239,7 +239,7 @@ end Chapter18
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
-namespace Chapter18
+namespace Chapter24
 
 -- 事前条件が成り立たなければ、withdraw は失敗する。
 theorem withdraw_failure_when_not_allowed
@@ -256,7 +256,7 @@ theorem withdraw_zero (a : Account) :
   cases a
   simp [withdraw]
 
-end Chapter18
+end Chapter24
 \end{minted}
 \caption{失敗時仕様の定理}
 \label{lst:ch24-failure-spec}
@@ -308,7 +308,7 @@ Lean モデル上の性質 & 本番実装との完全一致 \\
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
-namespace Chapter18
+namespace Chapter24
 
 -- 出金に失敗した場合は、元の口座をそのまま返す。
 def withdrawOrKeep (a : Account) (amount : Nat) : Account :=
@@ -334,7 +334,7 @@ theorem withdrawOrKeep_success_balance
     simpa [CanWithdraw] using h
   simp [withdrawOrKeep, withdraw, hle]
 
-end Chapter18
+end Chapter24
 \end{minted}
 \caption{失敗時に状態を保つ wrapper}
 \label{lst:ch24-withdraw-or-keep}
@@ -355,7 +355,7 @@ end Chapter18
 出金可能条件 & \texttt{CanWithdraw} & 条件は \texttt{amount <= balance} で十分か \\
 出金操作 & \texttt{withdraw} & 失敗を \texttt{none} で表してよいか \\
 成功時の残高 & \texttt{withdraw\_success\_post} & 事後条件は業務仕様と合うか \\
-失敗時の状態保存 & \texttt{withdrawOrKeep\_failure\_keeps} & 失敗時に副作用を持たないモデルでよいか \\
+失敗時の状態保存 & \path{withdrawOrKeep_failure_keeps} & 失敗時に副作用を持たないモデルでよいか \\
 非対象範囲 & 境界表 & DB、認可、監査ログを別途検査するか \\
 \bottomrule
 \end{tabular}

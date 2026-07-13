@@ -1,7 +1,7 @@
--- 出典: chapters/ch23_lossy_migration.tex:240
+-- 出典: chapters/ch29_lossy_migration.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Ch23
+namespace Chapter29
 
 structure FullName where
   first : String
@@ -105,4 +105,4 @@ theorem normalize_idempotent (u : UserV1) :
       | mk first middle last =>
           rfl
 
-end Ch23
+end Chapter29

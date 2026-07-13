@@ -1,4 +1,4 @@
--- 出典: chapters/app_c_property_patterns.tex:279
+-- 出典: chapters/app_c_property_patterns.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 structure UserV1 where
@@ -86,4 +86,4 @@ theorem migrateRows_preserves_ids (rs : List Row) :
   induction rs with
   | nil => rfl
   | cons r rs ih =>
-      simp [migrateRow, ih]
+      simp [migrateRow]

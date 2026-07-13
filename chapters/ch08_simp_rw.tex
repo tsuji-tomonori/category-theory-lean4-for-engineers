@@ -52,9 +52,11 @@ theorem member_shipping_zero (shipping : Nat) :
 
 \begin{table}[htbp]
 \centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
 \caption{\texttt{chargeShipping} の分岐の展開}
 \label{tab:ch08-simp-branches}
-\begin{tabular}{ll}
+\begin{tabular}{@{}p{0.20\linewidth}p{0.74\linewidth}@{}}
 \toprule
 式 & 展開後 \\
 \midrule
@@ -109,8 +111,8 @@ theorem addTax_after_normalize (price tax : Nat) :
 \toprule
 段階 & ゴール \\
 \midrule
-最初のゴール & \texttt{addTax (normalizePrice price) tax = addTax price tax} \\
-\texttt{normalizePrice price} を書き換え & \texttt{addTax price tax = addTax price tax} \\
+最初のゴール & \path{addTax (normalizePrice price) tax = addTax price tax} \\
+\path{normalizePrice price} を書き換え & \path{addTax price tax = addTax price tax} \\
 結論 & 左右が同じなので閉じる \\
 \bottomrule
 \end{tabular}

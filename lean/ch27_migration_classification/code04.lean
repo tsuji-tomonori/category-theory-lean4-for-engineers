@@ -1,7 +1,7 @@
--- 出典: chapters/ch21_migration_classification.tex:212
+-- 出典: chapters/ch27_migration_classification.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Ch21MigrationClassification
+namespace Chapter27
 
 structure EquivLike (A B : Type) where
   toFun : A -> B
@@ -106,4 +106,4 @@ inductive MigrationKind : Type where
   | weakenedSpec
   deriving DecidableEq, Repr
 
-end Ch21MigrationClassification
+end Chapter27

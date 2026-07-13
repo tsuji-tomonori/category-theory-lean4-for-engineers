@@ -341,7 +341,7 @@ theorem migrateUsers_length (xs : List UserV1) :
 \end{listing}
 
 このコードでは、1件の移行関数\texttt{migrateUser}を\texttt{List.map}でリスト全体へ広げている。
-\texttt{migrateUsers\_length}は、移行によって件数が変わらないことを確認するバッチ固有の性質である。
+\path{migrateUsers_length}は、移行によって件数が変わらないことを確認するバッチ固有の性質である。
 
 \subsection{8. 業務ロジックとの順序を入れ替えてもよいか}
 

@@ -1,7 +1,7 @@
--- 出典: chapters/ch16_relations_preorders_galois.tex:394
+-- 出典: chapters/ch22_relations_preorders_galois.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Ch16
+namespace Chapter22
 
 def Rel (A B : Type) := A -> B -> Prop
 
@@ -62,7 +62,7 @@ def DetailPreorder : PreorderMini Detail where
 theorem no_secret_as_public :
     detailLe Detail.secretLevel Detail.publicLevel -> False := by
   intro h
-  simpa [detailLe] using h
+  simp [detailLe] at h
 
 def Stronger {A : Type} (p q : A -> Prop) : Prop :=
   forall x, p x -> q x
@@ -162,4 +162,4 @@ theorem allowed_abstraction_is_inside (v : PublicView) :
     viewLe (erase (allow v)) v := by
   exact gc_counit erase_allow_galois detail_refl v
 
-end Ch16
+end Chapter22

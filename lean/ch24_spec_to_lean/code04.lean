@@ -1,7 +1,7 @@
--- 出典: chapters/ch18_spec_to_lean.tex:310
+-- 出典: chapters/ch24_spec_to_lean.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Chapter18
+namespace Chapter24
 
 structure Account where
   balance : Nat
@@ -70,4 +70,4 @@ theorem withdrawOrKeep_success_balance
     simpa [CanWithdraw] using h
   simp [withdrawOrKeep, withdraw, hle]
 
-end Chapter18
+end Chapter24

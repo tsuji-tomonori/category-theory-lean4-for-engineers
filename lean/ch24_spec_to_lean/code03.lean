@@ -1,7 +1,7 @@
--- 出典: chapters/ch18_spec_to_lean.tex:241
+-- 出典: chapters/ch24_spec_to_lean.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Chapter18
+namespace Chapter24
 
 structure Account where
   balance : Nat

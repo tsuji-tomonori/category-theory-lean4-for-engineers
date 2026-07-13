@@ -1,7 +1,7 @@
--- 出典: chapters/ch17_limits_pullbacks.tex:186
+-- 出典: chapters/ch23_limits_pullbacks.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Ch17
+namespace Chapter23
 
 abbrev UserId := Nat
 

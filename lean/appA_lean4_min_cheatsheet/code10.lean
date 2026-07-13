@@ -1,4 +1,4 @@
--- 出典: chapters/appA_lean4_min_cheatsheet.tex:293
+-- 出典: chapters/appA_lean4_min_cheatsheet.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 def serviceFee : Nat := 300

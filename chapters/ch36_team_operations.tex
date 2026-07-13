@@ -88,7 +88,7 @@ Lean では、これを次のような theorem 名に対応させる。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
-namespace Chapter30
+namespace Chapter36
 
 inductive SpecStatus where
   | draft
@@ -113,7 +113,7 @@ theorem markProved_isProved (s : SpecItem) :
   unfold IsProved markProved
   rfl
 
-end Chapter30
+end Chapter36
 \end{minted}
 \caption{仕様項目と theorem 名を対応させる小さなモデル}
 \label{lst:ch36-spec-link}
@@ -226,7 +226,7 @@ Lean を実務に持ち込むとき、最も誤解されやすいのが同期問
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
-namespace Chapter30
+namespace Chapter36
 
 structure ModelLink where
   specId : Nat
@@ -245,7 +245,7 @@ def userMigrationLink : ModelLink :=
 
 #eval userMigrationLink.theoremName  -- => "rollback_migrate_user_v1"
 
-end Chapter30
+end Chapter36
 \end{minted}
 \caption{検証モデルと実装ファイルの対応を表すメタデータ}
 \label{lst:ch36-model-link}

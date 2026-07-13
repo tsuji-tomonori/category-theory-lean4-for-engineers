@@ -158,7 +158,29 @@ def compact_line(line: str) -> str:
 def lines_match(snippet_line: str, lean_line: str) -> bool:
     left = compact_line(snippet_line)
     right = compact_line(lean_line)
-    return left == right or left in right or right in left
+    return left == right
+
+
+def blocks_match(snippet: str, lean: str) -> bool:
+    """Require the snippet's exact lexical tokens in order.
+
+    Standalone files intentionally repeat earlier definitions, so unrelated
+    declarations may appear between two declarations shown in one book
+    listing. Token subsequence matching permits those declarations while still
+    rejecting substring accidents such as ``1`` matching ``10``.
+    """
+    token_re = re.compile(r'"(?:\\.|[^"\\])*"|[A-Za-z_][A-Za-z0-9_\'?]*|[0-9]+|[^\s]')
+    snippet_tokens = token_re.findall(snippet)
+    lean_tokens = token_re.findall(lean)
+    if not snippet_tokens:
+        return True
+    position = 0
+    for token in lean_tokens:
+        if token == snippet_tokens[position]:
+            position += 1
+            if position == len(snippet_tokens):
+                return True
+    return False
 
 
 def extract_minted_snippets(tex_path: Path) -> list[Snippet]:
@@ -229,63 +251,27 @@ def check_tex_file(tex_path: Path) -> list[str]:
                 f"{len(snippets)} TeX snippet(s), {len(lean_paths)} file(s) in {snippet_dir.relative_to(ROOT)}"
             )
         for snippet, lean_path in zip(snippets, lean_paths, strict=False):
-            lean_lines = normalize_lean_code(lean_path.read_text(encoding="utf-8")).splitlines()
-            snippet_lines = normalize_lean_code(snippet.code).splitlines()
-            search_from = 0
-            missing_line = ""
-            for snippet_line in snippet_lines:
-                found_at = next(
-                    (
-                        index
-                        for index in range(search_from, len(lean_lines))
-                        if lines_match(snippet_line, lean_lines[index])
-                    ),
-                    None,
-                )
-                if found_at is None:
-                    missing_line = snippet_line
-                    break
-                if compact_line(snippet_line) == compact_line(lean_lines[found_at]):
-                    search_from = found_at + 1
-                else:
-                    search_from = found_at
-            if missing_line:
+            lean_code = normalize_lean_code(lean_path.read_text(encoding="utf-8"))
+            snippet_code = normalize_lean_code(snippet.code)
+            if not blocks_match(snippet_code, lean_code):
                 errors.append(
                     f"{rel_tex}:{snippet.start_line}: Lean snippet does not match "
-                    f"{lean_path.relative_to(ROOT)}; missing line: {missing_line!r}"
+                    f"{lean_path.relative_to(ROOT)} as one normalized block"
                 )
         return errors
 
     lean_path = lean_paths[0]
-    lean_lines = normalize_lean_code(lean_path.read_text(encoding="utf-8")).splitlines()
+    lean_code = normalize_lean_code(lean_path.read_text(encoding="utf-8"))
     errors: list[str] = []
 
     for snippet in snippets:
-        snippet_lines = normalize_lean_code(snippet.code).splitlines()
-        if not snippet_lines:
+        snippet_code = normalize_lean_code(snippet.code)
+        if not snippet_code:
             continue
-        search_from = 0
-        missing_line = ""
-        for snippet_line in snippet_lines:
-            found_at = next(
-                (
-                    index
-                    for index in range(search_from, len(lean_lines))
-                    if lines_match(snippet_line, lean_lines[index])
-                ),
-                None,
-            )
-            if found_at is None:
-                missing_line = snippet_line
-                break
-            if compact_line(snippet_line) == compact_line(lean_lines[found_at]):
-                search_from = found_at + 1
-            else:
-                search_from = found_at
-        if missing_line:
+        if not blocks_match(snippet_code, lean_code):
             errors.append(
                 f"{rel_tex}:{snippet.start_line}: Lean snippet does not match "
-                f"{lean_path.relative_to(ROOT)}; missing line: {missing_line!r}"
+                f"{lean_path.relative_to(ROOT)} as one normalized block"
             )
 
     return errors

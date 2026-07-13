@@ -1,4 +1,4 @@
--- 出典: chapters/ch24_list_migration_functor_laws.tex:377
+-- 出典: chapters/ch30_list_migration_functor_laws.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 structure UserV1 where
@@ -45,7 +45,7 @@ theorem migrateAll_length (xs : List UserV1) :
   | nil =>
       rfl
   | cons x xs ih =>
-      simp [migrateAll, ih]
+      simp [migrateAll]
 
 theorem list_map_id {A : Type} (xs : List A) :
     xs.map (fun x => x) = xs := by
@@ -91,7 +91,7 @@ theorem migrateAll_composition (xs : List UserV1) :
       rfl
   | cons x xs ih =>
       simp [migrateAllThenNormalize, normalizeAfterMigrateAll,
-        migrateThenNormalize, migrateAll, ih]
+        migrateThenNormalize, migrateAll]
 
 theorem rollbackAll_migrateAll (xs : List UserV1) :
     rollbackAll (migrateAll xs) = xs := by
@@ -123,4 +123,4 @@ theorem migrateAll_preservesIds (xs : List UserV1) :
   | nil =>
       rfl
   | cons x xs ih =>
-      simp [idsV1, idsV2, migrateAll, migrate, ih]
+      simp [idsV1, idsV2, migrateAll, migrate]

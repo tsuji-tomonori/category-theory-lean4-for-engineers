@@ -60,7 +60,7 @@ TypeScript の \texttt{interface} や、Scala/Kotlin の \texttt{data class}、R
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
-namespace Chapter04
+namespace Chapter10
 
 structure User where
   id : Nat
@@ -346,7 +346,7 @@ def depositValid (a : ValidAccount) (amount : Nat) : ValidAccount :=
 \begin{minted}{lean4}
 -- 残高が足りる場合だけ、残高を減らした口座を返す。
 def withdrawOpt (a : Account) (amount : Nat) : Option Account :=
-  if h : amount <= a.balance then
+  if _h : amount <= a.balance then
     some { a with balance := a.balance - amount }
   else
     none

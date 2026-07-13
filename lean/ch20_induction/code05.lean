@@ -1,7 +1,7 @@
--- 出典: chapters/ch14_induction.tex:268
+-- 出典: chapters/ch20_induction.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Ch14
+namespace Chapter20
 
 structure UserV1 where
   id : Nat
@@ -40,7 +40,7 @@ theorem map_preserves_length {α β : Type} (f : α → β) :
 
 theorem migrateUsers_preserves_length (xs : List UserV1) :
     (migrateUsers xs).length = xs.length := by
-  simpa [migrateUsers] using map_preserves_length migrateUser xs
+  simp [migrateUsers]
 
 theorem append_length {α : Type} :
     ∀ xs ys : List α, (xs ++ ys).length = xs.length + ys.length := by
@@ -49,4 +49,4 @@ theorem append_length {α : Type} :
   | nil =>
       simp
   | cons x xs ih =>
-      simp [ih, Nat.add_assoc, Nat.add_comm, Nat.add_left_comm]
+      simp [ih, Nat.add_assoc, Nat.add_comm]

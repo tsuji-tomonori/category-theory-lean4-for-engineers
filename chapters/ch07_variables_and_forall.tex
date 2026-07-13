@@ -84,11 +84,17 @@ theorem toDtoId_preservesId : PreservesId toDtoId := by
 \end{itemize}
 \end{syntaxbox}
 
-\section{無名関数・型パラメータ・関数合成}
+\section{高階関数と関数合成を段階的に読む}
+
+\subsection{無名関数と、関数を受け取る関数}
 
 関数はその場で名前なしに書ける。
 \texttt{fun n => n + 1} は「\texttt{n} を受け取り \texttt{n + 1} を返す関数」である。
-また、型を引数に取る関数合成は、出力の型と入力の型が合う関数をつなぐ。
+まずは\texttt{inc}と\texttt{applyTwice}だけを読み、値の引数と関数の引数を区別する。
+
+\subsection{型パラメータと関数合成}
+
+型を引数に取る関数合成は、出力の型と入力の型が合う関数をつなぐ。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -117,6 +123,10 @@ def compose {A B C : Type} (g : B -> C) (f : A -> B) : A -> C :=
 \texttt{A -> B} の出力 \texttt{B} が \texttt{B -> C} の入力と一致するからつなげられる。
 この見方が、後の章で扱う「射の合成」につながる。
 \end{leanbox}
+
+\begin{exercisebox}
+\texttt{compose g f}の途中の型を書き、なぜ\texttt{g}を先に適用できないかを説明する。答えでは、\texttt{f : A -> B}と\texttt{g : B -> C}の接続点\texttt{B}を明示する。
+\end{exercisebox}
 
 \FigurePlaceholder{fig-ch07-pipeline.png}{0.90}{関数合成による文字列変換パイプライン}{fig:ch07-pipeline}
 
@@ -161,6 +171,10 @@ def decorateAll (xs : List String) : List (Option String) :=
 \item \texttt{xs.map f} は、リスト \texttt{xs} の各要素に \texttt{f} を適用する。
 \end{itemize}
 \end{syntaxbox}
+
+\begin{exercisebox}
+\texttt{decorateIfNonempty "lean"}を、\texttt{nonempty}の結果、\texttt{match}で選ばれる枝、最終的な\texttt{Option String}の順に追跡する。\texttt{List.map}は各要素へ同じ関数を適用するだけであり、第14章で扱う関手則まで本節が証明しているわけではない。
+\end{exercisebox}
 
 \section{本章のまとめ}
 

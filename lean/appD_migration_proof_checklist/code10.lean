@@ -1,4 +1,4 @@
--- 出典: chapters/appD_migration_proof_checklist.tex:500
+-- 出典: chapters/appD_migration_proof_checklist.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 structure UserV1 where

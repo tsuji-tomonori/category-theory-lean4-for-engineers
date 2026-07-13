@@ -45,6 +45,10 @@ def check_file(lean_path: Path, lean: str, lake: str) -> bool:
 
     if completed.returncode == 0:
         print(f"ok: {lean_path.relative_to(ROOT)}")
+        if completed.stdout:
+            sys.stdout.write(completed.stdout)
+        if completed.stderr:
+            sys.stderr.write(completed.stderr)
         return True
 
     print(f"failed: {lean_path.relative_to(ROOT)}", file=sys.stderr)

@@ -190,7 +190,7 @@ Lean では、モノイド法則を「すべての値について成り立つ等
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
-namespace Chapter10
+namespace Chapter16
 
 abbrev Log := List String
 
@@ -207,11 +207,11 @@ theorem combineLog_empty_left (xs : Log) :
 
 theorem combineLog_empty_right (xs : Log) :
     combineLog xs emptyLog = xs := by
-  simpa [combineLog, emptyLog] using List.append_nil xs
+  simp [combineLog, emptyLog]
 
 theorem combineLog_assoc (a b c : Log) :
     combineLog (combineLog a b) c = combineLog a (combineLog b c) := by
-  simpa [combineLog] using List.append_assoc a b c
+  simp [combineLog]
 \end{minted}
 \caption{ログ結合の単位元と結合律}
 \label{lst:ch16_log_laws}
@@ -246,10 +246,10 @@ def listNatMonoid : SimpleMonoid (List Nat) where
     rfl
   empty_right := by
     intro xs
-    simpa using List.append_nil xs
+    simp
   append_assoc := by
     intro xs ys zs
-    simpa using List.append_assoc xs ys zs
+    simp
 \end{minted}
 \caption{学習用の小さなモノイド構造}
 \label{lst:ch16_simple_monoid}
@@ -345,7 +345,7 @@ theorem mergeConfig_assoc (a b c : Config) :
   cases c
   simp [mergeConfig, Nat.add_assoc, List.append_assoc]
 
-end Chapter10
+end Chapter16
 \end{minted}
 \caption{設定マージの結合律}
 \label{lst:ch16_config_assoc}
@@ -366,7 +366,9 @@ end Chapter10
 Lean の小さなモデルを使うときは、「どの仕様だけをモデル化したか」を必ず明記する必要がある。
 \end{warningbox}
 
-\section{発展：モノイダル圏は「並列合成」の言語}
+\section{発展：モノイダル圏は「テンソルによる並置」の言語}
+
+モノイダル圏のtensorは、対象と射を二変数で組み合わせる構造であり、結合子・単位子とcoherenceを伴う~\cite{riehl-category-theory-in-context}。これは実行時の並列性、独立性、交換可能性を自動的には与えない。
 
 ここまでは、一つの型の中で値を結合するモノイドを見てきた。
 圏論では、さらに一般化して、対象や射を横に並べて合成する構造を考える。
@@ -379,20 +381,24 @@ Lean の小さなモデルを使うときは、「どの仕様だけをモデル
 たとえば \texttt{A -> B} と \texttt{C -> D} を並べて、\texttt{(A, C) -> (B, D)} のような処理として見る。
 \end{intuitionbox}
 
-ソフトウェアでは、次のような場面でこの見方が役に立つ。
+ソフトウェアでは、次のような場面をモデル化するときの構造上の見方として役に立つ。
 
 \begin{itemize}
 \item 二つの独立した入力を別々に検証し、結果をペアとしてまとめる。
-\item 複数のサービス呼び出しを独立に実行し、最後に結果を結合する。
-\item 画像処理やETLで、別々の列やチャネルを並列に変換する。
+\item 独立性を別途確認した複数のサービス呼び出しの入出力を組にする。
+\item 画像処理やETLで、別々の列やチャネルへの変換を一つの積上の関数として表す。
 \item リソースや権限を合成し、全体として使える処理を作る。
 \end{itemize}
 
-\FigurePlaceholder{fig-ch16-monoidal-category.png}{0.90}{逐次合成と並列合成を区別するモノイダルな見方}{fig:ch16-monoidal-category}
+\FigurePlaceholder{fig-ch16-monoidal-category.png}{0.90}{逐次合成とテンソルによる並置を区別するモノイダルな見方}{fig:ch16-monoidal-category}
 
 本章では、モノイダル圏の厳密な定義には進まない。
 ここでは、圏の合成が「処理を縦につなぐ」言語だったのに対して、モノイダルな見方は「処理を横に並べる」言語を加える、と理解すればよい。
 本格的には、対象どうしを並べるテンソル積、単位対象、結合の自然な同一視などを扱う。
+
+\begin{warningbox}
+「横に並べる」は図式上・構造上の表現であり、taskを同時実行するという意味ではない。実行時並列に読み替えるには、共有状態がないこと、失敗・取消・順序の観測が独立であることなど、追加の仕様が必要である。また一般のモノイダル圏は対称とは限らないため、左右を交換できるとも限らない。
+\end{warningbox}
 
 \section{よくある誤解}
 

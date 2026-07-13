@@ -1,7 +1,7 @@
--- 出典: chapters/ch11_monad.tex:320
+-- 出典: chapters/ch17_monad.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Chapter11Monad
+namespace Chapter17
 
 def optPure {α : Type} (a : α) : Option α :=
   some a

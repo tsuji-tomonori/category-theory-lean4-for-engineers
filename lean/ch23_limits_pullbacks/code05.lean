@@ -1,7 +1,7 @@
--- 出典: chapters/ch17_limits_pullbacks.tex:291
+-- 出典: chapters/ch23_limits_pullbacks.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Ch17
+namespace Chapter23
 
 abbrev UserId := Nat
 
@@ -55,6 +55,22 @@ theorem toProfileOrder_order {X : Type}
     (h : forall x, (f x).userId = (g x).userId)
     (x : X) :
     (toProfileOrder f g h x).order = g x := rfl
+
+theorem toProfileOrder_unique {X : Type}
+    (f : X -> Profile) (g : X -> Order)
+    (h : forall x, (f x).userId = (g x).userId)
+    (k : X -> ProfileOrder)
+    (hp : forall x, (k x).profile = f x)
+    (ho : forall x, (k x).order = g x) :
+    k = toProfileOrder f g h := by
+  funext x
+  cases hx : k x with
+  | mk p o consistent =>
+      have hp' : p = f x := by simpa [hx] using hp x
+      have ho' : o = g x := by simpa [hx] using ho x
+      subst p
+      subst o
+      rfl
 
 theorem toProfileOrder_consistent {X : Type}
     (f : X -> Profile) (g : X -> Order)
@@ -120,4 +136,4 @@ def exampleJoined : ProfileOrder :=
 #eval exampleJoined.profile.displayName
 #eval exampleJoined.order.total
 
-end Ch17
+end Chapter23

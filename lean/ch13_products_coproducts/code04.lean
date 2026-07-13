@@ -1,7 +1,7 @@
--- 出典: chapters/ch07_products_coproducts.tex:168
+-- 出典: chapters/ch13_products_coproducts.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Ch07
+namespace Chapter13
 
 structure UserSummary where
   id   : Nat
@@ -48,4 +48,4 @@ def parseOk    : ParseResult := Sum.inr 200
 def showParseResult (r : ParseResult) : String :=
   match r with
   | Sum.inl _ => "parse failed"
-  | Sum.inr n => "parse ok"
+  | Sum.inr _n => "parse ok"

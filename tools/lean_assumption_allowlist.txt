@@ -1,0 +1,5 @@
+# path|kinds|reason
+lean/appD_migration_proof_checklist/code08.lean|axiom,sorry|読者が置き換える片方向互換テンプレート
+lean/appD_migration_proof_checklist/code09.lean|axiom,sorry|読者が置き換える完全同型テンプレート
+lean/appD_migration_proof_checklist/code10.lean|axiom,sorry|読者が置き換える制約付き同型テンプレート
+lean/appD_migration_proof_checklist/code11.lean|axiom,sorry|読者が置き換える仕様弱化テンプレート

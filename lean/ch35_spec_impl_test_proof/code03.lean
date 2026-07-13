@@ -1,7 +1,7 @@
--- 出典: chapters/ch29_spec_impl_test_proof.tex:203
+-- 出典: chapters/ch35_spec_impl_test_proof.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Chapter29
+namespace Chapter35
 
 structure PriceInput where
   base : Nat
@@ -30,7 +30,7 @@ example :
   rfl
 
 def withdrawCore (balance amount : Nat) : Option Nat :=
-  if h : amount <= balance then
+  if _h : amount <= balance then
     some (balance - amount)
   else
     none

@@ -193,7 +193,7 @@ theorem migrateAll_length (xs : List UserV1) :
   | nil =>
       rfl
   | cons x xs ih =>
-      simp [migrateAll, ih]
+      simp [migrateAll]
 \end{minted}
 \caption{1件の round-trip と件数保存}
 \label{lst:ch30-length-preservation}
@@ -297,7 +297,7 @@ theorem migrateAll_composition (xs : List UserV1) :
   | nil => rfl
   | cons x xs ih =>
       simp [migrateAllThenNormalize, normalizeAfterMigrateAll,
-        migrateThenNormalize, migrateAll, ih]
+        migrateThenNormalize, migrateAll]
 \end{minted}
 \caption{二段階移行をリスト全体へ持ち上げる}
 \label{lst:ch30-two-step-migration}
@@ -387,7 +387,7 @@ theorem migrateAll_preservesIds (xs : List UserV1) :
   | nil =>
       rfl
   | cons x xs ih =>
-      simp [idsV1, idsV2, migrateAll, migrate, ih]
+      simp [idsV1, idsV2, migrateAll, migrate]
 \end{minted}
 \caption{ID列の保存}
 \label{lst:ch30-id-preservation}
@@ -441,7 +441,7 @@ Leanで証明したのは、抽出したモデル上の性質である。
 本番移行では、実装との対応、入出力形式、DB制約、障害時の挙動、運用手順を別途確認する必要がある。
 \end{warningbox}
 
-\section{本章ではここまで}
+\section{本章のまとめ}
 
 本章では、\texttt{List.map} を使って1件の移行をリスト全体へ持ち上げた。
 確認した主張は、件数保存、合成保存、round-trip の持ち上げ、ID列の保存である。

@@ -5,11 +5,23 @@
 
 % Math
 \usepackage{amsmath,amssymb,mathtools}
+\usepackage{newunicodechar}
+% Lean/Mathlib symbols are rendered through math fonts so that the PDF does
+% not depend on incomplete monospace Unicode coverage.
+\newunicodechar{⟨}{\ensuremath{\langle}}
+\newunicodechar{⟩}{\ensuremath{\rangle}}
+\newunicodechar{⊢}{\ensuremath{\vdash}}
+\newunicodechar{⟶}{\ensuremath{\longrightarrow}}
+\newunicodechar{⥤}{\ensuremath{\rightsquigarrow}}
+\newunicodechar{𝟙}{\ensuremath{\mathbb{1}}}
 
 % Layout
 \usepackage{geometry}
 \geometry{margin=25mm}
 \usepackage{setspace}
+% Long identifiers and inline code occur frequently in this technical text.
+% Give TeX enough emergency flexibility to avoid text protruding into margins.
+\setlength{\emergencystretch}{3em}
 \setstretch{1.12}
 \usepackage{fancyhdr}
 \setlength{\footskip}{12pt}
@@ -42,6 +54,7 @@
 \setminted[lean4]{
   fontsize=\small,
   breaklines=true,
+  breakanywhere=true,
   breaksymbolleft={},
   frame=single,
   framerule=0.3pt,
@@ -54,7 +67,13 @@
   space=\copyablespace
 }
 % Hyperlinks
-\usepackage[hidelinks]{hyperref}
+\usepackage[
+  hidelinks,
+  pdftitle={ソフトウェアエンジニアのための圏論と Lean 4 入門},
+  pdfauthor={tsuji-tomonori},
+  pdfsubject={圏論と Lean 4 による仕様・同値性・安全なマイグレーション},
+  pdfkeywords={category theory, Lean 4, formal verification, software engineering}
+]{hyperref}
 \usepackage[nameinlink,noabbrev]{cleveref}
 
 % Table of contents

@@ -1,4 +1,4 @@
--- 出典: chapters/ch24_list_migration_functor_laws.tex:234
+-- 出典: chapters/ch30_list_migration_functor_laws.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 structure UserV1 where
@@ -45,7 +45,7 @@ theorem migrateAll_length (xs : List UserV1) :
   | nil =>
       rfl
   | cons x xs ih =>
-      simp [migrateAll, ih]
+      simp [migrateAll]
 
 theorem list_map_id {A : Type} (xs : List A) :
     xs.map (fun x => x) = xs := by

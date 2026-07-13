@@ -1,7 +1,7 @@
--- 出典: chapters/ch12_equations_rewriting_normalization.tex:114
+-- 出典: chapters/ch18_equations_rewriting_normalization.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Ch12
+namespace Chapter18
 
 def subtotal (base discount : Nat) : Nat :=
   base - discount

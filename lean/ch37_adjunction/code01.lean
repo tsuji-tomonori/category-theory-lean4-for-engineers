@@ -1,7 +1,7 @@
--- 出典: chapters/ch31_adjunction.tex:112
+-- 出典: chapters/ch37_adjunction.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Ch31Adjunction
+namespace Chapter37
 
 structure TinyMonoid (M : Type) where
   unit : M
@@ -22,13 +22,13 @@ def listMonoid (A : Type) : TinyMonoid (List A) where
     induction xs with
     | nil => rfl
     | cons x xs ih =>
-        simp [List.append, ih]
+        simp [List.append]
   assoc := by
     intro xs ys zs
     induction xs with
     | nil => rfl
     | cons x xs ih =>
-        simp [List.append, ih]
+        simp [List.append]
 
 structure MonoidObject where
   Carrier : Type

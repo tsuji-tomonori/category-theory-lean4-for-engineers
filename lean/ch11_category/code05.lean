@@ -1,7 +1,7 @@
--- 出典: chapters/ch05_category.tex:377
+-- 出典: chapters/ch11_category.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Ch05Category
+namespace Chapter11
 
 def idFn {A : Type} (x : A) : A :=
   x
@@ -60,4 +60,4 @@ theorem remove_noop_pointwise (s : String) :
     pipelineWithNoOp s = pipelineLeft s := by
   rfl
 
-end Ch05Category
+end Chapter11

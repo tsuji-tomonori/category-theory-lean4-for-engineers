@@ -117,13 +117,17 @@ def optBind {α β : Type} (x : Option α) (f : α → Option β) : Option β :=
 
 \section{モナド則をリファクタリング規則として読む}
 
+本章は\texttt{Option}、\texttt{Except}、状態の小モデルに限定する。一般のモナドの圏論的定義や、非同期runtimeの取消・再試行・外部状態までを形式化したものではない~\cite{riehl-category-theory-in-context}。
+
 モナドには三つの基本法則がある。
 数学としては、これらは \texttt{pure} と \texttt{bind} が一貫して振る舞うことを表す。
 ソフトウェア的には、これらは effectful code のリファクタリング規則である。
 つまり、不要な包みを消してもよいこと、何もしない後続処理を消してもよいこと、括弧の付け方を変えてもよいことを保証する。
 
 \begin{center}
-\begin{tabular}{p{0.23\linewidth}p{0.34\linewidth}p{0.35\linewidth}}
+\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}p{0.18\linewidth}p{0.34\linewidth}p{0.42\linewidth}@{}}
 \toprule
 法則 & 形 & リファクタリングとしての読み方 \\
 \midrule

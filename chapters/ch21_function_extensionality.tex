@@ -93,7 +93,7 @@ Lean では \texttt{∀ x, f x = g x} が「任意の入力 \texttt{x} につい
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
-namespace Ch15
+namespace Chapter21
 
 -- 点ごとの一致を、名前を付けて読みやすくする。
 def pointwiseEq {α β : Type} (f g : α → β) : Prop :=
@@ -106,7 +106,7 @@ theorem funext_from_pointwise
   funext x
   exact h x
 
-end Ch15
+end Chapter21
 \end{minted}
 \caption{点ごとの一致から関数の等式へ}
 \label{lst:ch21-pointwise-funext}
@@ -129,7 +129,7 @@ end Ch15
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
-namespace Ch15
+namespace Chapter21
 
 def oldPlusOne (n : Nat) : Nat :=
   (fun x => x + 1) n
@@ -143,7 +143,7 @@ theorem oldPlusOne_eq_newPlusOne :
   funext n
   rfl
 
-end Ch15
+end Chapter21
 \end{minted}
 \caption{書き方が違う関数の等しさ}
 \label{lst:ch21-old-new-plus-one}
@@ -159,7 +159,7 @@ end Ch15
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
-namespace Ch15
+namespace Chapter21
 
 -- 入力をそのまま元の関数に渡すだけの wrapper。
 def noopWrapper {α β : Type} (f : α → β) : α → β :=
@@ -171,7 +171,7 @@ theorem noopWrapper_eq {α β : Type} (f : α → β) :
   funext x
   rfl
 
-end Ch15
+end Chapter21
 \end{minted}
 \caption{何もしない wrapper は元の関数と等しい}
 \label{lst:ch21-noop-wrapper}
@@ -198,7 +198,7 @@ Lean では、次の二つは似ているが、使える場面が少し違う。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
-namespace Ch15
+namespace Chapter21
 
 theorem apply_pointwise
     {α β : Type} {f g : α → β}
@@ -213,7 +213,7 @@ theorem function_eq_to_pointwise
   intro x
   rw [h]
 
-end Ch15
+end Chapter21
 \end{minted}
 \caption{点ごとの等式と関数等式の行き来}
 \label{lst:ch21-pointwise-vs-function}
@@ -227,7 +227,7 @@ end Ch15
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
-namespace Ch15
+namespace Chapter21
 
 structure Request where
   userId : Nat
@@ -250,7 +250,7 @@ def clientV2 (r : Request) : Response :=
 
 #eval clientV1 { userId := 1, amount := 100 }  -- => { status := 200, value := 101 }
 
-end Ch15
+end Chapter21
 \end{minted}
 \caption{API client の小さなモデル}
 \label{lst:ch21-api-model}
@@ -260,7 +260,7 @@ end Ch15
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
-namespace Ch15
+namespace Chapter21
 
 -- すべての Request で同じ Response を返すので、
 -- 関数としても等しい。
@@ -269,7 +269,7 @@ theorem clientV1_eq_clientV2 :
   funext r
   rfl
 
-end Ch15
+end Chapter21
 \end{minted}
 \caption{新旧 API client の振る舞い一致}
 \label{lst:ch21-api-client-eq}
@@ -291,7 +291,7 @@ end Ch15
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
-namespace Ch15
+namespace Chapter21
 
 def addDefaultHeader
     (client : Request → Response) : Request → Response :=
@@ -307,7 +307,7 @@ theorem wrapper_order_eq (client : Request → Response) :
   funext r
   rfl
 
-end Ch15
+end Chapter21
 \end{minted}
 \caption{戻り値を変えない wrapper の順序交換}
 \label{lst:ch21-wrapper-order}
@@ -327,7 +327,7 @@ end Ch15
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
-namespace Ch15
+namespace Chapter21
 
 def clientWithFallback
     (client : Request → Option Response) : Request → Option Response :=
@@ -342,7 +342,7 @@ theorem clientWithFallback_eq
   funext r
   cases h : client r <;> simp [clientWithFallback, h]
 
-end Ch15
+end Chapter21
 \end{minted}
 \caption{場合分けを含む wrapper の等しさ}
 \label{lst:ch21-option-wrapper}

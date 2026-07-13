@@ -1,7 +1,7 @@
--- 出典: chapters/ch06_isomorphism.tex:326
+-- 出典: chapters/ch12_isomorphism.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Ch06
+namespace Chapter12
 
 universe u v
 
@@ -96,4 +96,4 @@ example : defaultUser (eraseToUnit sampleUser) ≠ sampleUser := by
 #eval migrate sampleUser
 #eval rollback (migrate sampleUser)
 
-end Ch06
+end Chapter12

@@ -1,7 +1,7 @@
--- 出典: chapters/ch08_functor.tex:374
+-- 出典: chapters/ch14_functor.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Chapter08
+namespace Chapter14
 
 def addOne (n : Nat) : Nat :=
   n + 1
@@ -121,4 +121,4 @@ theorem migrateUsers_preserves_ids (users : List UserV1) :
     idsV2 (migrateUsers users) = idsV1 users := by
   simp [idsV1, idsV2, migrateUsers, migrateUser]
 
-end Chapter08
+end Chapter14

@@ -1,7 +1,7 @@
--- 出典: chapters/ch26_db_schema_query_preservation.tex:245
+-- 出典: chapters/ch32_db_schema_query_preservation.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Ch26
+namespace Chapter32
 
 structure OrderOld where
   orderId : Nat

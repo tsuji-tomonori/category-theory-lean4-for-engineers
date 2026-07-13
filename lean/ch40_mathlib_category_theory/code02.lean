@@ -1,4 +1,4 @@
--- 出典: chapters/ch34_mathlib_category_theory.tex:115
+-- 出典: chapters/ch40_mathlib_category_theory.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 import Mathlib.CategoryTheory.Category.Basic
@@ -28,14 +28,14 @@ variable {C : Type u} [Category.{v} C]
 variable {W X Y Z : C}
 
 theorem id_then (f : X ⟶ Y) : (𝟙 X) ≫ f = f := by
-  simpa
+  simp
 
 theorem then_id (f : X ⟶ Y) : f ≫ (𝟙 Y) = f := by
-  simpa
+  simp
 
 theorem comp_assoc_example
     (f : W ⟶ X) (g : X ⟶ Y) (h : Y ⟶ Z) :
     (f ≫ g) ≫ h = f ≫ (g ≫ h) := by
-  simpa using (Category.assoc f g h)
+  simp
 
 end CategoryLaws

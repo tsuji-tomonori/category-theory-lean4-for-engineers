@@ -1,4 +1,4 @@
--- 出典: chapters/ch07_variables_and_forall.tex
+-- 出典: chapters/ch07_variables_and_forall.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 def toDtoId (id : Nat) : Nat :=

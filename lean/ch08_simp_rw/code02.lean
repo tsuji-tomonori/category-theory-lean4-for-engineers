@@ -1,4 +1,4 @@
--- 出典: chapters/ch08_simp_rw.tex
+-- 出典: chapters/ch08_simp_rw.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 def addTax (price tax : Nat) : Nat :=

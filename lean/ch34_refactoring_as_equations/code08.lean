@@ -1,7 +1,7 @@
--- 出典: chapters/ch28_refactoring_as_equations.tex:272
+-- 出典: chapters/ch34_refactoring_as_equations.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Chapter28
+namespace Chapter34
 
 def basePrice (subtotal shipping : Nat) : Nat :=
   subtotal + shipping
@@ -106,4 +106,4 @@ theorem option_bind_pure_right (mx : Option Nat) :
   | none => rfl
   | some x => rfl
 
-end Chapter28
+end Chapter34

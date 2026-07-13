@@ -1,7 +1,7 @@
--- 出典: chapters/ch13_cases_patterns.tex:215
+-- 出典: chapters/ch19_cases_patterns.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Ch13CasesPatterns
+namespace Chapter19
 
 def boolCode (b : Bool) : Nat :=
   match b with

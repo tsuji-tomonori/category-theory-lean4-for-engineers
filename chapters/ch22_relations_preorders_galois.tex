@@ -52,7 +52,7 @@ Lean では、関係を単なる関数として書ける。返り値が \texttt{
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
-namespace Ch16
+namespace Chapter22
 
 -- A と B の間の関係は、A の値と B の値から命題を作るもの。
 def Rel (A B : Type) := A -> B -> Prop
@@ -176,7 +176,7 @@ theorem detail_trans :
 theorem no_secret_as_public :
     detailLe Detail.secretLevel Detail.publicLevel -> False := by
   intro h
-  simpa [detailLe] using h
+  simp [detailLe] at h
 \end{minted}
 \caption{秘密情報をそのまま公開扱いにできないこと}
 \label{lst:ch22-no-downgrade}
@@ -304,6 +304,8 @@ theorem allow_monotone :
 \FigurePlaceholder{fig-ch22-abstraction-concretization.png}{0.92}{詳細な世界と抽象的な世界を抽象化・具体化で結ぶ}{fig:ch22-abstraction-concretization}
 
 \section{Galois 接続：抽象化と具体化の対応}
+
+本章では、\(\alpha(a) \leq b \Longleftrightarrow a \leq \gamma(b)\) の向きを採用する。前順序を圏と見たときの随伴との対応は標準的な圏論の定式化に従う~\cite{riehl-category-theory-in-context}。
 
 Galois 接続は、抽象化 \(\alpha\) と具体化 \(\gamma\) が、順序の比較を通じてぴったり対応していることを表す法則である。
 

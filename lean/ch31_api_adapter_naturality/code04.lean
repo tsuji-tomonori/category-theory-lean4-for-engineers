@@ -1,7 +1,7 @@
--- 出典: chapters/ch25_api_adapter_naturality.tex:226
+-- 出典: chapters/ch31_api_adapter_naturality.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Chapter25
+namespace Chapter31
 
 structure OldResponse (A : Type) where
   status : Nat

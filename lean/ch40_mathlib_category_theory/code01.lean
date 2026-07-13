@@ -1,4 +1,4 @@
--- 出典: chapters/ch34_mathlib_category_theory.tex:70
+-- 出典: chapters/ch40_mathlib_category_theory.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 import Mathlib.CategoryTheory.Category.Basic

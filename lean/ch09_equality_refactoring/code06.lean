@@ -1,7 +1,7 @@
--- 出典: chapters/ch03_equality_refactoring.tex:287
+-- 出典: chapters/ch09_equality_refactoring.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Ch03EqualityRefactoring
+namespace Chapter09
 
 def rawCalc (x : Nat) : Nat :=
   (x + 0) * 1
@@ -75,4 +75,4 @@ def discount100 (n : Nat) : Nat :=
 #eval discount100 (addShipping 50)
 #eval addShipping (discount100 50)
 
-end Ch03EqualityRefactoring
+end Chapter09

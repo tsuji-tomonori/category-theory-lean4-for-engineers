@@ -1,4 +1,4 @@
--- 出典: chapters/app_c_property_patterns.tex:230
+-- 出典: chapters/app_c_property_patterns.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 structure UserV1 where

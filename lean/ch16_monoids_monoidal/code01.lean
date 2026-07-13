@@ -1,7 +1,7 @@
--- 出典: chapters/ch10_monoids_monoidal.tex:192
+-- 出典: chapters/ch16_monoids_monoidal.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Chapter10
+namespace Chapter16
 
 abbrev Log := List String
 
@@ -18,8 +18,8 @@ theorem combineLog_empty_left (xs : Log) :
 
 theorem combineLog_empty_right (xs : Log) :
     combineLog xs emptyLog = xs := by
-  simpa [combineLog, emptyLog] using List.append_nil xs
+  simp [combineLog, emptyLog]
 
 theorem combineLog_assoc (a b c : Log) :
     combineLog (combineLog a b) c = combineLog a (combineLog b c) := by
-  simpa [combineLog] using List.append_assoc a b c
+  simp [combineLog]

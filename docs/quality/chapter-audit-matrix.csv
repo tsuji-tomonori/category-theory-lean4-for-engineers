@@ -1,0 +1,46 @@
+unit,file,math_owner,lean_owner,education_owner,analogy_owner,source_owner,figure_owner,focus,status,acceptance
+ch00,chapters/ch00_map.tex,math,lean,education,domain,editorial,figure,地図と保証境界,active,M1-L1-E1-A1-S1-F1
+ch01,chapters/ch01_reading_code.tex,math,lean,education,domain,editorial,figure,checkとeval,pending,M1-L1-E1-A1-S1-F1
+ch02,chapters/ch02_values_types_functions.tex,math,lean,education,domain,editorial,figure,型・値・関数,pending,M1-L1-E1-A1-S1-F1
+ch03,chapters/ch03_equations_as_props.tex,math,lean,education,domain,editorial,figure,評価と命題,pending,M1-L1-E1-A1-S1-F1
+ch04,chapters/ch04_rfl.tex,math,lean,education,domain,editorial,figure,定義的等しさ,pending,M1-L1-E1-A1-S1-F1
+ch05,chapters/ch05_prop_and_specs.tex,math,lean,education,domain,editorial,figure,BoolとProp,active,M1-L1-E1-A1-S1-F1
+ch06,chapters/ch06_example_theorem.tex,math,lean,education,domain,editorial,figure,exampleとtheorem,pending,M1-L1-E1-A1-S1-F1
+ch07,chapters/ch07_variables_and_forall.tex,math,lean,education,domain,editorial,figure,概念過密,active,M1-L1-E1-A1-S1-F1
+ch08,chapters/ch08_simp_rw.tex,math,lean,education,domain,editorial,figure,simpとrw,pending,M1-L1-E1-A1-S1-F1
+ch09,chapters/ch09_equality_refactoring.tex,math,lean,education,domain,editorial,figure,観測同値,active,M1-L1-E1-A1-S1-F1
+ch10,chapters/ch10_invariants.tex,math,lean,education,domain,editorial,figure,不変条件の負荷,active,M1-L1-E1-A1-S1-F1
+ch11,chapters/ch11_category.tex,math,lean,education,domain,editorial,figure,合成方向とuniverse,active,M1-L1-E1-A1-S1-F1
+ch12,chapters/ch12_isomorphism.tex,math,lean,education,domain,editorial,figure,両逆と同型,active,M1-L1-E1-A1-S1-F1
+ch13,chapters/ch13_products_coproducts.tex,math,lean,education,domain,editorial,figure,普遍性,active,M1-L1-E1-A1-S1-F1
+ch14,chapters/ch14_functor.tex,math,lean,education,domain,editorial,figure,mapと関手則,active,M1-L1-E1-A1-S1-F1
+ch15,chapters/ch15_natural_transformation.tex,math,lean,education,domain,editorial,figure,多相性と自然性,active,M1-L1-E1-A1-S1-F1
+ch16,chapters/ch16_monoids_monoidal.tex,math,lean,education,domain,editorial,figure,tensorと並列,active,M1-L1-E1-A1-S1-F1
+ch17,chapters/ch17_monad.tex,math,lean,education,domain,editorial,figure,失敗・状態・非同期,active,M1-L1-E1-A1-S1-F1
+ch18,chapters/ch18_equations_rewriting_normalization.tex,math,lean,education,domain,editorial,figure,書き換え方向,pending,M1-L1-E1-A1-S1-F1
+ch19,chapters/ch19_cases_patterns.tex,math,lean,education,domain,editorial,figure,場合分け,pending,M1-L1-E1-A1-S1-F1
+ch20,chapters/ch20_induction.tex,math,lean,education,domain,editorial,figure,帰納仮定,pending,M1-L1-E1-A1-S1-F1
+ch21,chapters/ch21_function_extensionality.tex,math,lean,education,domain,editorial,figure,関数外延性,active,M1-L1-E1-A1-S1-F1
+ch22,chapters/ch22_relations_preorders_galois.tex,math,lean,education,domain,editorial,figure,Galois方向と負荷,active,M1-L1-E1-A1-S1-F1
+ch23,chapters/ch23_limits_pullbacks.tex,math,lean,education,domain,editorial,figure,Pullback普遍性,active,M1-L1-E1-A1-S1-F1
+ch24,chapters/ch24_spec_to_lean.tex,math,lean,education,domain,editorial,figure,仕様分解,pending,M1-L1-E1-A1-S1-F1
+ch25,chapters/ch25_account_spec_proof.tex,math,lean,education,domain,editorial,figure,状態と総量,active,M1-L1-E1-A1-S1-F1
+ch26,chapters/ch26_price_spec.tex,math,lean,education,domain,editorial,figure,丸めとNat,active,M1-L1-E1-A1-S1-F1
+ch27,chapters/ch27_migration_classification.tex,math,lean,education,domain,editorial,figure,分類軸とprivacy,active,M1-L1-E1-A1-S1-F1
+ch28,chapters/ch28_user_schema_lossless_migration.tex,math,lean,education,domain,editorial,figure,両round-trip,active,M1-L1-E1-A1-S1-F1
+ch29,chapters/ch29_lossy_migration.tex,math,lean,education,domain,editorial,figure,lossyと観測,active,M1-L1-E1-A1-S1-F1
+ch30,chapters/ch30_list_migration_functor_laws.tex,math,lean,education,domain,editorial,figure,List関手則,active,M1-L1-E1-A1-S1-F1
+ch31,chapters/ch31_api_adapter_naturality.tex,math,lean,education,domain,editorial,figure,adapter自然性,active,M1-L1-E1-A1-S1-F1
+ch32,chapters/ch32_db_schema_query_preservation.tex,math,lean,education,domain,editorial,figure,DB join境界,active,M1-L1-E1-A1-S1-F1
+ch33,chapters/ch33_composable_design.tex,math,lean,education,domain,editorial,figure,pureとeffect,active,M1-L1-E1-A1-S1-F1
+ch34,chapters/ch34_refactoring_as_equations.tex,math,lean,education,domain,editorial,figure,法則適用条件,active,M1-L1-E1-A1-S1-F1
+ch35,chapters/ch35_spec_impl_test_proof.tex,math,lean,education,domain,editorial,figure,旧番号と追跡,active,M1-L1-E1-A1-S1-F1
+ch36,chapters/ch36_team_operations.tex,math,lean,education,domain,editorial,figure,READMEとCI,active,M1-L1-E1-A1-S1-F1
+ch37,chapters/ch37_adjunction.tex,math,lean,education,domain,editorial,figure,free普遍性と随伴,active,M1-L1-E1-A1-S1-F1
+ch38,chapters/ch38_yoneda_interface.tex,math,lean,education,domain,editorial,figure,Yonedaと値分離,active,M1-L1-E1-A1-S1-F1
+ch39,chapters/ch39_topos_type_theory_spec_languages.tex,math,lean,education,domain,editorial,figure,toposとDSL,active,M1-L1-E1-A1-S1-F1
+ch40,chapters/ch40_mathlib_category_theory.tex,math,lean,education,domain,editorial,figure,Mathlib固定APIと組版,active,M1-L1-E1-A1-S1-F1
+appA,chapters/appA_lean4_min_cheatsheet.tex,math,lean,education,domain,editorial,figure,構文索引,pending,M1-L1-E1-A1-S1-F1
+appB,chapters/appB_category_cheatsheet.tex,math,lean,education,domain,editorial,figure,用語と図比率,active,M1-L1-E1-A1-S1-F1
+appC,chapters/app_c_property_patterns.tex,math,lean,education,domain,editorial,figure,仮定と反例,active,M1-L1-E1-A1-S1-F1
+appD,chapters/appD_migration_proof_checklist.tex,math,lean,education,domain,editorial,figure,教材穴と分類同期,active,M1-L1-E1-A1-S1-F1

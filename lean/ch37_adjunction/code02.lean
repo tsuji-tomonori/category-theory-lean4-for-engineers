@@ -1,7 +1,7 @@
--- 出典: chapters/ch31_adjunction.tex:152
+-- 出典: chapters/ch37_adjunction.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Ch31Adjunction
+namespace Chapter37
 
 structure TinyMonoid (M : Type) where
   unit : M
@@ -22,13 +22,13 @@ def listMonoid (A : Type) : TinyMonoid (List A) where
     induction xs with
     | nil => rfl
     | cons x xs ih =>
-        simp [List.append, ih]
+        simp [List.append]
   assoc := by
     intro xs ys zs
     induction xs with
     | nil => rfl
     | cons x xs ih =>
-        simp [List.append, ih]
+        simp [List.append]
 
 structure MonoidObject where
   Carrier : Type
@@ -75,3 +75,27 @@ structure MonoidHom (M N : Type)
   map_unit : toFun monM.unit = monN.unit
   map_op : forall x y : M,
     toFun (monM.op x y) = monN.op (toFun x) (toFun y)
+
+def foldMapHom {A M : Type} (mon : TinyMonoid M) (f : A -> M) :
+    MonoidHom (List A) M (listMonoid A) mon where
+  toFun := foldMap mon f
+  map_unit := rfl
+  map_op := by
+    intro xs ys
+    exact foldMap_append mon f xs ys
+
+theorem foldMapHom_unique {A M : Type} (mon : TinyMonoid M) (f : A -> M)
+    (h : MonoidHom (List A) M (listMonoid A) mon)
+    (h_single : forall a : A, h.toFun [a] = f a) :
+    forall xs : List A, h.toFun xs = foldMap mon f xs := by
+  intro xs
+  induction xs with
+  | nil =>
+      simpa [foldMap] using h.map_unit
+  | cons x xs ih =>
+      calc
+        h.toFun (x :: xs) = h.toFun ([x] ++ xs) := rfl
+        _ = mon.op (h.toFun [x]) (h.toFun xs) := h.map_op [x] xs
+        _ = mon.op (f x) (foldMap mon f xs) := by
+          simp [h_single x, ih]
+        _ = foldMap mon f (x :: xs) := rfl

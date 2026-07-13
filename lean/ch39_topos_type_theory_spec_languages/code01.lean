@@ -1,7 +1,7 @@
--- 出典: chapters/ch33_topos_type_theory_spec_languages.tex:97
+-- 出典: chapters/ch39_topos_type_theory_spec_languages.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Chapter33
+namespace Chapter39
 
 structure UserCtx where
   userId : Nat

@@ -1,7 +1,7 @@
--- 出典: chapters/ch19_account_spec_proof.tex:272
+-- 出典: chapters/ch25_account_spec_proof.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Chapter19
+namespace Chapter25
 
 abbrev AccountId := Nat
 abbrev Balance := Nat

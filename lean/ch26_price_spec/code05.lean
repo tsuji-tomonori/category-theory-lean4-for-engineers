@@ -1,9 +1,9 @@
--- 出典: chapters/ch20_price_spec.tex:244
+-- 出典: chapters/ch26_price_spec.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 import Std
 
-namespace Chapter20
+namespace Chapter26
 
 abbrev Money := Nat
 

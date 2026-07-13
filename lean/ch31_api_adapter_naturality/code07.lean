@@ -1,7 +1,7 @@
--- 出典: chapters/ch25_api_adapter_naturality.tex:318
+-- 出典: chapters/ch31_api_adapter_naturality.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Chapter25
+namespace Chapter31
 
 structure OldResponse (A : Type) where
   status : Nat
@@ -125,4 +125,4 @@ theorem adapt_sets_cached_false {A : Type} (r : OldResponse A) :
     (adapt r).cached = false := by
   rfl
 
-end Chapter25
+end Chapter31

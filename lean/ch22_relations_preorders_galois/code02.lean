@@ -1,7 +1,7 @@
--- 出典: chapters/ch16_relations_preorders_galois.tex:127
+-- 出典: chapters/ch22_relations_preorders_galois.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Ch16
+namespace Chapter22
 
 def Rel (A B : Type) := A -> B -> Prop
 

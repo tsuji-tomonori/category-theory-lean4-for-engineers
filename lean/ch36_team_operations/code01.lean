@@ -1,7 +1,7 @@
--- 出典: chapters/ch30_team_operations.tex:90
+-- 出典: chapters/ch36_team_operations.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Chapter30
+namespace Chapter36
 
 inductive SpecStatus where
   | draft

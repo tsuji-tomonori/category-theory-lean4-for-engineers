@@ -1,7 +1,7 @@
--- 出典: chapters/ch09_natural_transformation.tex:348
+-- 出典: chapters/ch15_natural_transformation.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Chapter09
+namespace Chapter15
 
 def optionMap {A B : Type} (f : A -> B) : Option A -> Option B
   | none => none

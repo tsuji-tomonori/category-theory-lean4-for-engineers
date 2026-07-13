@@ -1,7 +1,7 @@
--- 出典: chapters/ch22_user_schema_lossless_migration.tex:314
+-- 出典: chapters/ch28_user_schema_lossless_migration.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Chapter22
+namespace Chapter28
 
 structure UserV1 where
   id : Nat
@@ -96,4 +96,4 @@ theorem batch_rollback_migrate (users : List UserV1) :
     unfold batchMigrate batchRollback at ih ⊢
     simp [rollback_migrate, ih]
 
-end Chapter22
+end Chapter28

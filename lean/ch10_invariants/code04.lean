@@ -1,7 +1,7 @@
--- 出典: chapters/ch04_invariants.tex:288
+-- 出典: chapters/ch10_invariants.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Chapter04
+namespace Chapter10
 
 structure User where
   id : Nat

@@ -182,6 +182,8 @@ example : defaultUser (eraseToUnit sampleUser) ≠ sampleUser := by
 \end{table}
 
 \section{Lean 4 で小さな同型構造を定義する}
+
+圏論における同型は、互いに逆となる二つの射を持つこととして定義する~\cite{leinster-basic-category-theory,riehl-category-theory-in-context}。本章の\texttt{Iso}は型と関数の圏に限定した小さなモデルである。
 \label{sec:ch12-lean-iso}
 
 本書では、初期章ではMathlibの高度な圏論APIを使わず、自作の小さな構造で概念をつかむ。Leanでは、同型を「二つの関数」と「二つの証明」を持つ構造体として定義できる。

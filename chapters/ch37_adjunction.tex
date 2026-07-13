@@ -170,8 +170,32 @@ structure MonoidHom (M N : Type)
   map_unit : toFun monM.unit = monN.unit
   map_op : forall x y : M,
     toFun (monM.op x y) = monN.op (toFun x) (toFun y)
+
+def foldMapHom {A M : Type} (mon : TinyMonoid M) (f : A -> M) :
+    MonoidHom (List A) M (listMonoid A) mon where
+  toFun := foldMap mon f
+  map_unit := rfl
+  map_op := by
+    intro xs ys
+    exact foldMap_append mon f xs ys
+
+theorem foldMapHom_unique {A M : Type} (mon : TinyMonoid M) (f : A -> M)
+    (h : MonoidHom (List A) M (listMonoid A) mon)
+    (h_single : forall a : A, h.toFun [a] = f a) :
+    forall xs : List A, h.toFun xs = foldMap mon f xs := by
+  intro xs
+  induction xs with
+  | nil =>
+      simpa [foldMap] using h.map_unit
+  | cons x xs ih =>
+      calc
+        h.toFun (x :: xs) = h.toFun ([x] ++ xs) := rfl
+        _ = mon.op (h.toFun [x]) (h.toFun xs) := h.map_op [x] xs
+        _ = mon.op (f x) (foldMap mon f xs) := by
+          simp [h_single x, ih]
+        _ = foldMap mon f (x :: xs) := rfl
 \end{minted}
-\caption{foldMap はリスト連結をモノイド演算へ送る}
+\caption{foldMap はリスト連結を保存し、その条件を満たす拡張は一意である}
 \label{lst:ch37_foldmap_hom}
 \end{listing}
 
@@ -201,9 +225,11 @@ free monoid の普遍性では、\texttt{f : A -> M} を拡張するモノイド
 一意性は、「実装の選択肢を減らす」効果を持つ。要素レベルの意味づけと、空・結合を保つという設計方針が決まれば、リスト全体の処理は自動的に決まる。これは、バッチ処理、ログ集約、設定生成、DSL の評価器で役に立つ見方である。
 \end{softwarebox}
 
-本章の Lean ファイルでは、この一意性も小さな定理として示している。本文では証明の全行を追わないが、考え方は単純である。リストに対する帰納法を使い、空リストでは単位元保存、\texttt{x :: xs} では \texttt{[x] ++ xs} と見て、準同型が結合を保存することを使う。
+コード\ref{lst:ch37_foldmap_hom}の\texttt{foldMapHom\_unique}がこの一意性を示す。リストに対する帰納法を使い、空リストでは単位元保存、\texttt{x :: xs} では \texttt{[x] ++ xs} と見て、準同型が結合を保存することを使う。
 
 \section{随伴の定義を少しだけ見る}
+
+一般の随伴はHom集合の全単射だけでなく、両変数について自然な同型として定義される~\cite{leinster-basic-category-theory,riehl-category-theory-in-context}。
 \label{sec:ch37-adjunction-definition}
 
 ここで、一般の随伴の定義を少しだけ覗いておく。二つの圏 \(\mathcal{C}\) と \(\mathcal{D}\) があり、関手

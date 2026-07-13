@@ -1,4 +1,4 @@
--- 出典: chapters/appB_category_cheatsheet.tex:309
+-- 出典: chapters/appB_category_cheatsheet.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
 def idFn (A : Type) : A -> A := fun x => x

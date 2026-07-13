@@ -88,17 +88,9 @@
 \IfFileExists{figures/#1}{%
   \includegraphics[width=#2\linewidth]{figures/#1}%
 }{%
-  \fbox{%
-    \begin{minipage}[c][0.26\textheight][c]{#2\linewidth}
-    \centering
-    \vspace{0.5em}
-    {\Large 図プレースホルダー}\par\vspace{0.8em}
-    画像ファイル: \texttt{figures/#1}\par\vspace{0.4em}
-    ラベル: \texttt{#4}\par\vspace{0.8em}
-    \small 後で生成画像をこのファイル名で配置する。
-    \vspace{0.5em}
-    \end{minipage}%
-  }%
+  \PackageError{category-theory-lean4-for-engineers}%
+    {Required figure `figures/#1' is missing}%
+    {Add the referenced figure before building a release PDF.}%
 }
 \caption{#3}
 \label{#4}

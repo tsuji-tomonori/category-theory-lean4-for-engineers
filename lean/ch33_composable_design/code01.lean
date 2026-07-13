@@ -1,7 +1,7 @@
--- 出典: chapters/ch27_composable_design.tex:104
+-- 出典: chapters/ch33_composable_design.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Ch27
+namespace Chapter33
 
 variable {A B C D : Type}
 

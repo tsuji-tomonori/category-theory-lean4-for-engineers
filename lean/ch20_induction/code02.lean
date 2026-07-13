@@ -1,7 +1,7 @@
--- 出典: chapters/ch14_induction.tex:164
+-- 出典: chapters/ch20_induction.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Ch14
+namespace Chapter20
 
 structure UserV1 where
   id : Nat

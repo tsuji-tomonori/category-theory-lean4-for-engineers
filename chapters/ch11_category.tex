@@ -245,7 +245,7 @@ Lean では、型と関数をそのまま扱える。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
-namespace Ch05Category
+namespace Chapter11
 
 -- 対象を型、射を関数として見る。
 -- idFn は「何もしない処理」である。
@@ -256,7 +256,7 @@ def idFn {A : Type} (x : A) : A :=
 def comp {A B C : Type} (g : B -> C) (f : A -> B) : A -> C :=
   fun x => g (f x)
 
-end Ch05Category
+end Chapter11
 \end{minted}
 \caption{恒等関数と関数合成を小さく定義する}
 \label{lst:ch11_id_comp}
@@ -272,7 +272,7 @@ end Ch05Category
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
-namespace Ch05Category
+namespace Chapter11
 
 -- 左から恒等処理を合成しても、結果は変わらない。
 theorem id_left_pointwise {A B : Type} (f : A -> B) (x : A) :
@@ -290,7 +290,7 @@ theorem comp_assoc_pointwise {A B C D : Type}
     comp (comp h g) f x = comp h (comp g f) x := by
   rfl
 
-end Ch05Category
+end Chapter11
 \end{minted}
 \caption{恒等律と結合律を点ごとの等式として確認する}
 \label{lst:ch11_laws}
@@ -308,7 +308,7 @@ end Ch05Category
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
-namespace Ch05Category
+namespace Chapter11
 
 -- 例を小さくするため、文字列の長さをユーザーIDの代わりに使う。
 def parseUserId (s : String) : Nat :=
@@ -330,7 +330,7 @@ def pipelineRight : String -> String :=
 
 #eval pipelineLeft "abc"  -- => "hello, user-3"
 
-end Ch05Category
+end Chapter11
 \end{minted}
 \caption{三段階の処理パイプラインを定義する}
 \label{lst:ch11_pipeline}
@@ -342,7 +342,7 @@ end Ch05Category
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
-namespace Ch05Category
+namespace Chapter11
 
 -- 点ごとに見ると、両方のパイプラインは同じ式へ展開される。
 theorem pipeline_assoc_pointwise (s : String) :
@@ -357,7 +357,7 @@ theorem pipeline_review_log (s : String) :
         = renderGreeting (fetchUserName (parseUserId s)) := by rfl
     _   = pipelineRight s := by rfl
 
-end Ch05Category
+end Chapter11
 \end{minted}
 \caption{パイプラインの結合律をレビュー可能な形で確認する}
 \label{lst:ch11_pipeline_proof}
@@ -375,7 +375,7 @@ end Ch05Category
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
-namespace Ch05Category
+namespace Chapter11
 
 -- 何もしない文字列処理。
 def noOpString : String -> String :=
@@ -390,7 +390,7 @@ theorem remove_noop_pointwise (s : String) :
     pipelineWithNoOp s = pipelineLeft s := by
   rfl
 
-end Ch05Category
+end Chapter11
 \end{minted}
 \caption{何もしない処理を取り除いても結果が変わらない}
 \label{lst:ch11_noop}
@@ -404,6 +404,8 @@ Lean では、その主張を「すべての入力で結果が一致する」と
 \FigurePlaceholder{fig-ch11-noop-removal.png}{0.88}{恒等処理をパイプラインから取り除いても結果が変わらない}{fig:ch11-noop-removal}
 
 \section{圏を定義として見る}
+
+圏、恒等射、合成、結合律の標準的な定義と記法については、Leinster~\cite{leinster-basic-category-theory}およびRiehl~\cite{riehl-category-theory-in-context}を基準とする。本章の型と関数の例はその特殊例であり、一般の圏の射が関数であるとは限らない。
 
 ここまで、型と関数の世界で対象、射、合成、恒等射を見てきた。
 ここで、圏の定義を少しだけ一般化して眺める。
@@ -487,6 +489,10 @@ adapter を入れるなら、その adapter が何を保存するのかを明確
 恒等射は、何もしないので軽く見られやすい。
 しかし、何もしない処理が「本当に何もしない」と言えることは重要である。
 互換層やデフォルト設定、無効化されたフィルタを安全に取り除けるかどうかは、恒等律として考えられる。
+
+\section{本章のまとめ}
+
+対象、射、恒等射、合成と二つの法則が圏の最小語彙である。\(g \circ f\) は先に\(f\)、次に\(g\)と読む。型と純粋関数は重要な例だが、一般の圏の対象を型、射を関数と無条件に同一視しない。
 
 \section{次章への接続}
 

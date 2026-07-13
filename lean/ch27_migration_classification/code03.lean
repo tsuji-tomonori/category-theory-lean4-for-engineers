@@ -1,7 +1,7 @@
--- 出典: chapters/ch21_migration_classification.tex:168
+-- 出典: chapters/ch27_migration_classification.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Ch21MigrationClassification
+namespace Chapter27
 
 structure EquivLike (A B : Type) where
   toFun : A -> B

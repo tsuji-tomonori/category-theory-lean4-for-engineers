@@ -251,7 +251,7 @@ theorem migrateItems_preserves_length (xs : List ItemV1) :
 \end{listing}
 
 このコードでは、1件の移行関数\texttt{migrateItem}を\texttt{List.map}で全要素へ適用している。
-\texttt{migrateItems\_preserves\_length}は、要素を変換してもリストの件数は変わらないことを帰納法で示している。
+\path{migrateItems_preserves_length}は、要素を変換してもリストの件数は変わらないことを帰納法で示している。
 
 \subsection{実務での注意}
 
@@ -294,7 +294,7 @@ theorem migrateRows_preserves_ids (rs : List Row) :
   induction rs with
   | nil => rfl
   | cons r rs ih =>
-      simp [migrateRow, ih]
+      simp [migrateRow]
 \end{minted}
 \caption{単体とリスト全体のキー保存}
 \label{lst:appc_preserves_keys}
@@ -517,7 +517,7 @@ theorem ensureEven_post (n out : Nat) :
 \end{listing}
 
 このコードでは、失敗しうる処理の成功結果だけに事後条件を課している。
-\texttt{withdrawChecked\_success\_post}は、\texttt{some newBalance}が返った場合、その値が期待する条件を満たすことを示す例である。
+\path{withdrawChecked_success_post}は、\texttt{some newBalance}が返った場合、その値が期待する条件を満たすことを示す例である。
 
 \subsection{実務での注意}
 

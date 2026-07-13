@@ -1,11 +1,11 @@
--- 出典: chapters/ch32_yoneda_interface.tex:204
+-- 出典: chapters/ch38_yoneda_interface.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Ch32YonedaInterface
+namespace Chapter38
 
 def observeAll {A : Type} (x : A) :
     (B : Type) -> (A -> B) -> B :=
-  fun B f => f x
+  fun _ f => f x
 
 theorem recover_by_id {A : Type} (x : A) :
     observeAll x A (fun a => a) = x :=
@@ -21,7 +21,7 @@ def post {A B C : Type} (g : B -> C) (f : A -> B) :
   fun a => g (f a)
 
 theorem equal_values_same_observations
-    {A B : Type} {x y : A}
+    {A _B : Type} {x y : A}
     (h : x = y) (f : A -> B) :
     f x = f y := by
   cases h
@@ -62,4 +62,4 @@ def userB : User := { id := 1, name := "Alicia" }
 example : sameById userA userB :=
   rfl
 
-end Ch32YonedaInterface
+end Chapter38

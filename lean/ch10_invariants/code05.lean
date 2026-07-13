@@ -1,7 +1,7 @@
--- 出典: chapters/ch04_invariants.tex:346
+-- 出典: chapters/ch10_invariants.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Chapter04
+namespace Chapter10
 
 structure User where
   id : Nat
@@ -50,7 +50,7 @@ def depositValid (a : ValidAccount) (amount : Nat) : ValidAccount :=
     (deposit_preserves_valid a.val amount a.property)
 
 def withdrawOpt (a : Account) (amount : Nat) : Option Account :=
-  if h : amount <= a.balance then
+  if _h : amount <= a.balance then
     some { a with balance := a.balance - amount }
   else
     none

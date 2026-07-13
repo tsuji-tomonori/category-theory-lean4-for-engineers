@@ -1,7 +1,7 @@
--- 出典: chapters/ch12_equations_rewriting_normalization.tex:271
+-- 出典: chapters/ch18_equations_rewriting_normalization.tex（対応する本文コードブロック）
 -- このファイルは単独でコンパイルできるよう、必要な前提定義を含む。
 
-namespace Ch12
+namespace Chapter18
 
 def subtotal (base discount : Nat) : Nat :=
   base - discount
@@ -104,4 +104,4 @@ theorem chargeLegacy_eq_chargeNormalized
   unfold chargeLegacy chargeNormalized subtotal addFee addTax
   simp [Nat.add_assoc]
 
-end Ch12
+end Chapter18
