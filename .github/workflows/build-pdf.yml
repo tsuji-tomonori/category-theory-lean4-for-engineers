@@ -1,4 +1,4 @@
-name: Build and Test
+name: Build, Test, and Publish PDF
 
 on:
   push:
@@ -11,6 +11,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test-lean:
@@ -95,12 +99,14 @@ jobs:
           retention-days: 14
 
   publish-release:
-    if: github.event_name == 'release' || (github.event_name == 'push' && github.ref_type == 'tag')
+    if: >-
+      github.event_name == 'release' ||
+      (github.event_name == 'push' &&
+        (github.ref == 'refs/heads/main' || github.ref_type == 'tag'))
     needs: [test-lean, build-pdf]
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    environment: release
 
     steps:
       - name: Checkout release metadata
@@ -117,31 +123,68 @@ jobs:
           EVENT_RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           release_tag="$GITHUB_REF_NAME"
+          release_title="$release_tag"
+          mark_latest=false
+
           if [ "$GITHUB_EVENT_NAME" = "release" ]; then
             release_tag="$EVENT_RELEASE_TAG"
+            release_title="$release_tag"
+          elif [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$GITHUB_REF" = "refs/heads/main" ]; then
+            short_sha="${GITHUB_SHA:0:12}"
+            release_tag="main-$short_sha"
+            release_title="main PDF ($short_sha)"
+            mark_latest=true
           fi
-          safe_tag="$(printf '%s' "$release_tag" | tr '/ ' '--')"
-          pdf_name="category-theory-lean4-for-engineers-${safe_tag}.pdf"
-          mv category-theory-lean4-for-engineers.pdf "$pdf_name"
+
+          pdf_name="category-theory-lean4-for-engineers.pdf"
           sha256sum "$pdf_name" > "$pdf_name.sha256"
           {
             echo "source_sha=$GITHUB_SHA"
             echo "lean_toolchain=$(tr -d '\n' < lean-toolchain)"
             echo "mathlib_rev=$(python3 -c 'import json; print(next(p["rev"] for p in json.load(open("lake-manifest.json"))["packages"] if p["name"] == "mathlib"))')"
+            echo "ci_run_url=https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           } > provenance.txt
+
+          {
+            echo "検証済み PDF の自動ビルドです。"
+            echo
+            echo "- Source: \`$GITHUB_SHA\`"
+            echo "- CI: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo "- PDF SHA-256: \`$(cut -d ' ' -f 1 "$pdf_name.sha256")\`"
+          } > release-notes.md
+
           echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
+          echo "release_title=$release_title" >> "$GITHUB_OUTPUT"
+          echo "mark_latest=$mark_latest" >> "$GITHUB_OUTPUT"
           echo "pdf_name=$pdf_name" >> "$GITHUB_OUTPUT"
 
       - name: Attach verified PDF to release
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ steps.release-pdf.outputs.release_tag }}
+          RELEASE_TITLE: ${{ steps.release-pdf.outputs.release_title }}
+          MARK_LATEST: ${{ steps.release-pdf.outputs.mark_latest }}
           PDF_NAME: ${{ steps.release-pdf.outputs.pdf_name }}
         run: |
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" "$PDF_NAME" "$PDF_NAME.sha256" provenance.txt --clobber
+            if [ "$MARK_LATEST" = "true" ]; then
+              gh release edit "$RELEASE_TAG" \
+                --title "$RELEASE_TITLE" \
+                --notes-file release-notes.md \
+                --latest
+            fi
           else
-            gh release create "$RELEASE_TAG" "$PDF_NAME" "$PDF_NAME.sha256" provenance.txt \
-              --title "$RELEASE_TAG" \
-              --notes "Verified PDF build for $RELEASE_TAG (source $GITHUB_SHA)"
+            if [ "$MARK_LATEST" = "true" ]; then
+              gh release create "$RELEASE_TAG" "$PDF_NAME" "$PDF_NAME.sha256" provenance.txt \
+                --target "$GITHUB_SHA" \
+                --title "$RELEASE_TITLE" \
+                --notes-file release-notes.md \
+                --latest
+            else
+              gh release create "$RELEASE_TAG" "$PDF_NAME" "$PDF_NAME.sha256" provenance.txt \
+                --target "$GITHUB_SHA" \
+                --title "$RELEASE_TITLE" \
+                --notes-file release-notes.md
+            fi
           fi

@@ -10,6 +10,8 @@
 - [ ] 図版欠落・未参照・重複
 - [ ] missing glyph、overfull、PDF metadata・size
 - [ ] release jobが全quality jobへ依存
+- [ ] `main` pushのReleaseにPDF、SHA-256、provenanceを添付
+- [ ] 最新版PDFの匿名ダウンロードURLを確認
 
 ## 人手ゲート
 
