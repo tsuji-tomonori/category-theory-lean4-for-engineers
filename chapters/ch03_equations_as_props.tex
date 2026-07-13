@@ -7,7 +7,6 @@
 プログラミングの多くの場面で \texttt{=} は代入を意味するが、Lean で仕様を書くときの \texttt{=} は代入ではない。
 それは「左辺と右辺が等しい」という\emph{主張}である。
 本章では、この主張を「命題」と呼ぶことだけを先に体験し、証明の道具（\texttt{rfl} など）は次章に回す。
-一つのコードで、一つの新しい読み方だけを導入する。
 \end{chapterabstract}
 
 \begin{learninggoals}
@@ -23,7 +22,9 @@
 この「\texttt{hasDiscount true} は \texttt{true} と等しい」を、Lean では \texttt{hasDiscount true = true} と書く。
 本章の目標は、この一行を正しく読めるようになることである。
 
-\FigurePlaceholder{fig-ch03-overview.png}{0.90}{関数・実行結果・等式（命題）の関係}{fig:ch03-overview}
+図\ref{fig:ch03-overview}では、関数を評価して値を得ることと、その値について等式を主張することを分けている。
+
+\FigurePlaceholder{fig-ch03-overview.png}{0.90}{値・計算・命題}{fig:ch03-overview}
 
 \section{まず関数と実行結果を見る}
 
@@ -38,7 +39,7 @@ def hasDiscount (member : Bool) : Bool :=
 #eval hasDiscount true
 #eval hasDiscount false
 \end{minted}
-\caption{\texttt{Bool} を返す関数と実行結果}
+\caption{\texttt{hasDiscount}}
 \label{lst:ch03_hasdiscount}
 \end{listing}
 
@@ -63,7 +64,7 @@ def hasDiscount (member : Bool) : Bool :=
 
 #check (hasDiscount true = true)
 \end{minted}
-\caption{等式を主張として読む}
+\caption{\texttt{hasDiscount true = true}}
 \label{lst:ch03_equation}
 \end{listing}
 
@@ -76,7 +77,7 @@ def hasDiscount (member : Bool) : Bool :=
 
 \begin{table}[htbp]
 \centering
-\caption{\texttt{hasDiscount true = true} の読み方}
+\caption{\texttt{hasDiscount true = true}}
 \label{tab:ch03-reading}
 \begin{tabular}{ll}
 \toprule
@@ -89,12 +90,6 @@ def hasDiscount (member : Bool) : Bool :=
 \end{tabular}
 \end{table}
 
-\begin{warningbox}
-プログラミングでは \texttt{=} を代入に使う言語が多い。
-しかし Lean の仕様では、\texttt{=} は「左辺と右辺が等しい」という主張である。
-代入したいわけではなく、「等しいと言える」と主張している、と読む。
-\end{warningbox}
-
 \section{成り立たない主張も書ける}
 
 主張は「書けること」と「成り立つこと」が別である。
@@ -102,7 +97,7 @@ def hasDiscount (member : Bool) : Bool :=
 
 \begin{table}[htbp]
 \centering
-\caption{成り立つ主張と成り立たない主張}
+\caption{\texttt{hasDiscount true = true} と \texttt{hasDiscount false = true}}
 \label{tab:ch03-true-false}
 \begin{tabular}{lll}
 \toprule
@@ -119,17 +114,12 @@ def hasDiscount (member : Bool) : Bool :=
 
 \section{本章のまとめ}
 
-\texttt{hasDiscount true = true} は代入ではなく、「左右が等しい」という主張である。
-
-このような主張を、本書では命題と呼ぶ。
-
-主張は書けても成り立つとは限らない。\texttt{hasDiscount false = true} は成り立たない主張である。
-
 \begin{summarybox}
-この章で新しく出た記法
+要点と記法
 \begin{itemize}
 \item \texttt{=} \quad 代入ではなく、左右が等しいという主張。
 \item \texttt{\#check (式 = 式)} \quad 等式が命題として扱われることを確認する。
+\item 命題は書けても成り立つとは限らない。定義を展開して左右を確認する。
 \end{itemize}
 \end{summarybox}
 

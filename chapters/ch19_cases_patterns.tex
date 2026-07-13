@@ -19,11 +19,10 @@
 
 テストでは、このような分岐に対して代表的な例をいくつか選ぶ。これは実務上とても重要である。しかし、代表例を選ぶということは、選ばなかったケースが残るということでもある。Lean の \texttt{cases} は、この残りやすい部分を型から機械的に引き出す。
 
-\begin{intuitionbox}
-場合分けによる証明は、「思いついたケースを順に試す」作業ではない。値が取りうる形を型から取り出し、そのすべてについて同じ主張を確認する作業である。
-\end{intuitionbox}
+図\ref{fig:ch19-cases-overview}は、帰納型の値をコンストラクタごとのゴールへ分ける流れを示す。
+各コンストラクタの引数は任意のまま残るため、有限個の具体値を試すテストとは異なる。
 
-\FigurePlaceholder{fig-ch19-cases-overview.png}{0.90}{\texttt{cases} によって値の全パターンを証明ゴールへ分解する流れ}{fig:ch19-cases-overview}
+\FigurePlaceholder{fig-ch19-cases-overview.png}{0.90}{\texttt{cases} による分解}{fig:ch19-cases-overview}
 
 \section{ソフトウェア上の問題：成功ケースだけでは仕様にならない}
 
@@ -51,10 +50,6 @@
 
 成功ケースだけを証明しても、バリデーション全体の仕様を証明したことにはならない。エラーケースについても、「どのように失敗するか」「失敗したときに何を返さないか」を明示する必要がある。
 
-\begin{softwarebox}
-\texttt{cases} は、分岐型に対する仕様レビューを機械的に細かくする道具である。レビューで「このエラーケースはどうなりますか」と聞く代わりに、Lean にすべてのコンストラクタを証明ゴールとして出させる。
-\end{softwarebox}
-
 \section{場合分けとは何か}
 
 場合分けとは、ある値が取りうる形を一つずつ分けて考えることである。Lean では、値の形は型によって決まる。
@@ -77,17 +72,9 @@
 
 この見方をソフトウェアに戻すと、\texttt{Either Error Value} や \texttt{Result Error Value} を扱う関数は、エラー側と成功側の両方を処理して初めて全体の処理になる、ということである。
 
-\begin{intuitionbox}
-\texttt{cases} は、余積的な値に対して「各入口から来た値をどう処理するか」を証明の中で明示する操作だと読める。
-\end{intuitionbox}
-
 \section{\texttt{Bool}、\texttt{Option}、\texttt{Sum} の場合分け}
 
 まずは三つの基本的な分岐型を小さく扱う。次のコードでは、値を数値コードに変換し、その結果がどのケースに対応するかを証明している。
-
-\begin{leanbox}
-\texttt{cases b} は \texttt{b = false} の場合と \texttt{b = true} の場合にゴールを分ける。\texttt{cases x} は、\texttt{x} が \texttt{none} か \texttt{some n} かに応じてゴールを分ける。\texttt{Sum} では、左側 \texttt{inl} と右側 \texttt{inr} を分ける。
-\end{leanbox}
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -119,7 +106,7 @@ theorem optionCode_all (x : Option Nat) :
   | some n =>
       exact Or.inr ⟨n, rfl, rfl⟩
 \end{minted}
-\caption{\texttt{Bool}、\texttt{Option}、\texttt{Sum} の基本的な場合分け}
+\caption{\texttt{Bool} と \texttt{Option} の場合分け}
 \label{lst:ch19-basic-cases}
 \end{listing}
 
@@ -158,7 +145,7 @@ theorem sumTag_is_left_or_right (x : Sum Nat Nat) :
   | inr n =>
       exact Or.inr ⟨n, rfl, rfl⟩
 \end{minted}
-\caption{\texttt{Sum} の左右ケースを分ける}
+\caption{\texttt{sumTag\_is\_left\_or\_right}}
 \label{lst:ch19-sum-cases}
 \end{listing}
 
@@ -174,20 +161,21 @@ theorem sumTag_is_left_or_right (x : Sum Nat Nat) :
 
 \subsection{\texttt{match} と \texttt{cases} の違い}
 
-\texttt{match} はプログラムを書くための分岐である。一方、\texttt{cases} は証明を書くための分岐である。どちらも値の形を分けるが、目的が違う。
+\texttt{match} も \texttt{cases} も、帰納型の除去原理に基づいて値の形を分ける。
+\texttt{match} は値や証明を直接組み立てる項の構文であり、\texttt{cases} は証明状態をコンストラクタごとのゴールへ分けるタクティクである。
 
 \begin{center}
 \begin{tabular}{p{0.20\linewidth}p{0.34\linewidth}p{0.34\linewidth}}
 \toprule
 道具 & 使う場所 & 目的 \\
 \midrule
-\texttt{match} & 関数定義 & 入力の形に応じて結果を計算する \\
-\texttt{cases} & 証明ブロック & 値の形に応じて証明ゴールを分解する \\
+\texttt{match} & 項・関数・証明の定義 & 入力の形に応じた項を直接書く \\
+\texttt{cases} & タクティク証明 & 値の形に応じて証明ゴールを分解する \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-実務的には、\texttt{match} は実装上の分岐、\texttt{cases} は仕様確認上の分岐である。実装で分けたケースを、証明でも同じ粒度で分けられる。
+実装では \texttt{match}、対話的な証明では \texttt{cases} が典型的だが、両者を「プログラム専用」「証明専用」と分けるのは正確ではない。
 
 \section{エラーケースを証明から漏らさない}
 
@@ -205,7 +193,9 @@ theorem sumTag_is_left_or_right (x : Sum Nat Nat) :
 \item \texttt{ageTooLow}: 年齢が条件を満たさない。
 \end{itemize}
 
-\FigurePlaceholder{fig-ch19-validation-postcondition.png}{0.90}{バリデーション結果ごとに異なる事後条件を確認する構造}{fig:ch19-validation-postcondition}
+図\ref{fig:ch19-validation-postcondition}では、成功・名前欠損・年齢不正の各コンストラクタに対応する事後条件を別々に確認する。
+
+\FigurePlaceholder{fig-ch19-validation-postcondition.png}{0.90}{バリデーションの分岐}{fig:ch19-validation-postcondition}
 
 \section{ミニケース：バリデーション結果ごとの事後条件}
 
@@ -238,7 +228,7 @@ def userIdOpt (r : ValidationResult) : Option Nat :=
   | ValidationResult.missingName => none
   | ValidationResult.ageTooLow => none
 \end{minted}
-\caption{バリデーション入力と結果型}
+\caption{\texttt{SignupInput} と \texttt{ValidationResult}}
 \label{lst:ch19-validation-types}
 \end{listing}
 
@@ -271,15 +261,14 @@ theorem postcondition_all (r : ValidationResult) :
   | ageTooLow =>
       rfl
 \end{minted}
-\caption{結果型ごとの事後条件}
+\caption{\texttt{postcondition\_all}}
 \label{lst:ch19-postcondition}
 \end{listing}
 
-この証明の構造は単純である。\texttt{r} の三つの形を \texttt{cases} で分け、それぞれの形で定義を展開すると、左辺と右辺が同じになる。だから \texttt{rfl} で閉じられる。
-
-\begin{leanbox}
-\texttt{rfl} で証明できるのは、定義を展開した結果、左右が同じ式になる場合である。ここでは、\texttt{postcondition} と \texttt{userIdOpt} が同じケース分けを使っているため、各ケースが自明な等式になる。
-\end{leanbox}
+この証明は、\texttt{ValidationResult} の各コンストラクタと \texttt{userIdOpt} の符号化が整合することを示す。
+\texttt{postcondition} と \texttt{userIdOpt} が同じ場合分けを使うため、各枝は定義を展開すると \texttt{rfl} で閉じる。
+ただし、この定理だけでは \texttt{validate} が入力に対して正しい結果を選ぶことまでは示さない。
+その対応は、次の三つの補題と \texttt{validate\_result\_post} で入力側も分解して確認する。
 
 \subsection{入力側の全パターンも分解する}
 
@@ -313,7 +302,7 @@ theorem validate_result_post (input : SignupInput) :
           | zero => rfl
           | succ n => rfl
 \end{minted}
-\caption{入力パターンを分解して結果の事後条件を証明する}
+\caption{\texttt{validate\_result\_post}}
 \label{lst:ch19-validate-result-post}
 \end{listing}
 
@@ -337,10 +326,6 @@ theorem validate_result_post (input : SignupInput) :
 
 この表の各行が、Lean の証明内の各枝に対応している。コードレビューでは、このような表を仕様書側に置き、Lean の定理名を対応させると読みやすい。
 
-\begin{softwarebox}
-実務では、証明をそのまま読ませるよりも、「この定理はこの分岐表の全行を確認している」と説明すると伝わりやすい。Lean ファイルは機械検査用、表は人間のレビュー用、という役割分担にできる。
-\end{softwarebox}
-
 \section{よくある誤解}
 
 \subsection{誤解1：\texttt{cases} はテストケースを増やす機能である}
@@ -355,10 +340,6 @@ theorem validate_result_post (input : SignupInput) :
 
 バリデーションやAPIレスポンスでは、失敗ケースが仕様の中心になることも多い。成功ケースだけが正しいプログラムは、実務では安全とは言えない。失敗時に成功値を返さないこと、状態を更新しないこと、後続処理へ渡す値がないことも、証明すべき性質になる。
 
-\begin{warningbox}
-エラーケースの仕様は、「何を返すか」だけでなく「何を返してはいけないか」を含む。本章の例では、\texttt{missingName} と \texttt{ageTooLow} からユーザーIDを取り出せないことを \texttt{userIdOpt r = none} として表した。
-\end{warningbox}
-
 \section{実務への読み替え}
 
 本章の考え方は、次のような場面に対応する。
@@ -372,9 +353,8 @@ theorem validate_result_post (input : SignupInput) :
 
 大事なのは、業務仕様の分岐を型に反映することである。型に反映された分岐は、Lean が \texttt{cases} で取り出せる。逆に、すべてを \texttt{String} や \texttt{Nat} のコード値で表してしまうと、Lean は業務上の分岐を自動的には認識できない。
 
-\begin{softwarebox}
-「分岐を型にする」とは、レビューで口頭説明しているケースを、\texttt{inductive} や \texttt{Sum} や \texttt{Option} として明示することである。そうすると、漏れのない証明の対象にできる。
-\end{softwarebox}
+レビューで区別しているケースを \texttt{inductive}、\texttt{Sum}、\texttt{Option} として明示すると、コンストラクタ単位で証明できる。
+ただし、各コンストラクタ内の値について必要な性質は、別の等式や述語として与える必要がある。
 
 \section{本章のまとめ}
 

@@ -124,10 +124,15 @@ def natAddMonoid : TinyMonoid Nat where
 #eval foldMap natAddMonoid (fun n : Nat => n) [1, 2, 3]
 #eval foldMap natAddMonoid (fun _ : String => 1) ["a", "b", "c"]
 
+structure PreorderMini (A : Type) where
+  le : A -> A -> Prop
+  refl : forall a, le a a
+  trans : forall a b c, le a b -> le b c -> le a c
+
 structure GaloisConnection {A B : Type}
-    (leA : A -> A -> Prop) (leB : B -> B -> Prop)
+    (ordA : PreorderMini A) (ordB : PreorderMini B)
     (lower : A -> B) (upper : B -> A) : Prop where
   condition : forall a b,
-    leB (lower a) b <-> leA a (upper b)
+    ordB.le (lower a) b <-> ordA.le a (upper b)
 
 end Chapter37

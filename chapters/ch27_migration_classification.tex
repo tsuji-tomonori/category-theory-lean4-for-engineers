@@ -33,13 +33,11 @@
 
 これらは似ているが、同じ主張ではない。旧データを新形式に変換できることと、新形式から旧形式へ完全に戻せることは違う。表示が同じであることと、内部データが同じであることも違う。ロールバック処理が実装されていることと、ロールバック後に必ず元の値に戻ることも違う。
 
-\begin{intuitionbox}
-マイグレーションを安全に扱う第一歩は、「移せるか」ではなく「何が保存されるか」と問うことである。保存されるものが完全な情報なら同型に近い。保存されるものが一部の性質だけなら、仕様を弱めている。保存されるものが旧データの読み込み可能性だけなら、片方向互換である。
-\end{intuitionbox}
-
 本章の目的は、マイグレーションを一律に安全・危険と判定することではない。どの種類の安全性を主張しているのかを分類し、それぞれに対応する証明義務を明確にすることである。
 
-\FigurePlaceholder{fig-ch27-migration-taxonomy.png}{0.92}{マイグレーションを、完全同型、片方向互換、情報損失、制約付き同型、仕様弱化へ分類する概念地図}{fig:ch27-migration-taxonomy}
+図\ref{fig:ch27-migration-taxonomy}は、可逆性、保証する方向、対象範囲、保存する観測という軸から、代表的な保証パターンを配置する。
+
+\FigurePlaceholder{fig-ch27-migration-taxonomy.png}{0.92}{移行保証の分類}{fig:ch27-migration-taxonomy}
 
 \section{マイグレーションを型と関数として見る}
 
@@ -56,10 +54,6 @@
 \]
 
 この二つの関数があるだけでは、まだ安全性は分からない。重要なのは、それらを合成したときに何が起きるかである。
-
-\begin{softwarebox}
-\texttt{migrate} は「移行スクリプト」や「adapter」に対応する。\texttt{rollback} は「逆向きの変換」や「旧API互換層」に対応する。ただし、関数が存在するだけでは不十分である。証明したいのは、関数を通した結果が期待した性質を保存することである。
-\end{softwarebox}
 
 ここで使う基本的な見方は、これまでの章で扱った「型と関数の世界」である。型はデータ形式であり、関数は変換である。マイグレーションの分類とは、変換と逆変換の組み合わせがどの法則を満たすかを調べることだと言える。
 
@@ -106,13 +100,9 @@ structure EquivLike (A B : Type) where
   left_inv : (a : A) -> invFun (toFun a) = a
   right_inv : (b : B) -> toFun (invFun b) = b
 \end{minted}
-\caption{完全同型を表す最小構造}
+\caption{\texttt{EquivLike}}
 \label{lst:ch27-equivlike}
 \end{listing}
-
-\begin{leanbox}
-\texttt{EquivLike A B} は、\texttt{A} と \texttt{B} の間に情報を失わない相互変換があることを表すミニ定義である。\texttt{toFun} が移行、\texttt{invFun} が逆変換、\texttt{left\_inv} と \texttt{right\_inv} が二つの round-trip 証明である。
-\end{leanbox}
 
 次の例では、ユーザー名のフィールド名を変えるだけの移行を考える。これは情報を落としていないので、両方向の round-trip が成り立つ。
 
@@ -144,13 +134,15 @@ theorem user_right_roundtrip (v : UserV2) :
   cases v
   rfl
 \end{minted}
-\caption{フィールド名変更は完全同型として証明できる}
+\caption{\texttt{user\_left\_roundtrip} と \texttt{user\_right\_roundtrip}}
 \label{lst:ch27-user-roundtrip}
 \end{listing}
 
 この例で Lean が確認しているのは、個別のテストデータではない。任意の \texttt{UserV1} と任意の \texttt{UserV2} について、変換して戻すと元の値に戻る、という一般的な主張である。
 
-\FigurePlaceholder{fig-ch27-roundtrip-laws.png}{0.88}{完全同型では、旧形式から新形式へ移して戻す経路と、新形式から旧形式へ戻して移す経路の両方が恒等変換になる}{fig:ch27-roundtrip-laws}
+図\ref{fig:ch27-roundtrip-laws}の二つの三角形は、それぞれ旧形式側と新形式側の合成が恒等変換になることを表す。
+
+\FigurePlaceholder{fig-ch27-roundtrip-laws.png}{0.88}{両方向の round-trip}{fig:ch27-roundtrip-laws}
 
 \begin{warningbox}
 以下の節は互いに排他的な「種類」を列挙するものではない。可逆性、保証する方向、対象範囲、保存する観測という別々の軸から、よく使う保証パターンを説明する。同じ移行が、旧形式については片方向round-tripを持ち、新形式の像上では制約付き同型であり、特定の観測については仕様保存でもある、という重なりは普通に起こる。
@@ -190,7 +182,7 @@ theorem old_roundtrip (o : OldToken) :
   cases o
   rfl
 \end{minted}
-\caption{フィールド追加による片方向互換}
+\caption{\texttt{old\_roundtrip}}
 \label{lst:ch27-one-way}
 \end{listing}
 
@@ -238,15 +230,14 @@ theorem different_users_can_have_same_public_view (msg : String) :
                    { userId := 2, message := msg } := by
   rfl
 \end{minted}
-\caption{匿名化は情報損失を伴うが、保存される性質は証明できる}
+\caption{\texttt{anonymize}}
 \label{lst:ch27-lossy-log}
 \end{listing}
 
 最後の定理は、異なる \texttt{userId} を持つ二つの内部ログが、同じ公開ログになりうることだけを示している。これは非単射性の証拠であり、攻撃者が利用できる補助情報、メッセージ本文、頻度、外部相関まで含めた秘匿性の証明ではない。
 
-\begin{intuitionbox}
-情報損失ありの移行では、「元に戻る」ではなく、「何が保存されるか」を証明する。匿名化なら、型から特定fieldが除かれたことや表示上必要なメッセージが保存されることは証明候補になる。秘匿性を主張する場合は、観測者と補助情報を定めた別のsecurity仕様が必要である。
-\end{intuitionbox}
+匿名化では、型から特定フィールドが除かれたことや表示用メッセージの保存は証明候補になる。
+秘匿性を主張するには、観測者と補助情報を定めた別のセキュリティ仕様が必要である。
 
 \section{制約付き同型：well-formed なデータだけ戻せる}
 
@@ -275,7 +266,7 @@ theorem new_roundtrip_when_default
       cases h
       rfl
 \end{minted}
-\caption{well-formed 条件を仮定した round-trip}
+\caption{\texttt{new\_roundtrip\_when\_default}}
 \label{lst:ch27-conditional-roundtrip}
 \end{listing}
 
@@ -332,9 +323,10 @@ theorem new_roundtrip_when_default
 \end{longtable}
 \normalsize
 
-\FigurePlaceholder{fig-ch27-proof-choice.png}{0.90}{マイグレーションで証明すべき性質を選ぶための判断フロー}{fig:ch27-proof-choice}
+図\ref{fig:ch27-proof-choice}では、完全復元の要否、情報損失、対象条件の順に問い、対応する証明義務へ進む。
+旧データを新システムで読めればよいだけなら一方向、情報を落とすなら保存する観測、特定条件で戻せるなら well-formed 条件を選ぶ。
 
-表の見方は単純である。まず、移行が完全復元を要求しているかを確認する。要求しているなら、両方向 round-trip が必要である。旧データを新システムで読めればよいだけなら、一方向の性質で十分なことがある。情報を落とす設計なら、落とす情報と残す情報を分け、残す情報だけを証明対象にする。特定条件でだけ戻せるなら、well-formed 条件を定義する。
+\FigurePlaceholder{fig-ch27-proof-choice.png}{0.90}{証明義務の選択}{fig:ch27-proof-choice}
 
 \section{実務で証明すべき性質の選び方}
 
@@ -351,9 +343,7 @@ theorem new_roundtrip_when_default
 \item Lean のモデルと本番実装の差分はどこにあるか。
 \end{itemize}
 
-\begin{softwarebox}
-マイグレーションレビューでは、まず「互換性あり」という言葉を分解する。後方互換なのか、前方互換なのか、完全同型なのか、条件付きなのか、表示互換だけなのかを確認する。そのうえで、証明したい性質を一つか二つに絞る。
-\end{softwarebox}
+マイグレーションレビューでは「互換性あり」を、保証する方向、条件、保存する観測へ分解してから、証明対象を絞る。
 
 たとえば、DBスキーマ変更であれば、すべてのSQLの意味を証明するのは重すぎることが多い。しかし、重要なクエリ結果が保存されること、主キーが保存されること、件数が保存されることは、小さなモデルで扱えるかもしれない。
 

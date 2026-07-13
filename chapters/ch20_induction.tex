@@ -30,26 +30,13 @@
 
 ここで確認したい仕様は、次のような主張である。
 
-\begin{softwarebox}
-任意の長さのユーザー一覧 \texttt{xs} について、\texttt{xs.map migrateUser} の件数は \texttt{xs} の件数と同じである。
-また、移行前のID列と移行後のID列は同じである。
-\end{softwarebox}
+確認したいのは、任意のユーザー一覧 \texttt{xs} について
+\texttt{xs.map migrateUser} の件数と ID 列が保存されることである。
 
 この「任意の長さ」という言葉が重要である。
 テストでは、空リスト、1件、2件、大量データなどを用意できる。
 しかし、すべての長さを個別にテストすることはできない。
 帰納法は、この「すべての長さ」を有限個の証明パターンへ圧縮する道具である。
-
-\begin{intuitionbox}
-リストについての帰納法は、次の2つを確認する方法である。
-
-\begin{itemize}
-\item 空リストで成り立つ。
-\item あるリストで成り立つなら、その先頭に1要素を追加したリストでも成り立つ。
-\end{itemize}
-
-この2つを確認できれば、空、1件、2件、3件、\dots{} というすべての長さを覆える。
-\end{intuitionbox}
 
 リストは、Lean では大きく2つの形に分かれる。
 空リスト \texttt{[]} と、先頭要素 \texttt{x} に残りのリスト \texttt{xs} をつけた \texttt{x :: xs} である。
@@ -61,7 +48,7 @@
 この仮定を帰納法の仮定、または帰納仮定と呼ぶ。
 \end{definitionbox}
 
-\FigurePlaceholder{fig-ch20-list-induction.png}{0.90}{空リストと cons ケースから任意長のリストを覆う帰納法}{fig:ch20-list-induction}
+\FigurePlaceholder{fig-ch20-list-induction.png}{0.90}{リストの構造帰納法}{fig:ch20-list-induction}
 
 図\ref{fig:ch20-list-induction}では、空リストから始めて、先頭に1つずつ要素を追加していく様子を表している。
 帰納法の証明は、この階段を1段ずつ上がれることを示す。
@@ -77,11 +64,6 @@
 
 \texttt{List.map f xs} は、リスト \texttt{xs} の各要素に関数 \texttt{f} を適用する。
 ソフトウェアの言葉では、1件の変換をバッチ全体へ持ち上げる操作である。
-
-\begin{softwarebox}
-1件の \texttt{UserV1} を \texttt{UserV2} へ変換する \texttt{migrateUser} があるとき、ユーザー一覧全体の移行は \texttt{xs.map migrateUser} として書ける。
-ここでは、移行対象が空でも、1件でも、任意件数でも同じ式で扱える。
-\end{softwarebox}
 
 \subsection{\texttt{length} は件数の仕様を表す}
 
@@ -106,10 +88,8 @@
 バッチ処理では、データを分割して処理し、最後に結合することが多い。
 そのため、\texttt{append} と \texttt{length} の関係は実務的にも重要である。
 
-\begin{intuitionbox}
-リストを前半 \texttt{xs} と後半 \texttt{ys} に分けた場合、結合後の件数は「前半の件数 + 後半の件数」になる。
-これを Lean では、\texttt{(xs ++ ys).length = xs.length + ys.length} という等式として証明できる。
-\end{intuitionbox}
+リストを前半 \texttt{xs} と後半 \texttt{ys} に分けた場合、結合後の件数は
+\texttt{(xs ++ ys).length = xs.length + ys.length} と表せる。
 
 この性質があると、分割バッチの結果を再結合したときに件数が期待通りになることを説明しやすくなる。
 もちろん、実システムではエラー、リトライ、重複排除、トランザクション境界も考える必要がある。
@@ -144,18 +124,13 @@ def migrateUsers (xs : List UserV1) : List UserV2 :=
 
 end Chapter20
 \end{minted}
-\caption{1件の移行とリスト全体の移行}
+\caption{\texttt{migrateUser} と \texttt{migrateUsers}}
 \label{lst:induction-user-migration}
 \end{listing}
 
 ここでは、\texttt{name} というフィールド名を \texttt{displayName} へ変えている。
 ただし、IDはそのまま残す。
 この例は単純だが、後のスキーマ移行の章で扱う大きな例の最小版である。
-
-\begin{leanbox}
-\texttt{structure} は、フィールドを持つレコード型を定義する。
-\texttt{migrateUser} は1件の変換であり、\texttt{migrateUsers} は \texttt{List.map} によってリスト全体へ持ち上げた変換である。
-\end{leanbox}
 
 次に、\texttt{List.map} が長さを保存することを証明する。
 この定理は、今後のバッチ移行で何度も使う道具になる。
@@ -171,7 +146,7 @@ theorem map_preserves_length {α β : Type} (f : α → β) :
   | cons x xs ih =>
       simp [List.map, ih]
 \end{minted}
-\caption{List.map は長さを保存する}
+\caption{\texttt{map\_preserves\_length}}
 \label{lst:induction-map-length}
 \end{listing}
 
@@ -204,22 +179,18 @@ theorem map_preserves_length {α β : Type} (f : α → β) :
 直接 \texttt{migrateUsers} を展開すると、これは \texttt{xs.map migrateUser} である。
 したがって、前節の \texttt{map\_preserves\_length} を使えばよい。
 
-\begin{leanbox}
-ここでの定理は、\texttt{map\_preserves\_length} という一般的な道具を、\texttt{migrateUser} という具体的な変換に適用している。
-これは、一般的なライブラリ的性質を、業務ドメインの仕様へ持ち込む典型例である。
-\end{leanbox}
-
 \begin{listing}[htbp]
 \begin{minted}{lean4}
 theorem migrateUsers_preserves_length (xs : List UserV1) :
     (migrateUsers xs).length = xs.length := by
-  simp [migrateUsers]
+  exact map_preserves_length migrateUser xs
 \end{minted}
-\caption{ユーザー一覧の移行は件数を保存する}
+\caption{\texttt{migrateUsers\_preserves\_length}}
 \label{lst:induction-migrate-length}
 \end{listing}
 
-\texttt{simpa [migrateUsers]} は、\texttt{migrateUsers} の定義を展開し、既に証明した一般定理と同じ形に整理している。
+\texttt{exact} は、\texttt{migrateUsers} を定義展開したゴールに、直前の
+\texttt{map\_preserves\_length} を \texttt{migrateUser} へ適用した証明を渡している。
 証明そのものは短い。
 短くできる理由は、\texttt{map\_preserves\_length} という汎用的な道具を先に作っているからである。
 
@@ -245,19 +216,13 @@ theorem migrateUsers_preserves_ids (xs : List UserV1) :
   | cons x xs ih =>
       simp [migrateUsers, idsV1, idsV2, migrateUser]
 \end{minted}
-\caption{移行前後のID列が一致する}
+\caption{\texttt{migrateUsers\_preserves\_ids}}
 \label{lst:induction-list-ids}
 \end{listing}
 
 この証明は、件数保存より少しだけ業務仕様に近い。
 \texttt{idsV1} は移行前のID一覧、\texttt{idsV2} は移行後のID一覧を取り出す。
 定理は、移行してからIDを取り出しても、先にIDを取り出しても同じ列になることを主張している。
-
-\begin{softwarebox}
-実務では、この定理をそのまま本番DBへ適用できるわけではない。
-しかし、移行仕様の核として「ID列を保存する」という主張を明示できる。
-レビューでは、実装コードがこの小さなモデルと同じ意味を持っているかを確認する。
-\end{softwarebox}
 
 \subsection{\texttt{append} と分割バッチ}
 
@@ -275,7 +240,7 @@ theorem append_length {α : Type} :
   | cons x xs ih =>
       simp [ih, Nat.add_assoc, Nat.add_comm]
 \end{minted}
-\caption{append 後の長さは長さの和になる}
+\caption{\texttt{append\_length}}
 \label{lst:induction-append-length}
 \end{listing}
 
@@ -296,13 +261,10 @@ theorem append_length {α : Type} :
 たとえば、カテゴリツリー、組織図、ファイルツリー、画面部品のツリー、構文木などである。
 このようなデータでは、空リストと \texttt{cons} ではなく、木の形に沿った帰納法を使う。
 
-\begin{intuitionbox}
-木に対する帰納法では、葉の場合と、左右の部分木を持つノードの場合を考える。
-ノードの場合には、左部分木についての仮定と、右部分木についての仮定を使える。
-リストの帰納法が「残りのリスト」だけを見るのに対して、木の帰納法では複数の部分構造を見る。
-\end{intuitionbox}
+木に対する帰納法では、葉のケースと、左右の部分木を持つノードのケースを扱う。
+後者では左右それぞれについて帰納仮定を使える。
 
-\FigurePlaceholder{fig-ch20-tree-induction.png}{0.90}{左右の部分木の仮定から木全体の性質を示す構造帰納法}{fig:ch20-tree-induction}
+\FigurePlaceholder{fig-ch20-tree-induction.png}{0.90}{木の構造帰納法}{fig:ch20-tree-induction}
 
 図\ref{fig:ch20-tree-induction}では、1つのノードが左部分木と右部分木を持つ様子を表している。
 木全体の性質を示すには、左部分木と右部分木の両方について性質が成り立つことを使う。
@@ -331,7 +293,7 @@ def size {α : Type} : Tree α → Nat
 
 end Tree
 \end{minted}
-\caption{単純な二分木とノード数}
+\caption{\texttt{Tree} と \texttt{Tree.size}}
 \label{lst:induction-tree-def}
 \end{listing}
 
@@ -355,7 +317,7 @@ theorem tree_map_preserves_size {α β : Type} (f : α → β) :
   | node l x r ihL ihR =>
       simp [Tree.map, Tree.size, ihL, ihR]
 \end{minted}
-\caption{Tree.map はノード数を保存する}
+\caption{\texttt{tree\_map\_preserves\_size}}
 \label{lst:induction-tree-size}
 \end{listing}
 
@@ -377,22 +339,20 @@ theorem migrateUserTree_preserves_size (t : Tree UserV1) :
     Tree.size (migrateUserTree t) = Tree.size t := by
   simpa [migrateUserTree] using tree_map_preserves_size migrateUser t
 \end{minted}
-\caption{ユーザー木の移行はノード数を保存する}
+\caption{\texttt{migrateUserTree\_preserves\_size}}
 \label{lst:induction-migrate-tree}
 \end{listing}
 
 リストの場合と同じく、ここでも一般定理を具体的なドメインへ適用している。
-\path{tree_map_preserves_size} は任意の型と任意の変換関数について成り立つ。
-\path{migrateUserTree_preserves_size} は、それをユーザー移行へ特殊化した定理である。
+\texttt{tree\_map\_}\allowbreak\texttt{preserves\_size} は、任意の型と任意の変換関数について成り立つ。
+\texttt{migrateUserTree\_}\allowbreak\texttt{preserves\_size} は、それをユーザー移行へ特殊化した定理である。
 
 \section{実務への読み替え}
 
 本章で見た証明は、小さい。
 しかし、扱っている考え方は実務でよく使う。
 
-\begin{softwarebox}
 帰納法で扱いやすい仕様には、次のようなものがある。
-
 \begin{itemize}
 \item リスト移行で件数が保存される。
 \item 全要素についてIDやキーが保存される。
@@ -400,15 +360,9 @@ theorem migrateUserTree_preserves_size (t : Tree UserV1) :
 \item 木構造の変換でノード数や形が保存される。
 \item 再帰的な設定ファイル変換で、キーの構造が保存される。
 \end{itemize}
-\end{softwarebox}
 
 一方で、帰納法だけですべてが解決するわけではない。
 たとえば、移行後の値が外部サービス上でも正しく解釈されるか、DBトランザクションが失敗時に安全にロールバックされるか、分散処理で重複が発生しないか、といった問題は別のモデル化が必要になる。
-
-\begin{warningbox}
-Leanで証明したのは、あくまで小さなモデル上の性質である。
-本番コードに同じ保証を主張するには、Lean上の関数と実装コードが同じ仕様を表していること、入出力の前提条件が合っていること、外部システムの挙動を別途扱っていることを確認する必要がある。
-\end{warningbox}
 
 \section{本章で証明したことと、しなかったこと}
 

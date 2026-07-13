@@ -21,11 +21,11 @@ theorem assoc_point
 
 end Chapter33
 
-namespace Ch27ETL
+namespace Ch33ETL
 
 structure RawRow where
   userId : Nat
-  amountText : Nat
+  rawAmount : Nat
   deriving Repr, DecidableEq
 
 structure ValidRow where
@@ -45,7 +45,7 @@ structure ReportRow where
   deriving Repr, DecidableEq
 
 def sanitize (r : RawRow) : ValidRow :=
-  { userId := r.userId, amount := r.amountText }
+  { userId := r.userId, amount := r.rawAmount }
 
 def enrich (r : ValidRow) : EnrichedRow :=
   { userId := r.userId, amount := r.amount, fee := 10 }
@@ -75,9 +75,9 @@ theorem pipeline_assoc (r : RawRow) :
       (Function.comp (Function.comp summarize enrich) sanitize) r := by
   rfl
 
-end Ch27ETL
+end Ch33ETL
 
-namespace Ch27Stage
+namespace Ch33Stage
 
 structure Stage (A B : Type) where
   run : A -> B

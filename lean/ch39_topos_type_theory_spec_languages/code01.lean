@@ -10,12 +10,9 @@ structure UserCtx where
 deriving Repr, DecidableEq
 
 def CanUpload (u : UserCtx) : Prop :=
-  And (u.active = true) (0 < u.quota)
+  And (u.active = true) (1 <= u.quota)
 
-def uploadPolicy (u : UserCtx) : Prop :=
-  CanUpload u
-
-theorem uploadPolicy_requires_active (u : UserCtx) :
-    uploadPolicy u -> u.active = true := by
+theorem canUpload_requires_active (u : UserCtx) :
+    CanUpload u -> u.active = true := by
   intro h
   exact h.left

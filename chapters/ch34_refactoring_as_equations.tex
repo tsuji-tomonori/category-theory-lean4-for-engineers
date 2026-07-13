@@ -24,9 +24,9 @@
 リファクタリングを等式として見るとは、変更前の処理を左辺、変更後の処理を右辺に置き、両者が同じ結果を返すことを示す、ということである。つまり、コードレビューでよく言う「意味は変えていません」を、Lean が検査できる命題に変える。
 \end{intuitionbox}
 
-\FigurePlaceholder{fig-ch34-refactoring-equation-map.png}{0.90}{リファクタリングを等式として読む地図}{fig:ch34-refactoring-equation-map}
+\FigurePlaceholder{fig-ch34-refactoring-equation-map.png}{0.90}{リファクタリングと意味保存}{fig:ch34-refactoring-equation-map}
 
-前の章までに、合成可能な設計、等式推論、関数外延性、モナドの直感を見てきた。本章ではそれらを実務のリファクタリングへ戻す。圏論の言葉でいえば、処理は射であり、リファクタリングは射の表現を変える作業である。変えるべきでないものは、射としての意味、つまり入力から出力への対応である。
+図\ref{fig:ch34-refactoring-equation-map}は、変更前後の実装を等式の両辺に置き、その間を証明で結ぶ見方を示している。前の章までに、合成可能な設計、等式推論、関数外延性、モナドの直感を見てきた。本章ではそれらを実務のリファクタリングへ戻す。圏論の言葉でいえば、処理は射であり、リファクタリングは射の表現を変える作業である。変えるべきでないものは、射としての意味、つまり入力から出力への対応である。
 
 \section{名前変更ではなく意味保存を見る}
 
@@ -57,7 +57,7 @@ theorem extract_base_price_preserves (subtotal shipping : Nat) :
     totalAfter subtotal shipping = totalBefore subtotal shipping := by
   rfl
 \end{minted}
-\caption{関数抽出による意味保存}
+\caption{\texttt{extract\_base\_price\_preserves}}
 \label{lst:ch34-extract-base-price}
 \end{listing}
 
@@ -87,15 +87,15 @@ theorem extract_base_price_preserves (subtotal shipping : Nat) :
 
 次に、処理順序の変更を考える。パイプラインの順序を入れ替えるリファクタリングは、見た目以上に危険である。二つの処理 \(f\) と \(g\) について、\texttt{g (f x)} と \texttt{f (g x)} が常に等しいとは限らないからである。
 
-安全に順序を入れ替えられるのは、二つの処理が互いに干渉せず、等式
+安全に順序を入れ替えられるかどうかは、少なくとも観測対象について等式
 \[
   g(f(x)) = f(g(x))
 \]
-を満たす場合である。この形は、自然性や可換図式の章で見た「順序を変えても結果が同じ」という考え方と同じである。
+がすべての入力 \(x\) で成り立つかによって判断する。この形は、自然性や可換図式の章で見た「順序を変えても結果が同じ」という考え方と同じである。
 
-\FigurePlaceholder{fig-ch34-order-change.png}{0.88}{処理順序の入れ替えと可換性}{fig:ch34-order-change}
+\FigurePlaceholder{fig-ch34-order-change.png}{0.88}{処理順序と可換性}{fig:ch34-order-change}
 
-単純な例として、金額に二種類の固定手数料を加える処理を考える。どちらも単に自然数を足すだけなら、順序を入れ替えても結果は同じである。ここで使う道具は、足し算の結合律と交換律である。
+図\ref{fig:ch34-order-change}の二つの経路が同じ出力へ到達するとき、二処理の順序はこのモデル上で交換できる。単純な例として、金額に二種類の固定手数料を加える処理を考える。どちらも単に自然数を足すだけなら、順序を入れ替えても結果は同じである。ここで使う道具は、足し算の結合律と交換律である。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -105,7 +105,7 @@ def addServiceFee (fee amount : Nat) : Nat :=
 def addHandlingFee (fee amount : Nat) : Nat :=
   amount + fee
 
-theorem independent_fee_order (amount service handling : Nat) :
+theorem fixed_fee_order (amount service handling : Nat) :
     addHandlingFee handling (addServiceFee service amount) =
     addServiceFee service (addHandlingFee handling amount) := by
   unfold addHandlingFee addServiceFee
@@ -117,13 +117,15 @@ theorem independent_fee_order (amount service handling : Nat) :
     _ = (amount + handling) + service := by
       rw [← Nat.add_assoc]
 \end{minted}
-\caption{独立した二つの手数料処理は順序を入れ替えられる}
+\caption{\texttt{fixed\_fee\_order}}
 \label{lst:ch34-order-preserves}
 \end{listing}
 
 \begin{leanbox}
 この証明では、\texttt{unfold} で二つの補助関数を展開し、\texttt{calc} で式変形を段階的に示している。\texttt{Nat.add\_assoc} は結合律、\texttt{Nat.add\_comm} は交換律である。定理は暗記するものではなく、「この順序変更が安全である理由」を表す道具として使う。
 \end{leanbox}
+
+この定理から分かるのは、二処理が固定値の加算としてモデル化されているため可換だということだけである。課金規則として互いに独立であることや、本番処理に別の副作用がないことまでは証明していない。
 
 一方で、順序を入れ替えてはいけない処理も多い。たとえば「1を足してから2倍する」と「2倍してから1を足す」は一致しない。
 
@@ -136,7 +138,7 @@ def addOne (n : Nat) : Nat := n + 1
 example : double (addOne 3) ≠ addOne (double 3) := by
   decide
 \end{minted}
-\caption{順序を変えると意味が変わる小例}
+\caption{\texttt{double}・\texttt{addOne}}
 \label{lst:ch34-order-not-always-safe}
 \end{listing}
 
@@ -163,7 +165,7 @@ theorem commonize_without_coupon_preserves (price : Nat) :
     newWithoutCoupon price = oldWithoutCoupon price := by
   rfl
 \end{minted}
-\caption{共通化後の特定分岐が旧実装と一致することを示す}
+\caption{\texttt{commonize\_without\_coupon\_preserves}}
 \label{lst:ch34-commonize-preserves}
 \end{listing}
 
@@ -191,7 +193,7 @@ theorem remove_identity_wrapper_preserves (x : Nat) :
     wrappedNormalize x = directNormalize x := by
   rfl
 \end{minted}
-\caption{恒等的なwrapperの削除}
+\caption{\texttt{remove\_identity\_wrapper\_preserves}}
 \label{lst:ch34-remove-wrapper}
 \end{listing}
 
@@ -218,9 +220,9 @@ theorem remove_identity_wrapper_preserves (x : Nat) :
 
 これらを安全に行うための考え方が、モナド則である。本章では一般のモナドを形式化せず、\texttt{Option} だけを使って、括弧の付け替えが意味を変えないことを見る。
 
-\FigurePlaceholder{fig-ch34-option-bind-assoc.png}{0.88}{\texttt{Option.bind} の括弧付け変更}{fig:ch34-option-bind-assoc}
+\FigurePlaceholder{fig-ch34-option-bind-assoc.png}{0.88}{\texttt{Option.bind} の結合律}{fig:ch34-option-bind-assoc}
 
-次の例では、正の値か確認し、偶数か確認し、最後に値を増やす。変更前は、最初の \texttt{bind} の中に次の \texttt{bind} がネストしている。変更後は、先に二つの検査を合成してから、最後の処理をつないでいる。
+図\ref{fig:ch34-option-bind-assoc}の二つの経路は、失敗を伝播させながら同じ三処理を異なる括弧付けで実行する。次の例では、正の値か確認し、偶数か確認し、最後に値を増やす。変更前は、最初の \texttt{bind} の中に次の \texttt{bind} がネストしている。変更後は、先に二つの検査を合成してから、最後の処理をつないでいる。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -240,7 +242,7 @@ def flowBefore (n : Nat) : Option Nat :=
 def flowAfter (n : Nat) : Option Nat :=
   Option.bind (Option.bind (parsePositive n) checkEven) enrich
 \end{minted}
-\caption{\texttt{Option.bind} の結合的なリファクタリング}
+\caption{\texttt{flowBefore}・\texttt{flowAfter}}
 \label{lst:ch34-option-assoc}
 \end{listing}
 
@@ -258,7 +260,7 @@ theorem option_assoc_refactor_preserves (n : Nat) :
       | none => rfl
       | some y => rfl
 \end{minted}
-\caption{失敗を含む処理の括弧変更が意味を保存すること}
+\caption{\texttt{option\_assoc\_refactor\_preserves}}
 \label{lst:ch34-option-assoc-proof}
 \end{listing}
 
@@ -280,7 +282,7 @@ theorem option_bind_pure_right (mx : Option Nat) :
   | none => rfl
   | some x => rfl
 \end{minted}
-\caption{\texttt{Option} における \texttt{pure} 相当の整理規則}
+\caption{\texttt{option\_bind\_pure\_left}・\texttt{option\_bind\_pure\_right}}
 \label{lst:ch34-option-pure-laws}
 \end{listing}
 

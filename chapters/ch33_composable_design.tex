@@ -25,7 +25,9 @@
 合成可能な設計とは、「部品をただ分割する設計」ではない。部品をつないだときに、全体の意味が予測できる設計である。圏論の言葉では、部品を射、つなぐことを合成として見る。Leanでは、その合成が期待通りに振る舞うことを小さな等式として確認できる。
 \end{intuitionbox}
 
-\FigurePlaceholder{fig-ch33-overview.png}{0.90}{合成可能な設計の全体像}{fig:ch33-overview}
+\FigurePlaceholder{fig-ch33-overview.png}{0.90}{合成可能な設計}{fig:ch33-overview}
+
+図\ref{fig:ch33-overview}は、型を境界として処理を接続し、個々の部品からパイプラインを組み立てる関係を示している。
 
 \section{合成できる部品とできない部品}
 
@@ -70,9 +72,9 @@
 このように型名で段階を分けると、「どの処理がどの段階のデータを受け取るか」がレビューしやすくなる。
 \end{softwarebox}
 
-\FigurePlaceholder{fig-ch33-boundaries.png}{0.90}{入出力型で処理境界をそろえる}{fig:ch33-boundaries}
+\FigurePlaceholder{fig-ch33-boundaries.png}{0.90}{処理ステージの境界}{fig:ch33-boundaries}
 
-ここで重要なのは、型を細かくしすぎることではない。重要なのは、意味が変わる境界に型名を与えることである。たとえば、単なる整形処理で意味が変わらないなら、型を分ける必要はないかもしれない。一方、生データから検証済みデータへ移る境界は、仕様上の意味が大きく変わるので、型を分ける価値がある。
+図\ref{fig:ch33-boundaries}のように、前段の出力型を後段の入力型に合わせると、接続できるステージが型から分かる。ここで重要なのは、型を細かくしすぎることではなく、意味が変わる境界に型名を与えることである。たとえば、単なる整形処理で意味が変わらないなら、型を分ける必要はないかもしれない。一方、生データから検証済みデータへ移る境界は、仕様上の意味が大きく変わるので、型を分ける価値がある。
 
 \begin{warningbox}
 型をそろえることと、すべてを同じ型にすることは逆である。すべてを \texttt{String -> String} にすると、表面上は何でも合成できる。しかし、どの段階のデータなのかを型が教えてくれない。合成可能な設計では、むしろ必要なところで型を分ける。
@@ -122,36 +124,27 @@ theorem assoc_point
 
 end Chapter33
 \end{minted}
-\caption{関数合成の恒等律と結合律}
+\caption{\texttt{left\_id\_point}・\texttt{right\_id\_point}・\texttt{assoc\_point}}
 \label{lst:ch33-composition-laws}
 \end{listing}
 
-\begin{syntaxbox}
-\texttt{variable} は、以後の定義や定理で共通して使う変数を先に宣言する構文である。
-\begin{itemize}
-\item \texttt{variable (A : Type)} と書くと、その範囲では \texttt{A} を型として使える。
-\item 同じ引数を何度も書かずに済むため、抽象的な設計や圏論的な記述でよく使う。
-\end{itemize}
-\end{syntaxbox}
-
-
-この証明が短いのは、Leanにとって関数合成の両辺が定義を展開すると同じ形になるからである。これは実務で「どんな処理でも順序を変えてよい」という意味ではない。ここで証明しているのは、純粋な関数合成の括弧の付け方だけである。副作用や失敗を含む処理については、\texttt{Option}、\texttt{Except}、状態などの文脈を型に出す必要がある。
+\texttt{variable \{A B C D : Type\}} は、この名前空間内の定理で共通して使う型変数をまとめて宣言している。この証明が短いのは、Leanにとって関数合成の両辺が定義を展開すると同じ形になるからである。これは実務で「どんな処理でも順序を変えてよい」という意味ではない。ここで証明しているのは、純粋な関数合成の括弧の付け方だけである。副作用や失敗を含む処理については、\texttt{Option}、\texttt{Except}、状態などの文脈を型に出す必要がある。
 
 \section{サンプル：ETLパイプラインの段階的設計}
 
 ここでは、小さなETLパイプラインを作る。現実のETLでは、ファイル入力、パースエラー、DB更新、外部API、時刻、監査ログなどが関わる。本章では、それらをいったん外に置き、純粋なデータ変換の核だけを取り出す。
 
-\FigurePlaceholder{fig-ch33-etl-pipeline.png}{0.92}{ETLパイプラインを射の合成として見る}{fig:ch33-etl-pipeline}
+\FigurePlaceholder{fig-ch33-etl-pipeline.png}{0.92}{ETLパイプライン}{fig:ch33-etl-pipeline}
 
-最初に、段階ごとの型を定義する。ここでは説明を短くするため、金額のパースや日付処理は省略し、\texttt{Nat}だけで扱う。
+図\ref{fig:ch33-etl-pipeline}では、取り込み後の行を検証、補完、集計の順に変換する流れを、型の異なる三つの関数として表している。最初に、段階ごとの型を定義する。ここでは説明を短くするため、金額のパースや日付処理は省略し、金額を最初から \texttt{Nat} で扱う。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
-namespace Ch27ETL
+namespace Ch33ETL
 
 structure RawRow where
   userId : Nat
-  amountText : Nat
+  rawAmount : Nat
   deriving Repr, DecidableEq
 
 structure ValidRow where
@@ -170,16 +163,16 @@ structure ReportRow where
   total : Nat
   deriving Repr, DecidableEq
 \end{minted}
-\caption{ETLの段階を型として分ける}
+\caption{\texttt{RawRow}・\texttt{ValidRow}・\texttt{EnrichedRow}・\texttt{ReportRow}}
 \label{lst:ch33-etl-types}
 \end{listing}
 
-この段階では、まだ圏論らしい抽象は出てこない。ただし、型を分けたことで、\texttt{RawRow -> ValidRow}、\texttt{ValidRow -> EnrichedRow}、\texttt{EnrichedRow -> ReportRow} という射の列が見えるようになる。
+この段階では、まだ圏論らしい抽象は出てこない。ただし、型を分けたことで、\texttt{RawRow -> ValidRow}、\texttt{ValidRow -> EnrichedRow}、\texttt{EnrichedRow -> ReportRow} という射の列が見えるようになる。なお、この簡略モデルの \texttt{ValidRow} は検証済みという不変条件をデータとして保持していない。型名だけで検証を証明したことにはならず、現実の検証をモデル化するなら、条件を満たす値だけを構成できる型にするか、\texttt{RawRow -> Option ValidRow} のように失敗を型へ含める必要がある。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
 def sanitize (r : RawRow) : ValidRow :=
-  { userId := r.userId, amount := r.amountText }
+  { userId := r.userId, amount := r.rawAmount }
 
 def enrich (r : ValidRow) : EnrichedRow :=
   { userId := r.userId, amount := r.amount, fee := 10 }
@@ -193,11 +186,11 @@ def pipeline : RawRow -> ReportRow :=
 def pipelineExpanded (r : RawRow) : ReportRow :=
   summarize (enrich (sanitize r))
 \end{minted}
-\caption{ETLステージを関数として定義する}
+\caption{\texttt{sanitize}・\texttt{enrich}・\texttt{summarize}}
 \label{lst:ch33-etl-functions}
 \end{listing}
 
-\texttt{pipeline} は、三つの処理を合成したものである。\texttt{pipelineExpanded} は、同じ処理を入れ子の関数適用として書いたものである。設計レビューでは、どちらの見た目で読むかが変わることはあっても、意味は同じであってほしい。
+\texttt{pipeline} は、三つの処理を合成したものである。\texttt{pipelineExpanded} は、同じ処理を入れ子の関数適用として書いたものである。この例の \texttt{sanitize} は \texttt{Nat} のフィールドを移すだけであり、パースや妥当性検査を実行しない。設計レビューでは、このモデル上の処理内容と、名前から連想される本番処理を区別したうえで、二つの書き方の意味が同じかを確認する。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -217,9 +210,9 @@ theorem pipeline_assoc (r : RawRow) :
       (Function.comp (Function.comp summarize enrich) sanitize) r := by
   rfl
 
-end Ch27ETL
+end Ch33ETL
 \end{minted}
-\caption{合成したパイプラインと展開した処理が一致する}
+\caption{\texttt{pipeline\_same\_as\_expanded}・\texttt{identity\_step\_removed}・\texttt{pipeline\_assoc}}
 \label{lst:ch33-etl-proofs}
 \end{listing}
 
@@ -239,7 +232,7 @@ end Ch27ETL
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
-namespace Ch27Stage
+namespace Ch33Stage
 
 structure Stage (A B : Type) where
   run : A -> B
@@ -258,7 +251,7 @@ theorem left_id (s : Stage A B) (x : A) :
     ((id A).andThen s).run x = s.run x := by
   rfl
 \end{minted}
-\caption{処理ステージの合成}
+\caption{\texttt{Stage.id}・\texttt{Stage.andThen}・\texttt{Stage.left\_id}}
 \label{lst:ch33-stage}
 \end{listing}
 
@@ -278,15 +271,13 @@ theorem assoc
   rfl
 
 end Stage
-end Ch27Stage
+end Ch33Stage
 \end{minted}
-\caption{ステージ合成の右恒等律と結合律}
+\caption{\texttt{Stage.right\_id}・\texttt{Stage.assoc}}
 \label{lst:ch33-stage-laws}
 \end{listing}
 
-\begin{leanbox}
-\texttt{Stage} は本格的な圏論ライブラリではない。あくまで、設計上の「処理ステージ」を小さくモデル化するための構造体である。この程度のモデルでも、恒等処理や結合の確認をLeanに任せられる。
-\end{leanbox}
+\texttt{left\_id}、\texttt{right\_id}、\texttt{assoc} が示すのは、任意の入力に対する \texttt{run} の結果の等しさであり、定理の主張そのものは \texttt{Stage} 構造体同士の等式ではない。本章で観測したいのは処理結果なので、この点ごとの形で十分である。\texttt{Stage} は本格的な圏論ライブラリではなく、設計上の処理ステージを小さくモデル化したものにすぎないが、この範囲の恒等律と結合律はLeanに検査させられる。
 
 \section{合成できない処理を合成可能に近づける}
 

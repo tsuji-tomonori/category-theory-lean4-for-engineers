@@ -18,10 +18,6 @@
 
 実務の仕様書は、人間どうしの合意を作るために書かれる。したがって、読みやすさや業務文脈が重視される。一方で、Lean が扱えるのは、型、関数、命題、証明として明示されたものだけである。この差を埋めるには、仕様書をそのまま Lean に移そうとするのではなく、検査したい性質を小さく切り出す必要がある。
 
-\begin{intuitionbox}
-仕様書を Lean に移す作業は、自然言語を別の言語へ一文ずつ翻訳する作業ではない。むしろ、仕様書から「値の形」「処理」「守るべき条件」「証明したい主張」を取り出して、検査できる小さな模型を作る作業である。
-\end{intuitionbox}
-
 たとえば、仕様書に次のような文があったとする。
 
 \begin{quote}
@@ -40,17 +36,13 @@
 
 このように分けると、自然言語の仕様は少しずつ Lean の部品に近づく。
 
-\FigurePlaceholder{fig-ch24-spec-to-lean-pipeline.png}{0.92}{自然言語仕様から Lean の型・関数・述語・定理へ分解する流れ}{fig:ch24-spec-to-lean-pipeline}
+\FigurePlaceholder{fig-ch24-spec-to-lean-pipeline.png}{0.92}{仕様の形式化パイプライン}{fig:ch24-spec-to-lean-pipeline}
 
 図\ref{fig:ch24-spec-to-lean-pipeline}は、この章で使う分解の流れを示す。左側には自然言語の仕様がある。中央では、仕様を入力、状態、操作、条件に分ける。右側では、それぞれを Lean の型、関数、述語、定理として表す。下には、あえて証明しない範囲を置く。ここを明示することで、「証明済み」という言葉の意味が過大にならない。
 
 \section{自然言語仕様の危うさ}
 
 自然言語仕様が危うい理由は、自然言語が悪いからではない。自然言語は、業務担当者、開発者、運用者、利用者のあいだで意味を共有するために必要である。ただし、機械的な検査には向いていない表現がある。
-
-\begin{softwarebox}
-仕様書で危険なのは、単に文章が長いことではない。危険なのは、重要な条件が文章の外側に隠れていること、成功時と失敗時の状態変化が混ざっていること、何を保存すべきかが明示されていないことである。
-\end{softwarebox}
 
 典型的には、次のような表現が曖昧さを生む。
 
@@ -76,6 +68,10 @@ Lean に移すためには、これらの表現を、より小さな質問へ分
 \end{enumerate}
 \end{definitionbox}
 
+事前条件という語には二つの使い方がある。
+条件を満たさない入力を関数の定義域から除く場合と、全域関数の成功を保証する仮定として使う場合である。
+本章の \texttt{withdraw} は任意の口座と金額を受け取る全域関数なので、\texttt{CanWithdraw} は後者の成功条件であり、呼び出し自体の適格性条件ではない。
+
 ここで大切なのは、すべての仕様がきれいにこの六つへ分かれるとは限らないことである。むしろ、分けようとしたときに曖昧さが見つかる。これは失敗ではない。Lean による形式化の最初の価値は、証明を書く前に、仕様の穴を見つけることにある。
 
 \section{仕様を型・関数・述語・定理に分ける}
@@ -98,10 +94,6 @@ Lean へ移すときは、まず文を「名詞」「動詞」「条件」「主
 
 この表は、厳密な文法規則ではない。設計レビューで使うための作業表である。たとえば「残高を超える金額を出金しようとした場合はエラー」という文は、「条件」と「出力」と「状態保存」の三つを含んでいる。これを一つの文章のまま扱うと曖昧だが、三つに分ければ Lean で扱いやすい。
 
-\begin{leanbox}
-Lean では、データの形を \texttt{structure} で表し、操作を \texttt{def} で表す。条件は \texttt{Prop} を返す定義として書ける。証明したい仕様は、\texttt{theorem} として名前を付ける。
-\end{leanbox}
-
 まず、口座と出金操作の最小モデルを作る。
 
 \begin{listing}[htbp]
@@ -114,7 +106,7 @@ structure Account where
   balance : Nat
   deriving Repr, DecidableEq
 
--- 出金が成功するための事前条件。
+-- 出金が成功するための条件。
 def CanWithdraw (a : Account) (amount : Nat) : Prop :=
   amount <= a.balance
 
@@ -128,7 +120,7 @@ def withdraw (a : Account) (amount : Nat) : Option Account :=
 
 end Chapter24
 \end{minted}
-\caption{口座出金仕様の最小モデル}
+\caption{\texttt{Account} と \texttt{withdraw}}
 \label{lst:ch24-account-model}
 \end{listing}
 
@@ -190,20 +182,12 @@ theorem withdraw_success_post
 
 end Chapter24
 \end{minted}
-\caption{事後条件と小さな証明}
+\caption{\texttt{withdraw\_success\_post}}
 \label{lst:ch24-postcondition}
 \end{listing}
 
-\begin{syntaxbox}
-\texttt{have} は、証明の途中で補助的な事実に名前を付ける構文である。
-\begin{itemize}
-\item \texttt{have h : P := ...} は「ここで \texttt{P} の証明を \texttt{h} として持っておく」と読む。
-\item 長い証明を、小さな中間結果に分けて読みやすくするために使う。
-\item 後続の行では \texttt{h} を根拠として利用できる。
-\item \texttt{¬ P} は「\texttt{P} ではない」という否定命題である。
-\end{itemize}
-\end{syntaxbox}
-
+\texttt{have hle : ... := ...} は、証明途中の補助事実に \texttt{hle} という名前を付ける。
+\texttt{¬ P} は命題 \texttt{P} の否定を表す。
 
 \texttt{withdraw\_success\_when\_allowed} は、「事前条件が満たされているなら成功する」という定理である。\texttt{withdraw\_success\_post} は、「成功した結果は事後条件を満たす」という形に言い換えている。実務の仕様書では、この二つが一文にまとめて書かれることが多い。Lean では、分けて書くほうが読みやすい。
 
@@ -231,9 +215,7 @@ end Chapter24
 
 これらを扱えないという意味ではない。扱うには、より大きなモデル、外部システムの仮定、実装との対応付けが必要になる。本章では、まず小さな核に絞る。
 
-\begin{softwarebox}
-証明対象を選ぶ基準は、「重要かつ小さい」である。重要だが巨大な仕様は、まず小さな命題に分割する。小さいが重要でない仕様は、Lean で証明してもレビュー価値が低い。
-\end{softwarebox}
+証明対象は、壊れたときの影響が大きく、小さな命題へ分けられる性質から選ぶ。
 
 失敗時の仕様も、Lean で明示できる。出金できない場合は \texttt{none} を返す、という性質を定理にする。
 
@@ -258,7 +240,7 @@ theorem withdraw_zero (a : Account) :
 
 end Chapter24
 \end{minted}
-\caption{失敗時仕様の定理}
+\caption{\texttt{withdraw\_failure\_when\_not\_allowed}}
 \label{lst:ch24-failure-spec}
 \end{listing}
 
@@ -300,7 +282,7 @@ Lean モデル上の性質 & 本番実装との完全一致 \\
 
 この仕様は、すでに Lean へ移しやすい形になっている。名詞、操作、条件、成功時、失敗時、非範囲が分かれているからである。
 
-\FigurePlaceholder{fig-ch24-withdraw-scope.png}{0.92}{口座出金仕様で証明する範囲と証明しない範囲}{fig:ch24-withdraw-scope}
+\FigurePlaceholder{fig-ch24-withdraw-scope.png}{0.92}{出金モデルの境界}{fig:ch24-withdraw-scope}
 
 図\ref{fig:ch24-withdraw-scope}は、出金仕様のスコープを示す。中央に Lean で扱う小さなモデルを置き、外側に本章では証明しない実務要素を置く。中央を小さく保つほど、定理は読みやすくなる。外側を無視するのではなく、境界として明示する。
 
@@ -336,11 +318,14 @@ theorem withdrawOrKeep_success_balance
 
 end Chapter24
 \end{minted}
-\caption{失敗時に状態を保つ wrapper}
+\caption{\texttt{withdrawOrKeep}}
 \label{lst:ch24-withdraw-or-keep}
 \end{listing}
 
-ここで \texttt{withdraw} と \texttt{withdrawOrKeep} は役割が違う。\texttt{withdraw} は成功か失敗かを戻り値で表す。\texttt{withdrawOrKeep} は、失敗時の状態保存を表すための補助関数である。仕様書の同じ文章から、複数の Lean 定義が出てくることは珍しくない。
+ここで \texttt{withdraw} と \texttt{withdrawOrKeep} は役割が違う。
+\texttt{withdraw} は成功か失敗かを戻り値で表し、\texttt{withdrawOrKeep} は失敗を元の口座へ写す補助関数である。
+後者は失敗情報を捨てるため、エラーを利用する API の代替ではない。
+また、この純粋関数の等式は、本番 DB に副作用が起きなかったことまでは証明しない。
 
 \section{仕様レビューで使う形式}
 
@@ -355,7 +340,7 @@ end Chapter24
 出金可能条件 & \texttt{CanWithdraw} & 条件は \texttt{amount <= balance} で十分か \\
 出金操作 & \texttt{withdraw} & 失敗を \texttt{none} で表してよいか \\
 成功時の残高 & \texttt{withdraw\_success\_post} & 事後条件は業務仕様と合うか \\
-失敗時の状態保存 & \path{withdrawOrKeep_failure_keeps} & 失敗時に副作用を持たないモデルでよいか \\
+失敗時の状態保存 & \texttt{withdrawOrKeep\_}\allowbreak\texttt{failure\_keeps} & 失敗時に副作用を持たないモデルでよいか \\
 非対象範囲 & 境界表 & DB、認可、監査ログを別途検査するか \\
 \bottomrule
 \end{tabular}
@@ -363,9 +348,7 @@ end Chapter24
 
 この表は、Lean と仕様書をつなぐインデックスである。Lean の定理名を仕様項目に対応させておくと、仕様変更時にどの定理を見直すべきかが分かりやすい。
 
-\begin{leanbox}
-Lean の定理名は、仕様項目名に近づけるとよい。\texttt{theorem t1} のような名前では、証明が通っても設計文書との対応が分からない。\texttt{withdrawOrKeep\_failure\_keeps} のように、対象、条件、結論が読める名前にする。
-\end{leanbox}
+定理名は仕様項目と対応させ、対象・条件・結論を追跡できるようにする。
 
 \section{圏論の言葉で見直す}
 

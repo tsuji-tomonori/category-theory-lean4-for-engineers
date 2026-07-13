@@ -7,7 +7,7 @@
 Lean のコードには、\texttt{:}、\texttt{:=}、引数、関数適用といった、最初に意味を取り違えやすい記号が出てくる。
 本章ではそれらを一つずつ取り上げ、\texttt{\#check} で型を確かめ、\texttt{\#eval} で結果を確かめながら、
 「この式は何を表し、何に評価されるのか」を上から下に読めるようにする。
-新しい概念は一度に一つだけ導入する。命題や証明はまだ扱わない。
+命題や証明はまだ扱わない。
 \end{chapterabstract}
 
 \begin{learninggoals}
@@ -24,12 +24,6 @@ Lean のコードには、\texttt{:}、\texttt{:=}、引数、関数適用とい
 たとえば \texttt{:} は型注釈であり、\texttt{:=} は定義であり、関数呼び出しには括弧を使わない。
 これらを最初に正しく読めるようにしておくと、以降の章のコードがずっと読みやすくなる。
 
-\begin{intuitionbox}
-本章のゴールは、コードを書けるようになることではなく、コードを\emph{読めるように}なることである。
-一つの記号につき一つの読み方を覚え、\texttt{\#check} と \texttt{\#eval} で実際に確かめる。
-この「読んでから書く」順番が、初学者には最も負担が少ない。
-\end{intuitionbox}
-
 \section{\texttt{:} は型注釈である}
 
 Lean では、すべての式に型がある。
@@ -45,22 +39,13 @@ Lean では、すべての式に型がある。
 #check (true : Bool)
 #check ("lean" : String)
 \end{minted}
-\caption{型注釈と \texttt{\#check}}
+\caption{\texttt{:} と \texttt{\#check}}
 \label{lst:ch01_check}
 \end{listing}
 
 コード\ref{lst:ch01_check}では、\texttt{3} を \texttt{Nat}、\texttt{true} を \texttt{Bool}、\texttt{"lean"} を \texttt{String} として読むよう注釈している。
 \texttt{\#check (3 : Nat)} を実行すると、Lean は \texttt{3 : Nat} と返す。
 これは「\texttt{3} は \texttt{Nat} 型である」という意味である。
-
-\begin{syntaxbox}
-本章で最初に固定する記号は \texttt{:} と \texttt{\#check} である。
-\begin{itemize}
-\item \texttt{(式 : 型)} の \texttt{:} は、左の式を右の型として読むという注釈である。
-\item \texttt{Nat} は自然数、\texttt{Bool} は真偽値、\texttt{String} は文字列の型である。
-\item \texttt{\#check} は式や名前の型を表示するコマンドである。
-\end{itemize}
-\end{syntaxbox}
 
 \section{\texttt{\#eval} は式を評価する}
 
@@ -73,7 +58,7 @@ Lean では、すべての式に型がある。
 #eval 2 + 3
 #eval "lean" ++ "4"
 \end{minted}
-\caption{\texttt{\#eval} で評価結果を見る}
+\caption{\texttt{\#eval}}
 \label{lst:ch01_eval}
 \end{listing}
 
@@ -108,7 +93,7 @@ def addOne (n : Nat) : Nat :=
 #eval greeting
 #eval addOne 5
 \end{minted}
-\caption{\texttt{:=} による定義と関数適用}
+\caption{\texttt{greeting} と \texttt{addOne}}
 \label{lst:ch01_def}
 \end{listing}
 
@@ -117,27 +102,10 @@ def addOne (n : Nat) : Nat :=
 \texttt{(n : Nat)} は「引数 \texttt{n} は \texttt{Nat} 型である」と読む。
 \texttt{\#eval addOne 5} は、\texttt{addOne} を \texttt{5} に適用した結果 \texttt{6} を表示する。
 
-\begin{syntaxbox}
-ここで \texttt{:=} と関数適用の読み方を固定する。
-\begin{itemize}
-\item \texttt{def 名前 ... := 本体} の \texttt{:=} は、右の本体で名前を定義する記号である。
-\item \texttt{(n : Nat)} は関数の引数で、あとから渡される値である。
-\item \texttt{f x} は「関数 \texttt{f} を \texttt{x} に適用する」。括弧は使わず空白で並べる。
-\end{itemize}
-\end{syntaxbox}
-
 \section{本章のまとめ}
 
-\texttt{:} は型注釈であり、\texttt{(式 : 型)} と書いて式の型を明示する。
-
-\texttt{:=} は定義であり、\texttt{def 名前 := 本体} で名前を中身に結びつける。
-
-関数適用は空白で書き、\texttt{f x} は \texttt{f} を \texttt{x} に適用する。
-
-\texttt{\#check} は型を、\texttt{\#eval} は評価結果を表示する。
-
 \begin{summarybox}
-この章で新しく出た記法
+要点と記法
 \begin{itemize}
 \item \texttt{(式 : 型)} \quad 型注釈。左の式を右の型として読む。
 \item \texttt{def 名前 := 本体} \quad 名前の定義。

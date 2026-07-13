@@ -42,7 +42,7 @@ theorem member_shipping_zero (shipping : Nat) :
 --     chargeShipping false shipping = 0 := by
 --   simp [chargeShipping]
 \end{minted}
-\caption{\texttt{simp} で分岐を整理する}
+\caption{\texttt{member\_shipping\_zero}}
 \label{lst:ch08_simp}
 \end{listing}
 
@@ -54,7 +54,7 @@ theorem member_shipping_zero (shipping : Nat) :
 \centering
 \scriptsize
 \setlength{\tabcolsep}{3pt}
-\caption{\texttt{chargeShipping} の分岐の展開}
+\caption{\texttt{chargeShipping} の二つの分岐}
 \label{tab:ch08-simp-branches}
 \begin{tabular}{@{}p{0.20\linewidth}p{0.74\linewidth}@{}}
 \toprule
@@ -65,15 +65,6 @@ theorem member_shipping_zero (shipping : Nat) :
 \bottomrule
 \end{tabular}
 \end{table}
-
-\begin{syntaxbox}
-\texttt{simp} の記法を固定する。
-\begin{itemize}
-\item \texttt{simp} は、Lean が知っている単純化規則で式を整理する。
-\item \texttt{simp [name]} は、その定義や補題も使って整理する。
-\item 何でも証明する魔法ではなく、「計算すれば明らか」な部分を片付ける道具である。
-\end{itemize}
-\end{syntaxbox}
 
 \section{\texttt{rw} で既知の等式を使う}
 
@@ -96,7 +87,7 @@ theorem addTax_after_normalize (price tax : Nat) :
     addTax (normalizePrice price) tax = addTax price tax := by
   rw [normalizePrice_eq]
 \end{minted}
-\caption{\texttt{rw} で既知の等式を使って書き換える}
+\caption{\texttt{addTax\_after\_normalize}}
 \label{lst:ch08_rw}
 \end{listing}
 
@@ -105,7 +96,7 @@ theorem addTax_after_normalize (price tax : Nat) :
 
 \begin{table}[htbp]
 \centering
-\caption{\texttt{rw [normalizePrice\_eq]} の書き換え}
+\caption{\texttt{normalizePrice\_eq} による書き換え}
 \label{tab:ch08-rw}
 \begin{tabular}{ll}
 \toprule
@@ -125,14 +116,8 @@ theorem addTax_after_normalize (price tax : Nat) :
 
 \section{本章のまとめ}
 
-\texttt{simp} は、分岐や明らかな整理を含む等式を片付ける。
-
-\texttt{rw} は、証明済みの等式でゴールを書き換える。
-
-\texttt{rfl}・\texttt{simp}・\texttt{rw} は、それぞれ別の場面で使う等式の道具である。
-
 \begin{summarybox}
-この章で新しく出た記法
+要点と記法
 \begin{itemize}
 \item \texttt{simp} \quad 既知の単純化規則で整理する。
 \item \texttt{simp [name]} \quad 指定した定義・補題も使って整理する。

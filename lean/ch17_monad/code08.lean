@@ -121,6 +121,11 @@ def requireAgeE (u : UserWithEmail) : Except MigrationError UserV2 :=
   | none => Except.error MigrationError.missingAge
   | some age => Except.ok { id := u.id, email := u.email, age := age }
 
+theorem except_left_identity {ε α β : Type}
+    (a : α) (f : α → Except ε β) :
+    exceptBind (exceptPure a) f = f a := by
+  rfl
+
 theorem except_right_identity {ε α : Type} (x : Except ε α) :
     exceptBind x exceptPure = x := by
   cases x <;> rfl

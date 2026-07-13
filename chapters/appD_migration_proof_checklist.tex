@@ -41,7 +41,7 @@
 代わりに、移行仕様の核だけを小さな検証モデルとして切り出す。
 \end{softwarebox}
 
-\FigurePlaceholder{fig-appD-migration-proof-flow.png}{0.86}{マイグレーション証明チェックの全体フロー}{fig:appD-migration-proof-flow}
+\FigurePlaceholder{fig-appD-migration-proof-flow.png}{0.86}{マイグレーション証明フロー}{fig:appD-migration-proof-flow}
 
 図\ref{fig:appD-migration-proof-flow}は、この付録の読み方を表す。
 まず変更前後の型を決め、変換関数と逆変換の有無を確認する。
@@ -129,7 +129,7 @@ structure UserV2 where
 
 deriving Repr
 \end{minted}
-\caption{変更前後の型を小さく切り出す}
+\caption{\texttt{UserV1}・\texttt{Profile}・\texttt{UserV2}}
 \label{lst:appD_old_new_types}
 \end{listing}
 
@@ -161,7 +161,7 @@ def migrateUser : UserV1 -> UserV2 :=
     { id := u.id
       profile := { displayName := u.name } }
 \end{minted}
-\caption{正方向の移行関数}
+\caption{\texttt{migrateUser}}
 \label{lst:appD_migrate_function}
 \end{listing}
 
@@ -195,7 +195,7 @@ def rollbackUser : UserV2 -> UserV1 :=
     { id := u.id
       name := u.profile.displayName }
 \end{minted}
-\caption{逆方向の変換関数}
+\caption{\texttt{rollbackUser}}
 \label{lst:appD_rollback_function}
 \end{listing}
 
@@ -250,19 +250,24 @@ well-formed条件は、「この形の値だけを本番データとして扱う
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
-def HasSameId (u1 : UserV1) (u2 : UserV2) : Prop :=
-  u1.id = u2.id
+def WellFormedV1 (u : UserV1) : Prop :=
+  u.name ≠ ""
 
-theorem migrate_preserves_id (u : UserV1) :
-    HasSameId u (migrateUser u) := by
-  rfl
+def WellFormedV2 (u : UserV2) : Prop :=
+  u.profile.displayName ≠ ""
+
+theorem migrateUser_preserves_wellformed (u : UserV1)
+    (h : WellFormedV1 u) :
+    WellFormedV2 (migrateUser u) := by
+  unfold WellFormedV1 at h
+  unfold WellFormedV2 migrateUser
+  exact h
 \end{minted}
-\caption{well-formed条件を述語として分ける}
+\caption{\texttt{WellFormedV1}・\texttt{WellFormedV2}・\texttt{migrateUser\_preserves\_wellformed}}
 \label{lst:appD_wellformed}
 \end{listing}
 
-このコードでは、完全な値の一致ではなく、IDが一致するという観測可能な性質を\texttt{HasSameId}として切り出している。
-\texttt{migrate\_preserves\_id}は、移行後もその性質が保たれることを示す小さな証明である。
+このコードでは、名前が空でないという業務上の条件を旧形式と新形式それぞれの述語にしている。\texttt{migrateUser\_preserves\_wellformed} は、旧形式でその条件を満たす値を移行すると、新形式でも入れ子の表示名が空でないことを示す。
 
 \subsection{6. 証明したい性質はどの分類か}
 
@@ -276,7 +281,7 @@ theorem migrate_preserves_id (u : UserV1) :
 \endhead
 完全同型 & 新旧が同じ情報を持つ & \texttt{rollback (migrate x) = x} と \texttt{migrate (rollback y) = y} \\
 片方向互換 & 旧データは新形式へ安全に移せる & \texttt{rollback (migrate x) = x} だけ、または旧仕様の保存 \\
-制約付き同型 & well-formedな値だけ戻せる & \texttt{WellFormed y -> migrate (rollback y) = y} \\
+制約付き同型 & well-formedな値の領域で相互に戻せる & 両方向の条件付きround-tripとwell-formed性の保存 \\
 仕様弱化 & 完全復元ではなく、観測可能な性質だけを保存する & \texttt{observeNew (migrate x) = observeOld x} \\
 安全な抽象化 & 詳細情報を公開可能な形へ落とす & \texttt{SafePublic (abstract x)}、単調性、非漏洩性 \\
 \bottomrule
@@ -301,7 +306,7 @@ theorem migrate_after_rollback (u : UserV2) :
     cases profile
     rfl
 \end{minted}
-\caption{完全同型のround-trip証明}
+\caption{\texttt{rollback\_after\_migrate}・\texttt{migrate\_after\_rollback}}
 \label{lst:appD_roundtrip}
 \end{listing}
 
@@ -336,12 +341,13 @@ theorem migrateUsers_length (xs : List UserV1) :
   unfold migrateUsers
   simp
 \end{minted}
-\caption{リスト全体への移行}
+\caption{\texttt{migrateUsers}・\texttt{migrateUsers\_length}}
 \label{lst:appD_batch_migration}
 \end{listing}
 
-このコードでは、1件の移行関数\texttt{migrateUser}を\texttt{List.map}でリスト全体へ広げている。
-\path{migrateUsers_length}は、移行によって件数が変わらないことを確認するバッチ固有の性質である。
+このコードでは、1件の移行関数 \texttt{migrateUser} を使う。
+\texttt{List.map} は、その関数をリストの全要素へ適用する。
+\texttt{migrateUsers\_}\allowbreak\texttt{length} は、移行によって件数が変わらないことを確認するバッチ固有の性質である。
 
 \subsection{8. 業務ロジックとの順序を入れ替えてもよいか}
 
@@ -366,6 +372,8 @@ Leanでは、二つの式の等式として書く。
 \bottomrule
 \end{longtable}
 
+\clearpage
+
 \begin{listing}[htbp]
 \begin{minted}{lean4}
 def renameV1 (u : UserV1) (s : String) : UserV1 :=
@@ -379,7 +387,7 @@ theorem migrate_rename_commutes (u : UserV1) (s : String) :
   cases u
   rfl
 \end{minted}
-\caption{移行と業務ロジックの可換性}
+\caption{\texttt{migrate\_rename\_commutes}}
 \label{lst:appD_commute_business}
 \end{listing}
 
@@ -461,7 +469,7 @@ theorem migrate_rollback_id (y : New) :
   -- すべての New に対して戻せる場合だけ成立する。
   sorry
 \end{minted}
-\caption{完全同型のテンプレート}
+\caption{\texttt{rollback\_migrate\_id}・\texttt{migrate\_rollback\_id}}
 \label{lst:appD_template_iso}
 \end{listing}
 
@@ -485,7 +493,7 @@ theorem old_observation_preserved (x : Old) :
     observeNew (migrate x) = observeOld x := by
   sorry
 \end{minted}
-\caption{片方向互換のテンプレート}
+\caption{\texttt{old\_roundtrip}・\texttt{old\_observation\_preserved}}
 \label{lst:appD_template_one_way}
 \end{listing}
 
@@ -498,24 +506,22 @@ theorem old_observation_preserved (x : Old) :
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
--- WellFormedNew y は、新形式の値 y が業務上正しい形であること。
 theorem migrate_rollback_on_wellformed
     (y : New) (h : WellFormedNew y) :
     migrate (rollback y) = y := by
   sorry
 
--- 旧形式から移した値が、新形式のwell-formed条件を満たすこと。
+-- 二つの変換が制約領域の中に留まること。
 theorem migrate_preserves_wellformed
     (x : Old) (h : WellFormedOld x) :
     WellFormedNew (migrate x) := by
   sorry
 \end{minted}
-\caption{制約付き同型のテンプレート}
+\caption{\texttt{migrate\_rollback\_on\_wellformed}・\texttt{migrate\_preserves\_wellformed}}
 \label{lst:appD_template_wellformed}
 \end{listing}
 
-このテンプレートでは、任意の新形式ではなく、\texttt{WellFormedNew}を満たす値に限って復元性を主張している。
-同時に、旧形式から移行した値が新形式のwell-formed条件を満たすことも別の定理として切り出している。
+このテンプレートの新形式側の定理に、前節の \texttt{old\_roundtrip} を組み合わせれば両方向の復元性になる。\texttt{migrate\_preserves\_wellformed} は、旧形式の制約領域から移した値が新形式の制約領域に入ることを示す。旧形式側も制約された部分だけを対象にするなら、\texttt{WellFormedNew y -> WellFormedOld (rollback y)} と旧形式側の条件付きround-tripも追加する必要がある。必要な両方向の復元性と制約保存がそろって初めて、制約された領域の同型として読める。
 
 \subsection{仕様弱化テンプレート}
 
@@ -535,12 +541,11 @@ theorem abstraction_is_safe (x : Old) :
     SafePublic (abstract x) := by
   sorry
 \end{minted}
-\caption{仕様弱化のテンプレート}
+\caption{\texttt{normalized\_observation\_preserved}・\texttt{abstraction\_is\_safe}}
 \label{lst:appD_template_weakening}
 \end{listing}
 
-このテンプレートでは、元の値を完全に戻す代わりに、正規化後の観測や公開安全性だけを証明対象にしている。
-情報を落とす移行では、このように「保存する性質」を明示してからLeanの定理へ落とす。
+このテンプレートでは、元の値を完全に戻す代わりに、正規化後の観測や公開安全性だけを証明対象にしている。\texttt{SafePublic} の定義が実際の公開方針を十分に表すかは別途レビューが必要であり、定理名だけで非漏洩性が得られるわけではない。情報を落とす移行では、このように「保存する性質」を明示してからLeanの定理へ落とす。
 
 \section{レビュー用ワークシート}
 

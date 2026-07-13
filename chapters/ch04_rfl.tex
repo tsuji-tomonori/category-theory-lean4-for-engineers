@@ -7,7 +7,7 @@
 \texttt{rfl} は、左辺と右辺が定義を展開すると同じ形になる等式を閉じる道具である。
 前章で読んだ \texttt{hasDiscount true = true} を実際に \texttt{rfl} で証明し、
 \texttt{hasDiscount false = true} がなぜ閉じられないかも並べて確認する。
-\texttt{simp} や \texttt{rw} はまだ出さない。一つの道具に集中する。
+\texttt{simp} や \texttt{rw} はまだ扱わない。
 \end{chapterabstract}
 
 \begin{learninggoals}
@@ -37,7 +37,7 @@ def hasDiscount (member : Bool) : Bool :=
 example : hasDiscount true = true := by
   rfl
 \end{minted}
-\caption{\texttt{rfl} で定義どおりの等式を閉じる}
+\caption{\texttt{hasDiscount true = true}}
 \label{lst:ch04_rfl_success}
 \end{listing}
 
@@ -46,7 +46,7 @@ example : hasDiscount true = true := by
 
 \begin{table}[htbp]
 \centering
-\caption{\texttt{hasDiscount true = true} を \texttt{rfl} で閉じる}
+\caption{\texttt{hasDiscount true = true}}
 \label{tab:ch04-success}
 \begin{tabular}{ll}
 \toprule
@@ -58,15 +58,6 @@ example : hasDiscount true = true := by
 \bottomrule
 \end{tabular}
 \end{table}
-
-\begin{syntaxbox}
-ここで証明に関する記法を固定する。
-\begin{itemize}
-\item \texttt{example : P := by ...} は、名前を付けずに命題 \texttt{P} を証明する。
-\item \texttt{by} は証明モードへの入口である。
-\item \texttt{rfl} は、定義を展開して左右が同じ形になる等式を閉じる。
-\end{itemize}
-\end{syntaxbox}
 
 \section{成り立たない等式は \texttt{rfl} で閉じられない}
 
@@ -83,7 +74,7 @@ def hasDiscount (member : Bool) : Bool :=
 -- example : hasDiscount false = true := by
 --   rfl
 \end{minted}
-\caption{成り立たない等式は \texttt{rfl} で閉じられない}
+\caption{\texttt{hasDiscount false = true}}
 \label{lst:ch04_rfl_failure}
 \end{listing}
 
@@ -92,7 +83,7 @@ def hasDiscount (member : Bool) : Bool :=
 
 \begin{table}[htbp]
 \centering
-\caption{\texttt{hasDiscount false = true} が閉じられない理由}
+\caption{\texttt{hasDiscount false = true}}
 \label{tab:ch04-failure}
 \begin{tabular}{ll}
 \toprule
@@ -104,12 +95,6 @@ def hasDiscount (member : Bool) : Bool :=
 \bottomrule
 \end{tabular}
 \end{table}
-
-\begin{intuitionbox}
-成功例と失敗例を並べると、\texttt{rfl} の使える条件がはっきりする。
-\texttt{rfl} は「定義を展開した結果、左右が文字どおり同じになる」ときだけ使える。
-\texttt{true = true} は閉じられるが、\texttt{false = true} は閉じられない。
-\end{intuitionbox}
 
 \section{数値の計算でも \texttt{rfl} は使える}
 
@@ -123,7 +108,7 @@ def addTax (price tax : Nat) : Nat :=
 example : addTax 100 0 = 100 := by
   rfl
 \end{minted}
-\caption{数値の等式を \texttt{rfl} で閉じる}
+\caption{\texttt{addTax 100 0 = 100}}
 \label{lst:ch04_rfl_addtax}
 \end{listing}
 
@@ -132,14 +117,8 @@ example : addTax 100 0 = 100 := by
 
 \section{本章のまとめ}
 
-\texttt{example : P := by rfl} で、定義どおりに成り立つ等式を証明できる。
-
-\texttt{rfl} は、定義を展開すると左右が同じ形になる等式に使える。
-
-\texttt{hasDiscount false = true} のように左右が違う等式には \texttt{rfl} は使えない。
-
 \begin{summarybox}
-この章で新しく出た記法
+要点と記法
 \begin{itemize}
 \item \texttt{example : P := by ...} \quad 名前のない証明。
 \item \texttt{by} \quad 証明モードへの入口。

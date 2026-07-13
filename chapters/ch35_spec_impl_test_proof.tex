@@ -32,7 +32,7 @@
 Lean は、テストを置き換えるものではない。Lean は、テストでは代表例しか見られない性質のうち、小さく、純粋で、壊れると困る核を検査する道具である。テストは実環境に近い振る舞いを見る。証明はモデル化した範囲の全ケースを見る。この二つは競合するのではなく、役割が違う。
 \end{intuitionbox}
 
-\FigurePlaceholder{fig-ch35-connection-map.png}{0.92}{仕様・実装・テスト・証明の接続地図}{fig:ch35-connection-map}
+\FigurePlaceholder{fig-ch35-connection-map.png}{0.92}{仕様・実装・テスト・証明}{fig:ch35-connection-map}
 
 図\ref{fig:ch35-connection-map}では、仕様から実装へ直接進む線だけでなく、テストと証明を横に置いている。テストは「実装が期待例で動くか」を見る。証明は「モデル化した仕様がすべての場合に成り立つか」を見る。設計文書は、その対応関係と前提条件を人間が読める形で残す場所である。
 
@@ -94,11 +94,11 @@ theorem charge_impl_matches_spec (i : PriceInput) :
     chargeImpl i = chargeSpec i := by
   rfl
 \end{minted}
-\caption{仕様モデルと実装モデルを分ける}
+\caption{\texttt{charge\_impl\_matches\_spec}}
 \label{lst:ch35-charge-spec-impl}
 \end{listing}
 
-ここで証明しているのは、料金システム全体の正しさではない。証明しているのは、\texttt{chargeImpl} という小さな実装モデルが、\texttt{chargeSpec} という小さな仕様モデルと一致することだけである。
+ここで証明しているのは、料金システム全体の正しさではない。証明しているのは、\texttt{chargeImpl} という小さな実装モデルが、\texttt{chargeSpec} という小さな仕様モデルと一致することだけである。しかも、この例の二定義は展開すると同じ式なので、定理だけから \texttt{chargeSpec} が業務仕様として妥当だとは分からない。仕様モデルを独立にレビューし、本番実装との対応を保つ作業が別に必要である。
 
 \begin{softwarebox}
 実務では、\texttt{chargeSpec} が仕様書中の数式や業務ルールに対応し、\texttt{chargeImpl} が本番コードから切り出した純粋な核に対応する。Lean の theorem は、「この核については、実装が仕様モデルからずれていない」というレビュー可能な証拠になる。
@@ -140,11 +140,11 @@ example :
     chargeImpl { base := 8, discount := 10, shipping := 5 } = 5 := by
   rfl
 \end{minted}
-\caption{代表例を確認するテスト的な使い方}
+\caption{\texttt{chargeImpl}}
 \label{lst:ch35-charge-examples}
 \end{listing}
 
-二つ目の例では、\texttt{Nat} の引き算がゼロで止まるため、\texttt{8 - 10} は \texttt{0} として扱われる。これは現実の料金計算では注意が必要な点である。このような例は、Lean の theorem とは別に、モデルの前提を人間に気づかせるテストケースとして有用である。
+\texttt{\#eval} は式を評価して結果を表示し、\texttt{example} は名前を付けない定理をカーネルに検査させる。どちらも、外部I/Oを含む本番コードを実行する通常テストそのものではない。二つ目の例では、\texttt{Nat} の引き算がゼロで止まるため、\texttt{8 - 10} は \texttt{0} として扱われる。これは現実の料金計算では注意が必要な点である。このような具体例は、モデルの前提を人間に気づかせる確認として有用である。
 
 \begin{intuitionbox}
 テストは「この入力ではどうなるか」を明らかにする。証明は「この形でモデル化したすべての入力で何が成り立つか」を明らかにする。サンプルテストは、証明の代替ではないが、モデルの読み方を確認する入口になる。
@@ -166,7 +166,7 @@ Lean 導入でよくある失敗は、最初から仕様全体を形式化しよ
 \item \textbf{文書化する前提}：Lean モデルが何を抽象化し、何を捨てたか。
 \end{enumerate}
 
-\FigurePlaceholder{fig-ch35-proof-kernel.png}{0.90}{実務仕様から証明可能な核を切り出す}{fig:ch35-proof-kernel}
+\FigurePlaceholder{fig-ch35-proof-kernel.png}{0.90}{証明可能な核}{fig:ch35-proof-kernel}
 
 図\ref{fig:ch35-proof-kernel}のように、実務仕様全体をそのまま Lean に入れるのではなく、中心にある小さな性質を抜き出す。周辺にある環境依存の振る舞いは、テストや監視に残す。
 
@@ -217,11 +217,11 @@ theorem withdrawCore_failure
     withdrawCore balance amount = none := by
   simp [withdrawCore, h]
 \end{minted}
-\caption{出金処理から純粋な核を切り出す}
+\caption{\texttt{withdrawCore\_success}・\texttt{withdrawCore\_failure}}
 \label{lst:ch35-withdraw-core}
 \end{listing}
 
-このコードでは、出金可能な場合と不可能な場合を定理として分けている。\path{withdrawCore_success} は、出金額が残高以下なら、結果は残高から出金額を引いた値になることを言う。\path{withdrawCore_failure} は、出金額が残高を超えるなら失敗することを言う。
+このコードでは、出金可能な場合と不可能な場合を定理として分けている。\texttt{withdrawCore\_success} は、出金額が残高以下なら、結果は残高から出金額を引いた値になることを言う。\texttt{withdrawCore\_failure} は、出金額が残高を超えるなら失敗することを言う。
 
 \begin{leanbox}
 ここで重要なのは、DBもログも登場しないことである。これは欠落ではなく、意図的な抽象化である。Lean では、まず純粋な残高更新ルールだけを証明する。DB更新や監査ログは、別途統合テストや運用テストで確認する。
@@ -262,7 +262,7 @@ Lean theorem: Chapter35.SPEC_CHARGE_001
 保証しないこと: 実DB、外部API、画面表示、性能、通貨丸め。
 対応テスト: 決済API統合テスト、丸め仕様テスト、UI表示テスト。
 \end{minted}
-\caption{設計文書中の theorem 対応表の例}
+\caption{\texttt{SPEC-CHARGE-001} 対応表}
 \label{lst:ch35-design-doc-fragment}
 \end{listing}
 
@@ -281,7 +281,7 @@ theorem SPEC_CHARGE_001 (i : PriceInput) :
 
 end Chapter35
 \end{minted}
-\caption{設計文書IDに対応する theorem}
+\caption{\texttt{SPEC\_CHARGE\_001}}
 \label{lst:ch35-spec-charge-001}
 \end{listing}
 
@@ -324,20 +324,6 @@ Lean で最も誤解されやすい点は、本番コードと Lean モデルの
 \begin{warningbox}
 Lean モデルと本番コードの差分を隠してはいけない。差分を隠すと、「証明済み」という言葉だけが独り歩きする。差分を明示すれば、証明は過剰な保証ではなく、設計判断を支える正確な証拠になる。
 \end{warningbox}
-
-\section{よくある誤解}
-
-\subsection{誤解1：証明があればテストはいらない}
-
-証明は、モデル化した範囲では強い。しかし、外部API、DB、UI、性能、運用は、モデル外であることが多い。そこはテストや監視が必要である。
-
-\subsection{誤解2：本番コードを全部 Lean に書くべきである}
-
-本章の方針では、まず証明可能な核を切り出す。完全検証を目指す研究・開発プロジェクトでは別の判断もあり得るが、通常のチーム導入では、小さく始めるほうが継続しやすい。
-
-\subsection{誤解3：証明できない仕様は悪い仕様である}
-
-証明できない仕様にも価値はある。ユーザー体験、運用判断、性能目標、法務・業務上の例外などは、自然言語、テスト、監視、レビューで扱うほうがよい場合が多い。重要なのは、証明できないことを隠さず、確認方法を分けることである。
 
 \section{本章のまとめ}
 

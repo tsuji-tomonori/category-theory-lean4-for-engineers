@@ -28,7 +28,7 @@ Lean の構文は、単なる記号ではなく、「何を定義しているか
 ソフトウェア設計に置き換えると、\texttt{def} は関数や変換、\texttt{structure} は DTO やドメインモデル、\texttt{theorem} は設計上守りたい仕様、\texttt{by} 以下はレビュー可能な根拠に対応する。
 \end{softwarebox}
 
-\FigurePlaceholder{fig-appA-lean4-cheatsheet-map.png}{0.90}{Lean 4 の最小語彙を、定義・仕様・証明・分解の四つに分けて見る。}{fig:appA-lean4-cheatsheet-map}
+\FigurePlaceholder{fig-appA-lean4-cheatsheet-map.png}{0.90}{Lean 4 の最小語彙}{fig:appA-lean4-cheatsheet-map}
 
 図\ref{fig:appA-lean4-cheatsheet-map}では、この付録の語彙を四つの領域に分けている。値や関数を作る語彙、仕様を主張する語彙、等式を閉じる語彙、データの形を分解する語彙である。本文でコードを読むときは、まず今見ている行がどの領域に属するかを確認するとよい。
 
@@ -61,7 +61,7 @@ def pipeline (n : Nat) : Nat :=
 #eval addFee 1000  -- => 1300
 #eval pipeline 10  -- => 22
 \end{minted}
-\caption{\texttt{def} による値と関数の定義}
+\caption{\texttt{serviceFee}・\texttt{addFee}・\texttt{pipeline}}
 \label{lst:appA_def}
 \end{listing}
 
@@ -101,7 +101,7 @@ def migrateUser (u : UserV1) : UserV2 :=
 def rollbackUser (u : UserV2) : UserV1 :=
   { id := u.userId, name := u.displayName }
 \end{minted}
-\caption{\texttt{structure} による小さなユーザーモデル}
+\caption{\texttt{UserV1}・\texttt{UserV2}・\texttt{migrateUser}・\texttt{rollbackUser}}
 \label{lst:appA_structure}
 \end{listing}
 
@@ -118,7 +118,7 @@ def rollbackUser (u : UserV2) : UserV1 :=
 def sameIdAfterMigrate (u : UserV1) : Nat :=
   (migrateUser u).userId
 \end{minted}
-\caption{構造体のフィールドを使う}
+\caption{\texttt{sameIdAfterMigrate}}
 \label{lst:appA_field_access}
 \end{listing}
 
@@ -145,7 +145,7 @@ def validatePositive (n : Nat) : Result Nat :=
   else
     Result.ok n
 \end{minted}
-\caption{\texttt{inductive} による結果型の定義}
+\caption{\texttt{Result}・\texttt{validatePositive}}
 \label{lst:appA_inductive}
 \end{listing}
 
@@ -174,7 +174,7 @@ theorem rollback_migrate_user (u : UserV1) :
     rollbackUser (migrateUser u) = u := by
   rfl
 \end{minted}
-\caption{\texttt{example} と \texttt{theorem} の最小形}
+\caption{\texttt{inc\_eq\_add\_one}・\texttt{rollback\_migrate\_user}}
 \label{lst:appA_example_theorem}
 \end{listing}
 
@@ -204,7 +204,7 @@ theorem pipeline_ten :
     pipeline 10 = 22 := by
   rfl
 \end{minted}
-\caption{\texttt{rfl} で閉じる証明}
+\caption{\texttt{pipeline\_ten}}
 \label{lst:appA_rfl}
 \end{listing}
 
@@ -228,7 +228,7 @@ theorem map_nil_inc :
     List.map inc [] = [] := by
   simp
 \end{minted}
-\caption{\texttt{simp} による式の整理}
+\caption{\texttt{append\_nil\_right}・\texttt{map\_nil\_inc}}
 \label{lst:appA_simp}
 \end{listing}
 
@@ -251,12 +251,12 @@ theorem rewrite_price
   rw [h]
   simp
 \end{minted}
-\caption{\texttt{rw} による書き換え}
+\caption{\texttt{rewrite\_price}}
 \label{lst:appA_rw}
 \end{listing}
 
 \begin{warningbox}
-\texttt{rw [h]} は、等式 \texttt{h} の左辺を右辺へ書き換える。逆向きに使いたいときは \texttt{rw [<- h]} と書く。
+\texttt{rw [h]} は、等式 \texttt{h} の左辺を右辺へ書き換える。逆向きに使いたいときは \texttt{rw [← h]} と書く。
 \end{warningbox}
 
 \subsection{\texttt{calc}：段階的な式変形を書く}
@@ -273,7 +273,7 @@ theorem add_assoc_calc (a b c : Nat) :
     (a + b) + c = a + (b + c) := by
       rw [Nat.add_assoc]
 \end{minted}
-\caption{\texttt{calc} による段階的な等式証明}
+\caption{\texttt{add\_assoc\_calc}}
 \label{lst:appA_calc}
 \end{listing}
 
@@ -304,7 +304,7 @@ theorem isSomeNat_cases (x : Option Nat) :
   | some n =>
       exact Or.inl rfl
 \end{minted}
-\caption{\texttt{cases} による \texttt{Option} の分解}
+\caption{\texttt{isSomeNat\_cases}}
 \label{lst:appA_cases}
 \end{listing}
 
@@ -330,7 +330,7 @@ theorem map_length_inc (xs : List Nat) :
   | cons x xs ih =>
       simp [List.map, ih]
 \end{minted}
-\caption{\texttt{induction} によるリスト長の保存}
+\caption{\texttt{map\_length\_inc}}
 \label{lst:appA_induction}
 \end{listing}
 
@@ -358,7 +358,7 @@ theorem pair_spec (n : Nat) :
   · exact rfl
   · exact rfl
 \end{minted}
-\caption{\texttt{constructor} と \texttt{exact}}
+\caption{\texttt{pair\_spec}}
 \label{lst:appA_constructor_exact}
 \end{listing}
 
@@ -378,7 +378,7 @@ theorem use_existing_evidence
     (hp : P) : P := by
   exact hp
 \end{minted}
-\caption{\texttt{exact} による証拠の提出}
+\caption{\texttt{use\_existing\_evidence}}
 \label{lst:appA_exact}
 \end{listing}
 
@@ -400,22 +400,11 @@ theorem use_implication
   apply h
   exact hp
 \end{minted}
-\caption{\texttt{apply} による含意の利用}
+\caption{\texttt{use\_implication}}
 \label{lst:appA_apply}
 \end{listing}
 
-\begin{syntaxbox}
-\texttt{apply} は、現在のゴールに合う定理や関数を適用して、必要な前提を新しいゴールとして出す構文である。
-\begin{itemize}
-\item \texttt{apply h} は「このゴールは \texttt{h} を使えば示せるはずなので、\texttt{h} に必要な材料をそろえる」と読む。
-\item \texttt{exact} が完成済みの証明を渡すのに対し、\texttt{apply} は証明の形を先に決めて残りを埋める。
-\end{itemize}
-\end{syntaxbox}
-
-
-\begin{leanbox}
-\texttt{apply h} は、「\texttt{Q} を示すには、\texttt{h : P -> Q} が使える。あとは \texttt{P} を示せばよい」とゴールを変える操作である。
-\end{leanbox}
+\texttt{apply h} は、「\texttt{Q} を示すには \texttt{h : P -> Q} が使えるので、残る前提 \texttt{P} を示せばよい」とゴールを変える。\texttt{exact} が完成済みの証拠を渡すのに対し、\texttt{apply} は使う証明の形を先に決める。
 
 \section{よくある読み方ミス}
 
@@ -431,7 +420,7 @@ theorem use_implication
 
 \begin{warningbox}
 \textbf{\texttt{rw} の向きに注意する。}
-\texttt{rw [h]} で進まないとき、等式の向きが逆かもしれない。その場合は \texttt{rw [<- h]} を検討する。
+\texttt{rw [h]} で進まないとき、等式の向きが逆かもしれない。その場合は \texttt{rw [← h]} を検討する。
 \end{warningbox}
 
 \begin{warningbox}

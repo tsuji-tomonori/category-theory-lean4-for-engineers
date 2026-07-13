@@ -21,7 +21,9 @@
 証明には、名前を付けない \texttt{example} と、名前を付ける \texttt{theorem} の二種類がある。
 使い分けの基準は、後からその証明を参照したいかどうかである。
 
-\FigurePlaceholder{fig-ch06-spec-proof-flow.png}{0.92}{仕様を、関数・命題・証明へ分解する流れ}{fig:ch06-spec-proof-flow}
+図\ref{fig:ch06-spec-proof-flow}では、関数の振る舞いを命題として切り出し、その命題に証明を与えるまでを三段階に分ける。
+
+\FigurePlaceholder{fig-ch06-spec-proof-flow.png}{0.92}{関数・命題・証明}{fig:ch06-spec-proof-flow}
 
 \section{名前付きの定理を書く}
 
@@ -44,7 +46,7 @@ theorem member_hasDiscount : DiscountSpec true := by
 -- theorem nonmember_hasDiscount : DiscountSpec false := by
 --   rfl
 \end{minted}
-\caption{仕様名に対する名前付きの定理}
+\caption{\texttt{member\_hasDiscount}}
 \label{lst:ch06_theorem}
 \end{listing}
 
@@ -54,7 +56,7 @@ theorem member_hasDiscount : DiscountSpec true := by
 
 \begin{table}[htbp]
 \centering
-\caption{\texttt{member\_hasDiscount} のゴール展開}
+\caption{\texttt{member\_hasDiscount} の展開}
 \label{tab:ch06-goal}
 \begin{tabular}{ll}
 \toprule
@@ -69,15 +71,6 @@ theorem member_hasDiscount : DiscountSpec true := by
 \bottomrule
 \end{tabular}
 \end{table}
-
-\begin{syntaxbox}
-\texttt{theorem} の記法を固定する。
-\begin{itemize}
-\item \texttt{theorem 名前 : P := by ...} は、命題 \texttt{P} を名前付きで証明する。
-\item \texttt{:} の右側 \texttt{P} が、証明すべきゴールである。
-\item 後から参照したい仕様には \texttt{theorem}、その場限りの確認には \texttt{example} を使う。
-\end{itemize}
-\end{syntaxbox}
 
 \section{名前のない確認は \texttt{example} で書く}
 
@@ -95,28 +88,17 @@ def TaxSpec (price tax total : Nat) : Prop :=
 example : TaxSpec 1000 100 1100 := by
   rfl
 \end{minted}
-\caption{\texttt{example} による具体例の確認}
+\caption{\texttt{TaxSpec} の具体例}
 \label{lst:ch06_example}
 \end{listing}
 
 コード\ref{lst:ch06_example}の \texttt{TaxSpec 1000 100 1100} は、\texttt{1100 = addTax 1000 100}、すなわち \texttt{1100 = 1000 + 100} に展開され、\texttt{1100 = 1100} になる。
 この \texttt{example} には名前がないため、後から別の証明で参照することはできない。
 
-\begin{definitionbox}
-本書では、\texttt{example} を「その場限りの確認」、\texttt{theorem} を「名前を付けて再利用したい仕様」として使い分ける。
-設計文書と対応させたい重要な性質には、\texttt{theorem} 名を付けるとよい。
-\end{definitionbox}
-
 \section{本章のまとめ}
 
-\texttt{theorem} は名前付きの証明であり、後から参照できる。
-
-\texttt{example} は名前のない証明であり、その場限りの確認に向く。
-
-\texttt{member\_hasDiscount : DiscountSpec true} は、仕様名を展開すると \texttt{true = true} になり、\texttt{rfl} で閉じる。
-
 \begin{summarybox}
-この章で新しく出た記法
+要点と記法
 \begin{itemize}
 \item \texttt{theorem 名前 : P := by ...} \quad 名前付きの証明。
 \item \texttt{example : P := by ...} \quad 名前のない証明（再掲）。

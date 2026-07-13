@@ -40,7 +40,7 @@ theorem map_preserves_length {α β : Type} (f : α → β) :
 
 theorem migrateUsers_preserves_length (xs : List UserV1) :
     (migrateUsers xs).length = xs.length := by
-  simp [migrateUsers]
+  exact map_preserves_length migrateUser xs
 
 theorem migrateUsers_preserves_ids (xs : List UserV1) :
     idsV2 (migrateUsers xs) = idsV1 xs := by

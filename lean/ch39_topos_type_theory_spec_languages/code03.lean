@@ -10,13 +10,10 @@ structure UserCtx where
 deriving Repr, DecidableEq
 
 def CanUpload (u : UserCtx) : Prop :=
-  And (u.active = true) (0 < u.quota)
+  And (u.active = true) (1 <= u.quota)
 
-def uploadPolicy (u : UserCtx) : Prop :=
-  CanUpload u
-
-theorem uploadPolicy_requires_active (u : UserCtx) :
-    uploadPolicy u -> u.active = true := by
+theorem canUpload_requires_active (u : UserCtx) :
+    CanUpload u -> u.active = true := by
   intro h
   exact h.left
 
@@ -37,10 +34,9 @@ def holds (s : Spec) (u : UserCtx) : Prop :=
 def uploadDSL : Spec :=
   Spec.and Spec.isActive (Spec.hasQuota 1)
 
-theorem uploadDSL_means_active (u : UserCtx) :
-    holds uploadDSL u -> u.active = true := by
-  intro h
-  exact h.left
+theorem uploadDSL_correct (u : UserCtx) :
+    holds uploadDSL u <-> CanUpload u := by
+  rfl
 
 theorem uploadDSL_means_quota (u : UserCtx) :
     holds uploadDSL u -> 1 <= u.quota := by

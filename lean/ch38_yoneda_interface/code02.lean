@@ -21,7 +21,7 @@ def post {A B C : Type} (g : B -> C) (f : A -> B) :
   fun a => g (f a)
 
 theorem equal_values_same_observations
-    {A _B : Type} {x y : A}
+    {A B : Type} {x y : A}
     (h : x = y) (f : A -> B) :
     f x = f y := by
   cases h

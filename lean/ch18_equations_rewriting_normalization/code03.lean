@@ -43,4 +43,4 @@ theorem subtotal_eq_normalizedPrice
     (base discount : Nat) :
     subtotal base discount =
       normalizedPrice base discount := by
-  rw [normalizedPrice_eq_subtotal]
+  rw [← normalizedPrice_eq_subtotal]

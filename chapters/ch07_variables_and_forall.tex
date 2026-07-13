@@ -38,18 +38,12 @@ theorem addTax_zero (price : Nat) :
     addTax price 0 = price := by
   rfl
 \end{minted}
-\caption{任意の \texttt{price} についての定理}
+\caption{\texttt{addTax\_zero}}
 \label{lst:ch07_forall_price}
 \end{listing}
 
 コード\ref{lst:ch07_forall_price}の \texttt{addTax\_zero} は、特定の価格ではなく、任意の \texttt{price} についての主張である。
 \texttt{addTax price 0} は定義により \texttt{price + 0} になり、これは \texttt{price} に展開されるので、\texttt{rfl} で閉じられる。
-
-\begin{intuitionbox}
-具体例 \texttt{addTax 1000 0 = 1000} は一つの入力の確認だが、
-\texttt{addTax\_zero (price : Nat)} は\emph{すべての}価格についての主張である。
-引数を取る定理は「どんな値が来ても成り立つ」と読む。
-\end{intuitionbox}
 
 \section{\texttt{forall} と \texttt{intro}}
 
@@ -69,20 +63,12 @@ theorem toDtoId_preservesId : PreservesId toDtoId := by
   intro id
   rfl
 \end{minted}
-\caption{\texttt{forall} と \texttt{intro} で全入力の仕様を示す}
+\caption{\texttt{PreservesId}}
 \label{lst:ch07_forall_intro}
 \end{listing}
 
 コード\ref{lst:ch07_forall_intro}の \texttt{PreservesId} は「すべての \texttt{id} について \texttt{f id = id}」という仕様である。
 \texttt{intro id} で任意の ID を一つ受け取り、\texttt{toDtoId} の定義から値がそのまま返るので、\texttt{rfl} で閉じる。
-
-\begin{syntaxbox}
-全称量化と導入の記法を固定する。
-\begin{itemize}
-\item \texttt{forall x, P x} は「任意の \texttt{x} について \texttt{P x}」と読む。\texttt{∀ x, P x} も同じ。
-\item \texttt{intro x} は、任意の値 \texttt{x} を仮に受け取って証明を始める。
-\end{itemize}
-\end{syntaxbox}
 
 \section{高階関数と関数合成を段階的に読む}
 
@@ -110,7 +96,7 @@ def compose {A B C : Type} (g : B -> C) (f : A -> B) : A -> C :=
 #eval applyTwice inc 10
 #eval compose inc inc 10
 \end{minted}
-\caption{無名関数・型パラメータ・関数合成}
+\caption{\texttt{inc}・\texttt{applyTwice}・\texttt{compose}}
 \label{lst:ch07_compose}
 \end{listing}
 
@@ -128,7 +114,9 @@ def compose {A B C : Type} (g : B -> C) (f : A -> B) : A -> C :=
 \texttt{compose g f}の途中の型を書き、なぜ\texttt{g}を先に適用できないかを説明する。答えでは、\texttt{f : A -> B}と\texttt{g : B -> C}の接続点\texttt{B}を明示する。
 \end{exercisebox}
 
-\FigurePlaceholder{fig-ch07-pipeline.png}{0.90}{関数合成による文字列変換パイプライン}{fig:ch07-pipeline}
+図\ref{fig:ch07-pipeline}では、各関数の出力型を次の関数の入力型へつなぎ、複数の文字列変換を一つの処理として読む。
+
+\FigurePlaceholder{fig-ch07-pipeline.png}{0.90}{文字列変換の合成}{fig:ch07-pipeline}
 
 \section{\texttt{Option} と \texttt{match} の小さなパイプライン}
 
@@ -155,7 +143,7 @@ def decorateAll (xs : List String) : List (Option String) :=
 #eval decorateIfNonempty "lean"
 #eval decorateAll ["a", "", "b"]
 \end{minted}
-\caption{\texttt{Option}・\texttt{match}・\texttt{List.map} のパイプライン}
+\caption{\texttt{decorateIfNonempty} と \texttt{decorateAll}}
 \label{lst:ch07_pipeline}
 \end{listing}
 
@@ -163,29 +151,14 @@ def decorateAll (xs : List String) : List (Option String) :=
 \texttt{decorateIfNonempty} は \texttt{match} で \texttt{Option} を場合分けし、値があるときだけ装飾する。
 \texttt{decorateAll} は \texttt{xs.map} で各要素に同じ処理を適用する。
 
-\begin{syntaxbox}
-\texttt{Option}・場合分け・一括適用の記法を固定する。
-\begin{itemize}
-\item \texttt{some x} は「値あり」、\texttt{none} は「値なし」。
-\item \texttt{match x with | pattern => result} は、\texttt{x} の形ごとに処理を分ける。
-\item \texttt{xs.map f} は、リスト \texttt{xs} の各要素に \texttt{f} を適用する。
-\end{itemize}
-\end{syntaxbox}
-
 \begin{exercisebox}
 \texttt{decorateIfNonempty "lean"}を、\texttt{nonempty}の結果、\texttt{match}で選ばれる枝、最終的な\texttt{Option String}の順に追跡する。\texttt{List.map}は各要素へ同じ関数を適用するだけであり、第14章で扱う関手則まで本節が証明しているわけではない。
 \end{exercisebox}
 
 \section{本章のまとめ}
 
-引数を取る定理は、任意の入力についての主張を表す。
-
-\texttt{forall} は全入力の仕様、\texttt{intro} は任意の値を受け取って証明を始める道具である。
-
-無名関数・型パラメータ・関数合成・\texttt{Option}・\texttt{match}・\texttt{List.map} は、後の圏論の章への部品になる。
-
 \begin{summarybox}
-この章で新しく出た記法
+要点と記法
 \begin{itemize}
 \item \texttt{forall x, P x} / \texttt{intro x} \quad 全称量化と、その導入。
 \item \texttt{fun x => 本体} \quad 無名関数。

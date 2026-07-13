@@ -3,27 +3,25 @@
 
 namespace Chapter36
 
-inductive SpecStatus where
-  | draft
-  | reviewed
-  | proved
-
-deriving Repr, DecidableEq
-
-structure SpecItem where
+structure UserV1 where
   id : Nat
-  title : String
-  status : SpecStatus
+  name : String
+  deriving Repr, DecidableEq
 
-def markProved (s : SpecItem) : SpecItem :=
-  { s with status := SpecStatus.proved }
+structure UserV2 where
+  id : Nat
+  displayName : String
+  deriving Repr, DecidableEq
 
-def IsProved (s : SpecItem) : Prop :=
-  s.status = SpecStatus.proved
+def migrate (u : UserV1) : UserV2 :=
+  { id := u.id, displayName := u.name }
 
-theorem markProved_isProved (s : SpecItem) :
-    IsProved (markProved s) := by
-  unfold IsProved markProved
+def rollback (u : UserV2) : UserV1 :=
+  { id := u.id, name := u.displayName }
+
+theorem userV1_rollback_migrate (u : UserV1) :
+    rollback (migrate u) = u := by
+  cases u
   rfl
 
 structure ModelLink where
@@ -35,7 +33,7 @@ structure ModelLink where
 
 def userMigrationLink : ModelLink :=
   { specId := 2204
-    theoremName := "rollback_migrate_user_v1"
+    theoremName := "userV1_rollback_migrate"
     modelFile := "Verification/UserMigration.lean"
     implementationFile := "src/user_migration.ts"
     assumption := "Lean model ignores database IO and timestamps" }

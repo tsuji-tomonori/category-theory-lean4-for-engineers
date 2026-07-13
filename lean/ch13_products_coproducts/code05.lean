@@ -63,3 +63,11 @@ theorem option_roundtrip {A : Type} (x : Option A) :
   cases x with
   | none => rfl
   | some a => rfl
+
+theorem sum_roundtrip {A : Type} (x : Sum Unit A) :
+    optionToSum (sumToOption x) = x := by
+  cases x with
+  | inl u =>
+      cases u
+      rfl
+  | inr a => rfl

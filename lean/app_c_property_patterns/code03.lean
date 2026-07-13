@@ -50,3 +50,11 @@ theorem SpecLe_trans {A : Type} (p q r : A -> Prop) :
     SpecLe p q -> SpecLe q r -> SpecLe p r := by
   intro hpq hqr x hx
   exact hqr x (hpq x hx)
+
+def addQuota (extra quota : Nat) : Nat :=
+  quota + extra
+
+theorem addQuota_monotone (extra x y : Nat) (h : x <= y) :
+    addQuota extra x <= addQuota extra y := by
+  unfold addQuota
+  exact Nat.add_le_add_right h extra

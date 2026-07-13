@@ -25,12 +25,18 @@ def rollbackUser : UserV2 -> UserV1 :=
     { id := u.id
       name := u.profile.displayName }
 
-def HasSameId (u1 : UserV1) (u2 : UserV2) : Prop :=
-  u1.id = u2.id
+def WellFormedV1 (u : UserV1) : Prop :=
+  u.name ≠ ""
 
-theorem migrate_preserves_id (u : UserV1) :
-    HasSameId u (migrateUser u) := by
-  rfl
+def WellFormedV2 (u : UserV2) : Prop :=
+  u.profile.displayName ≠ ""
+
+theorem migrateUser_preserves_wellformed (u : UserV1)
+    (h : WellFormedV1 u) :
+    WellFormedV2 (migrateUser u) := by
+  unfold WellFormedV1 at h
+  unfold WellFormedV2 migrateUser
+  exact h
 
 theorem rollback_after_migrate (u : UserV1) :
     rollbackUser (migrateUser u) = u := by

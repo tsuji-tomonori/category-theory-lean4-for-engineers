@@ -22,7 +22,9 @@
 読み方の基本は一つである。対象は型やデータ構造、射は関数や変換、合成はパイプライン、法則はリファクタリングしても意味が変わらないための条件として読む。抽象語を見たら、まず「何を変換しているのか」「何が保存されるべきか」「どの順序で実行しても同じか」に戻す。
 \end{softwarebox}
 
-\FigurePlaceholder{fig-appB-category-cheatsheet-map.png}{0.92}{圏論用語をソフトウェア設計へ読み替える地図}{fig:appB-category-cheatsheet-map}
+\FigurePlaceholder{fig-appB-category-cheatsheet-map.png}{0.92}{圏論用語とソフトウェア設計}{fig:appB-category-cheatsheet-map}
+
+図\ref{fig:appB-category-cheatsheet-map}は、圏論の各用語を、対応しうる型・変換・設計上の問いへ結びつけている。これは用語の定義をソフトウェア比喩で置き換える図ではなく、本文のどこへ戻るかを探す索引である。
 
 \section{一枚で見る対応表}
 
@@ -44,17 +46,17 @@
 合成 & 変換をつなぐこと & パイプライン、middleware chain、ETL の段階結合 & \texttt{fun x => g (f x)} \\
 恒等射 & 何もしない変換 & no-op、identity adapter、空の wrapper & \texttt{fun x => x} \\
 圏 & 合成できる世界 & 型と関数の世界、処理パイプラインの設計空間 & 対象・射・合成・恒等射・法則の組 \\
-双対 & 矢印を逆に見た世界 & 入力側と出力側、作る側と使う側を反転して考える & 定理や定義の向きを入れ替えた形 \\
+双対 & 矢印を逆に見た世界 & 入力側と出力側、作る側と使う側を反転して考える & 本書では矢印を反転して読む。Mathlibでは反対圏 \(C^{\mathrm{op}}\) \\
 同型 & 情報を失わない相互変換 & lossless migration、encode/decode、DTO の可逆変換 & \texttt{to}、\texttt{from}、round-trip 証明 \\
 積 & 両方持つ構造 & ペア、レコード、複数フィールドを持つ DTO & \texttt{Prod A B}、\texttt{structure} \\
 余積 & どちらか一方の構造 & \texttt{Either}、\texttt{Result}、成功/失敗分岐 & \texttt{Sum A B}、\texttt{Option A}、\texttt{Except E A} \\
 関手 & 構造を保った一括変換 & \texttt{List.map}、\texttt{Option.map}、バッチ移行 & \texttt{map} と関手則 \\
-自然変換 & 型に依存しない一貫した adapter & API response wrapper の変換、\texttt{Option A} から \texttt{List A} への変換 & 任意の \texttt{A} に対する関数族と自然性 \\
+自然変換 & 対象ごとの一貫した変換 & API response wrapper の変換、\texttt{Option A} から \texttt{List A} への変換 & 任意の \texttt{A} に対する関数族と自然性 \\
 モノイド & 空と結合を持つ構造 & ログ結合、設定マージ、集約処理 & 単位元、結合演算、結合律、単位元律 \\
 モナド & 文脈つき処理を合成する形 & 失敗、例外、状態、検証、非同期の合成 & \texttt{pure}、\texttt{bind}、モナド則 \\
-随伴 & 自由に作る操作と構造を忘れる操作の対応 & DSL 生成、最小構造の自動構築、抽象化/具体化 & 本書では直感中心。Mathlib では発展事項 \\
-極限 & 条件を同時に満たす合流点 & 複数制約を満たす設定、整合するデータ統合 & 構造体と述語で小さく表す \\
-Pullback & 共通条件で整合するペア & DB join、共通 ID による API レスポンス統合 & 条件付きペア、\texttt{Subtype}、整合述語 \\
+随伴 & Homの自然な対応 & 自由構成と忘却、抽象化と具体化 & 本書では \texttt{foldMap} の普遍性まで扱う \\
+極限 & 図式に対する普遍的な錐 & 複数制約を満たす設定、整合するデータ統合 & 構造体と述語は具体例。一般定義には普遍性が必要 \\
+Pullback & 同じ像を持つ二射の普遍的な引き戻し & 共通 ID による整合ペア、join のモデル & 型の圏では条件付きペアや \texttt{Subtype} \\
 \bottomrule
 \end{longtable}
 \endgroup
@@ -82,7 +84,7 @@ Lean では、対象はまず \texttt{Type} として現れる。ドメインモ
 \end{definitionbox}
 
 \begin{softwarebox}
-射は、単なる数学的な関数に限らない。マイグレーション、正規化、DTO 変換、encoder、decoder、adapter、validator など、入力の形を別の形へ移す処理を射として見ることができる。
+一般の圏の射は関数に限らない。マイグレーション、正規化、DTO 変換、encoder、decoder、adapter、validator なども、対象、合成、恒等射、法則を定めたモデルの中では射として見られる。ただし、副作用を含む任意の処理を、モデルを定めず自動的に射と呼べるわけではない。
 \end{softwarebox}
 
 \begin{warningbox}
@@ -226,7 +228,7 @@ map\;\mathrm{id} = \mathrm{id}, \qquad map\;(g \circ f) = map\;g \circ map\;f.
 \[
 G(f) \circ \eta_A = \eta_B \circ F(f).
 \]
-実務では「adapter が業務ロジックの前にあっても後にあっても同じ」と読む。
+実務モデルでは、ここで射 \(f\) として表した処理について「adapter の前後で同じ結果になる」と読む。
 \end{definitionbox}
 
 \subsection{モノイド}
@@ -264,7 +266,7 @@ G(f) \circ \eta_A = \eta_B \circ F(f).
 \end{definitionbox}
 
 \begin{softwarebox}
-随伴は、最小限の構造を自動的に作る設計と、その構造を忘れて基礎データだけを見る設計を結びつける。たとえば、要素型からリストを作ることを free monoid の直感で読むと、集約可能な構造がどのように生まれるかが見える。
+随伴は、余計な関係式を加えず構造を自由に生成する設計と、その構造を忘れて基礎データだけを見る設計を結びつける。たとえば、要素型からリストを作ることを free monoid の例として読むと、要素への関数がリスト全体の準同型へ一意に拡張される理由が見える。
 \end{softwarebox}
 
 \begin{warningbox}
@@ -274,7 +276,7 @@ G(f) \circ \eta_A = \eta_B \circ F(f).
 \subsection{極限}
 
 \begin{definitionbox}
-極限とは、複数の射や条件を同時に満たす普遍的な合流点である。最初は「条件を全部満たす最も自然なまとめ方」と読めばよい。
+極限とは、ある図式へ整合する射を持つ錐のうち、他の任意の錐から一意の射を受け取る普遍的な錐である。単に条件を満たす値が一つ存在するだけでは極限にならない。
 \end{definitionbox}
 
 \begin{softwarebox}
@@ -288,7 +290,7 @@ G(f) \circ \eta_A = \eta_B \circ F(f).
 \subsection{Pullback}
 
 \begin{definitionbox}
-Pullback、または引き戻しは、二つの対象が共通の対象へ写るとき、その結果が一致するペアを集める構成である。
+Pullback、または引き戻しは、二つの射が共通の対象へ向かうとき、その二射を可換にする普遍的な対象である。型と関数の圏では、その結果が一致するペアの型として表せる。
 \end{definitionbox}
 
 \begin{softwarebox}
@@ -336,12 +338,12 @@ theorem optionToList_natural {A B : Type}
 
 end AppendixB
 \end{minted}
-\caption{圏論用語の最小対応}
+\caption{\texttt{idFn}・\texttt{comp}・\texttt{Iso}・\texttt{optionToList\_natural}}
 \label{lst:appB_category_minicode}
 \end{listing}
 
 このコードは、付録Bで扱う用語をLeanの小さな定義へ対応させた一覧である。
-\texttt{id}と\texttt{comp}は恒等射と合成、\texttt{Iso}は二方向の関数とround-trip性質、\texttt{optionToList\_natural}はadapterが\texttt{map}と干渉しないことを表している。
+\texttt{idFn}と\texttt{comp}は恒等射と合成、\texttt{Iso}は二方向の関数とround-trip性質、\texttt{optionToList\_natural}はadapterが\texttt{map}と干渉しないことを表している。
 
 \section{実務上の逆引き}
 
@@ -349,7 +351,7 @@ end AppendixB
 \small
 \setlength{\tabcolsep}{4pt}
 \begin{longtable}{@{}p{0.31\linewidth}p{0.22\linewidth}p{0.37\linewidth}@{}}
-\caption{実務の問いから用語を引く}\label{tab:appB-reverse-lookup}\\
+\caption{実務上の逆引き}\label{tab:appB-reverse-lookup}\\
 \toprule
 \textbf{実務上の問い} & \textbf{見る用語} & \textbf{確認する性質} \\
 \midrule
@@ -370,35 +372,13 @@ API wrapper の変更が業務ロジックと干渉しないか & 自然変換 &
 \end{longtable}
 \endgroup
 
-\section{よくある誤解}
-
-\begin{warningbox}
-\textbf{誤解1：圏論用語は高度な抽象数学なので、実務コードとは無関係である。}
-本書では、圏論を型、関数、変換、合成、同値性、保存性を整理する言葉として使う。抽象性は、実務の具体例を捨てるためではなく、共通パターンを見つけるために使う。
-\end{warningbox}
-
-\begin{warningbox}
-\textbf{誤解2：同型は、双方向の変換関数があれば十分である。}
-双方向の関数だけでは不十分である。\texttt{to} と \texttt{from} を合成したときに元へ戻ることを証明して初めて、情報を失わないと言える。
-\end{warningbox}
-
-\begin{warningbox}
-\textbf{誤解3：\texttt{map} があれば何でも関手である。}
-\texttt{map} という名前の関数があるだけでは足りない。恒等関数を保存し、合成を保存するという関手則が必要である。
-\end{warningbox}
-
-\begin{warningbox}
-\textbf{誤解4：モナドは難しいので、実務では考えなくてよい。}
-モナドを一般論として完全に理解する必要はない。まずは \texttt{Option} や \texttt{Except} のような失敗する処理を、法則に従って合成する形として読めば十分に役立つ。
-\end{warningbox}
-
 \section{本付録のまとめ}
 
 対象・射・合成・恒等射は、型・関数・パイプライン・no-op として読む。
 
 同型は、情報を失わない相互変換であり、round-trip 証明が必要である。
 
-関手は構造を壊さない一括変換であり、自然変換は型に依存しない一貫した adapter である。
+関手は恒等射と合成を保存する変換であり、自然変換は対象ごとの成分が自然性を満たす adapter である。
 
 モノイドは集約、モナドは文脈つき処理の合成、Pullback は整合条件つき join として読む。
 

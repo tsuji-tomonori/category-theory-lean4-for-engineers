@@ -26,7 +26,7 @@ def addServiceFee (fee amount : Nat) : Nat :=
 def addHandlingFee (fee amount : Nat) : Nat :=
   amount + fee
 
-theorem independent_fee_order (amount service handling : Nat) :
+theorem fixed_fee_order (amount service handling : Nat) :
     addHandlingFee handling (addServiceFee service amount) =
     addServiceFee service (addHandlingFee handling amount) := by
   unfold addHandlingFee addServiceFee

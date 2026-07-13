@@ -28,13 +28,9 @@ ETL では extract、transform、load を順に並べる。
 重要なのは、個々の処理の中身を細かく見ることではない。
 どの処理とどの処理をつなげられるか、つないだ結果が何になるか、何もしない処理を挟んでも意味が変わらないか、三つ以上をつなぐときに括弧の付け方で意味が変わらないかを見る。
 
-\begin{intuitionbox}
-圏を最初に読むときは、「合成できる矢印のネットワーク」と考えるとよい。
-点があり、点から点へ向かう矢印があり、矢印を順につなぐことができる。
-ソフトウェアの言葉では、点は型や状態の形、矢印は関数や変換、矢印をつなぐことはパイプラインである。
-\end{intuitionbox}
+図\ref{fig:ch11-category-overview}では、型を点、関数を矢印として置き、恒等関数と型が接続する関数合成を同じネットワーク上に示す。
 
-\FigurePlaceholder{fig-ch11-category-overview.png}{0.90}{対象・射・恒等射・合成をソフトウェアの処理として見る}{fig:ch11-category-overview}
+\FigurePlaceholder{fig-ch11-category-overview.png}{0.90}{型と関数の圏}{fig:ch11-category-overview}
 
 本章では、最も身近な例として「型と関数の世界」を使う。
 たとえば、\texttt{String}、\texttt{Nat}、\texttt{Bool} は対象の例である。
@@ -118,7 +114,7 @@ ETL では extract、transform、load を順に並べる。
 結合律 & 括弧を変えても同じ & パイプラインの段階的グループ化 \\
 \bottomrule
 \end{tabular}
-\caption{第11章で使う圏論語彙の読み替え}
+\caption{圏論とソフトウェアの語彙対応}
 \label{tab:ch11-vocabulary}
 \end{table}
 
@@ -139,15 +135,9 @@ ETL では extract、transform、load を順に並べる。
 任意の値 \(x : A\) に対して、\(\mathrm{id}_A(x) = x\) である。
 つまり、入力をそのまま返す。
 
-\begin{softwarebox}
-恒等射は、ソフトウェアでは「何もしない処理」と読める。
-たとえば、デバッグ用に一時的に挟んだ middleware、将来の拡張用に置いた adapter、あるいは設定で無効化された変換が、入力をそのまま返すなら恒等射に相当する。
-恒等律は、そのような no-op を前後に挟んでも全体の意味が変わらないことを表す。
-\end{softwarebox}
-
 ここで注意したいのは、恒等射は「何も書かない」ことではない。
 明示的に「入力をそのまま返す」という射である。
-プログラム上では、\texttt{id} や \texttt{fun x => x} に相当する。
+プログラム上では、\texttt{id} や \texttt{fun x => x} に相当する。入力をそのまま返す middleware や無効化された adapter も、このモデルでは恒等射として読める。
 
 \section{合成はパイプライン}
 
@@ -169,7 +159,9 @@ ETL では extract、transform、load を順に並べる。
 本書では、式としては標準的な \(g \circ f\) を使い、説明では常に「先に \(f\)、次に \(g\)」と読む。
 \end{warningbox}
 
-\FigurePlaceholder{fig-ch11-composition-order.png}{0.90}{\(g \circ f\) を「先に \(f\)、次に \(g\)」として読む}{fig:ch11-composition-order}
+図\ref{fig:ch11-composition-order}では、入力がまず (f) を通り、その出力が (g) の入力になることを矢印の向きで確認できる。
+
+\FigurePlaceholder{fig-ch11-composition-order.png}{0.90}{合成の順序}{fig:ch11-composition-order}
 
 合成を使うと、小さな部品を大きな部品として扱える。
 \(f : A \to B\) と \(g : B \to C\) を合成した \(g \circ f : A \to C\) は、もう一つの射である。
@@ -220,12 +212,9 @@ ETL では extract、transform、load を順に並べる。
 実行順序は、どちらも \(f\)、\(g\)、\(h\) の順である。
 違うのは、どこを先に一つの部品としてまとめるかだけである。
 
-\begin{intuitionbox}
-結合律は、「処理をどの粒度で箱詰めしても、外から見た結果は同じ」という法則である。
-三つの処理を、一つずつ並べても、前半二つを先にまとめても、後半二つを先にまとめても、入力から出力への全体の変換は同じである。
-\end{intuitionbox}
+図\ref{fig:ch11-associativity}では、三つの射の順序を (f,g,h) のまま保ち、前半と後半のどちらを先に一つの射としてまとめるかだけを変える。
 
-\FigurePlaceholder{fig-ch11-associativity.png}{0.90}{三つの処理の括弧の付け方を変えても実行順序は変わらない}{fig:ch11-associativity}
+\FigurePlaceholder{fig-ch11-associativity.png}{0.90}{合成の結合律}{fig:ch11-associativity}
 
 ここで重要なのは、結合律は「処理の順序を入れ替えてよい」とは言っていない点である。
 \(f\)、\(g\)、\(h\) の順序を保ったまま、括弧だけを変えてよいと言っている。
@@ -240,6 +229,7 @@ Lean では、型と関数をそのまま扱える。
 \begin{leanbox}
 ここでの Lean コードは、一般の圏を定義するものではない。
 まず、型を対象、関数を射とする特別な世界で、恒等射と合成がどのように見えるかを確認する。
+これを厳密に一つの圏として定式化するには、対象にする型の universe level を管理する必要があるが、本章のコードはその構造を包装せず、関数合成の法則だけを点ごとに検査する。
 一般の圏や Mathlib の \texttt{CategoryTheory} API は、発展章で扱う。
 \end{leanbox}
 
@@ -258,7 +248,7 @@ def comp {A B C : Type} (g : B -> C) (f : A -> B) : A -> C :=
 
 end Chapter11
 \end{minted}
-\caption{恒等関数と関数合成を小さく定義する}
+\caption{\texttt{idFn} と \texttt{comp}}
 \label{lst:ch11_id_comp}
 \end{listing}
 
@@ -292,7 +282,7 @@ theorem comp_assoc_pointwise {A B C D : Type}
 
 end Chapter11
 \end{minted}
-\caption{恒等律と結合律を点ごとの等式として確認する}
+\caption{\texttt{id\_left\_pointwise}・\texttt{id\_right\_pointwise}・\texttt{comp\_assoc\_pointwise}}
 \label{lst:ch11_laws}
 \end{listing}
 
@@ -332,7 +322,7 @@ def pipelineRight : String -> String :=
 
 end Chapter11
 \end{minted}
-\caption{三段階の処理パイプラインを定義する}
+\caption{\texttt{pipelineLeft} と \texttt{pipelineRight}}
 \label{lst:ch11_pipeline}
 \end{listing}
 
@@ -359,7 +349,7 @@ theorem pipeline_review_log (s : String) :
 
 end Chapter11
 \end{minted}
-\caption{パイプラインの結合律をレビュー可能な形で確認する}
+\caption{\texttt{pipeline\_assoc\_pointwise} と \texttt{pipeline\_review\_log}}
 \label{lst:ch11_pipeline_proof}
 \end{listing}
 
@@ -392,7 +382,7 @@ theorem remove_noop_pointwise (s : String) :
 
 end Chapter11
 \end{minted}
-\caption{何もしない処理を取り除いても結果が変わらない}
+\caption{\texttt{remove\_noop\_pointwise}}
 \label{lst:ch11_noop}
 \end{listing}
 
@@ -401,7 +391,9 @@ end Chapter11
 その adapter が本当に何もしないなら、全体の意味は変わらない。
 Lean では、その主張を「すべての入力で結果が一致する」という形で書ける。
 
-\FigurePlaceholder{fig-ch11-noop-removal.png}{0.88}{恒等処理をパイプラインから取り除いても結果が変わらない}{fig:ch11-noop-removal}
+図\ref{fig:ch11-noop-removal}では、\texttt{pipelineLeft} の後ろに恒等処理を合成した経路と、合成しない経路が同じ出力へ至る。
+
+\FigurePlaceholder{fig-ch11-noop-removal.png}{0.88}{恒等処理の除去}{fig:ch11-noop-removal}
 
 \section{圏を定義として見る}
 
@@ -464,12 +456,6 @@ adapter を入れるなら、その adapter が何を保存するのかを明確
 \texttt{validate -> normalize -> save} と \texttt{normalize -> validate -> save} は、一般には同じではない。
 一方で、\texttt{(validate -> normalize) -> save} と \texttt{validate -> (normalize -> save)} は、処理順序が同じなら同じ全体処理として扱える。
 
-\begin{softwarebox}
-設計レビューでは、次のように言える。
-「この変更は処理順序を入れ替えているのではなく、同じ順序の処理を別の粒度でまとめ直しているだけです。したがって、合成の結合律として見ると意味は変わりません。」
-この言い方ができると、リファクタリングの安全性を説明しやすくなる。
-\end{softwarebox}
-
 \section{よくある誤解}
 
 \subsection{誤解1：圏論は難しい対象の中身を調べる理論である}
@@ -503,13 +489,3 @@ adapter を入れるなら、その adapter が何を保存するのかを明確
 これが同型である。
 本章で学んだ恒等射と合成は、同型の round-trip law を読むための基礎になる。
 たとえば、\texttt{migrate} してから \texttt{rollback} すると恒等処理になる、という主張は、本章の言葉で言えば「合成が恒等射になる」という主張である。
-
-圏は、対象、射、恒等射、合成を持ち、恒等律と結合律を満たす構造である。
-
-型と関数の世界では、対象は型、射は関数、恒等射は恒等関数、合成は関数合成として読める。
-
-恒等律は、何もしない処理を前後に挟んでも意味が変わらないことを表す。
-
-結合律は、三つ以上の処理を合成するとき、括弧の付け方を変えても全体の意味が変わらないことを表す。
-
-Lean では、これらの性質を小さな関数と定理として確認できる。

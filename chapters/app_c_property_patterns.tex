@@ -35,7 +35,9 @@
 設計レビューでは、まず「今回の変更は何を保存すべきか」を聞くとよい。情報を保存するのか、件数を保存するのか、キーを保存するのか、合計値を保存するのか、業務ロジックとの順序を入れ替えてもよいのか。この問いに答えると、証明したい性質の候補が自然に決まる。
 \end{softwarebox}
 
-\FigurePlaceholder{fig-appc-property-pattern-map.png}{0.92}{証明したい性質を、移行・変換・集約・不変条件・adapter に対応づける概念地図}{fig:appc-property-pattern-map}
+\FigurePlaceholder{fig-appc-property-pattern-map.png}{0.92}{性質パターン}{fig:appc-property-pattern-map}
+
+図\ref{fig:appc-property-pattern-map}は、各性質を、移行・変換・集約・不変条件・adapterという利用場面へ対応づけている。一つの変更が複数の性質を必要とする場合もある。
 
 \section{まず分類する}
 
@@ -56,7 +58,7 @@ monotone & 入力を強くしたら出力も強くなるか & \texttt{x <= y -> 
 preserves length & バッチ変換で件数が変わらないか & \texttt{(xs.map f).length = xs.length} & \texttt{induction}, \texttt{simp} \\
 preserves keys & ID やキーが変わらないか & \texttt{(migrate r).id = r.id} & \texttt{rfl}, \texttt{simp} \\
 preserves total & 合計や総量が変わらないか & \texttt{total (update x) = total x} & \texttt{rw}, \texttt{calc} \\
-commutes with map & 単体変換とバッチ変換が整合するか & \texttt{map g (map f xs) = map (g . f) xs} & \texttt{induction}, \texttt{simp} \\
+commutes with map & 単体変換とバッチ変換が整合するか & \texttt{map g (map f xs) = map (fun x => g (f x)) xs} & \texttt{induction}, \texttt{simp} \\
 naturality & adapter が業務ロジックと干渉しないか & \texttt{adapter (map f x) = map f (adapter x)} & \texttt{cases}, \texttt{funext} \\
 invariant preservation & 操作後もドメインルールが保たれるか & \texttt{Inv x -> Inv (update x)} & \texttt{intro}, \texttt{unfold} \\
 pre/post condition & 成功時の結果が仕様を満たすか & \texttt{op x = some y -> Post x y} & \texttt{cases}, \texttt{simp} \\
@@ -108,7 +110,7 @@ theorem rollback_migrate (u : UserV1) :
   cases u
   rfl
 \end{minted}
-\caption{round-trip の最小例}
+\caption{\texttt{rollback\_migrate}}
 \label{lst:appc_roundtrip}
 \end{listing}
 
@@ -151,7 +153,7 @@ theorem normalizeStatus_idempotent (s : Status) :
     normalizeStatus (normalizeStatus s) = normalizeStatus s := by
   cases s <;> rfl
 \end{minted}
-\caption{正規化処理の冪等性}
+\caption{\texttt{normalizeStatus\_idempotent}}
 \label{lst:appc_idempotent}
 \end{listing}
 
@@ -196,13 +198,20 @@ theorem SpecLe_trans {A : Type} (p q r : A -> Prop) :
     SpecLe p q -> SpecLe q r -> SpecLe p r := by
   intro hpq hqr x hx
   exact hqr x (hpq x hx)
+
+def addQuota (extra quota : Nat) : Nat :=
+  quota + extra
+
+theorem addQuota_monotone (extra x y : Nat) (h : x <= y) :
+    addQuota extra x <= addQuota extra y := by
+  unfold addQuota
+  exact Nat.add_le_add_right h extra
 \end{minted}
-\caption{単調性を命題として切り出す}
+\caption{\texttt{SpecLe}・\texttt{addQuota\_monotone}}
 \label{lst:appc_monotone}
 \end{listing}
 
-このコードでは、二つの仕様\texttt{p}と\texttt{q}の強弱関係を\texttt{SpecLe p q}として表している。
-反射律と推移律を定理として持つことで、仕様を弱める・段階的に変換するという判断をLean上で追える。
+このコードでは、二つの仕様\texttt{p}と\texttt{q}の強弱関係を\texttt{SpecLe p q}として表し、その関係が反射律と推移律を満たすことを確認している。本章の向きでは \texttt{p} が \texttt{q} を含意するとき \texttt{p} を強い側に置く。\texttt{addQuota\_monotone} は、通常の自然数順序について、両入力に同じ値を足す関数が実際に単調であることを示す。
 
 \subsection{実務での注意}
 
@@ -246,12 +255,13 @@ theorem migrateItems_preserves_length (xs : List ItemV1) :
   | cons x xs ih =>
       simp [List.map, ih]
 \end{minted}
-\caption{List.map による長さ保存}
+\caption{\texttt{migrateItems\_preserves\_length}}
 \label{lst:appc_preserves_length}
 \end{listing}
 
-このコードでは、1件の移行関数\texttt{migrateItem}を\texttt{List.map}で全要素へ適用している。
-\path{migrateItems_preserves_length}は、要素を変換してもリストの件数は変わらないことを帰納法で示している。
+このコードでは、1件の移行関数 \texttt{migrateItem} を使う。
+\texttt{List.map} は、その関数をリストの全要素へ適用する。
+\texttt{migrateItems\_}\allowbreak\texttt{preserves\_length} は、要素を変換してもリストの件数は変わらないことを帰納法で示している。
 
 \subsection{実務での注意}
 
@@ -296,7 +306,7 @@ theorem migrateRows_preserves_ids (rs : List Row) :
   | cons r rs ih =>
       simp [migrateRow]
 \end{minted}
-\caption{単体とリスト全体のキー保存}
+\caption{\texttt{migrateRow\_preserves\_id}・\texttt{migrateRows\_preserves\_ids}}
 \label{lst:appc_preserves_keys}
 \end{listing}
 
@@ -338,7 +348,7 @@ theorem swapAccounts_preserves_total (p : AccountPair) :
   unfold total swapAccounts
   exact Nat.add_comm p.right p.left
 \end{minted}
-\caption{左右を入れ替えても総量が変わらない例}
+\caption{\texttt{swapAccounts\_preserves\_total}}
 \label{lst:appc_preserves_total}
 \end{listing}
 
@@ -373,6 +383,11 @@ def toSmallV2 (x : SmallV1) : SmallV2 :=
 def toSmallV1 (x : SmallV2) : SmallV1 :=
   { id := x.id }
 
+theorem small_roundtrip (x : SmallV1) :
+    toSmallV1 (toSmallV2 x) = x := by
+  cases x
+  rfl
+
 theorem map_roundtrip (xs : List SmallV1) :
     (xs.map toSmallV2).map toSmallV1 = xs := by
   induction xs with
@@ -380,12 +395,11 @@ theorem map_roundtrip (xs : List SmallV1) :
   | cons x xs ih =>
       simp [toSmallV2, toSmallV1, ih]
 \end{minted}
-\caption{単体の round-trip をリスト全体へ持ち上げる}
+\caption{\texttt{small\_roundtrip}・\texttt{map\_roundtrip}}
 \label{lst:appc_commutes_with_map}
 \end{listing}
 
-このコードでは、1件の値について成り立つround-trip性質を、リスト全体の\texttt{map}に持ち上げている。
-証明はリストの形に沿った帰納法で進み、各要素では単体の変換規則を使っている。
+\texttt{small\_roundtrip} は1件の値についてround-tripを示し、\texttt{map\_roundtrip} は同じ二変換をリスト全体の\texttt{map}へ持ち上げている。後者の証明はリストの形に沿った帰納法で進む。これは \texttt{List.map} の合成保存から得られる具体的な帰結であり、次節の自然変換の自然性とは別の性質である。
 
 \subsection{実務での注意}
 
@@ -421,7 +435,7 @@ theorem optionToList_natural {A B : Type}
     List.map f (optionToList x) := by
   cases x <;> rfl
 \end{minted}
-\caption{Option から List への自然な adapter}
+\caption{\texttt{optionToList\_natural}}
 \label{lst:appc_naturality}
 \end{listing}
 
@@ -430,7 +444,7 @@ theorem optionToList_natural {A B : Type}
 
 \subsection{実務での注意}
 
-自然性は「どの型でも一貫している」ことを要求する。adapter の中で型固有の特殊処理や業務ロジックを混ぜると、自然性は壊れやすい。adapter 層と業務ロジック層を分けたいとき、自然性は良い設計チェックになる。
+自然性は、各型に対する成分がすべての関数と可換であることを要求する。一般の自然変換と呼ぶには、両側の \texttt{Option} と \texttt{List} が関手則を満たすことも前提になる。この例の定理は、その具体的な自然性の等式を示している。adapter の中に型固有の特殊処理や業務ロジックを混ぜると、この等式は壊れやすい。
 
 \section{パターン9：invariant preservation}
 
@@ -448,33 +462,33 @@ invariant preservation は、操作前に不変条件を満たしているなら
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
-structure Account where
+structure BoundedAccount where
   balance : Nat
+  ceiling : Nat
 
-def NonNegative (a : Account) : Prop :=
-  0 <= a.balance
+def WithinLimit (a : BoundedAccount) : Prop :=
+  a.balance <= a.ceiling
 
-def deposit (amount : Nat) (a : Account) : Account :=
-  { balance := a.balance + amount }
+def withdraw (amount : Nat) (a : BoundedAccount) : BoundedAccount :=
+  { balance := a.balance - amount, ceiling := a.ceiling }
 
-theorem deposit_preserves_nonnegative
-    (amount : Nat) (a : Account) :
-    NonNegative a -> NonNegative (deposit amount a) := by
+theorem withdraw_preserves_limit
+    (amount : Nat) (a : BoundedAccount) :
+    WithinLimit a -> WithinLimit (withdraw amount a) := by
   intro h
-  unfold NonNegative deposit
-  exact Nat.zero_le (a.balance + amount)
+  unfold WithinLimit withdraw
+  exact Nat.le_trans (Nat.sub_le a.balance amount) h
 \end{minted}
-\caption{操作後も不変条件が保たれることを示す}
+\caption{\texttt{withdraw\_preserves\_limit}}
 \label{lst:appc_invariant_preservation}
 \end{listing}
 
-このコードでは、口座残高が非負であるという不変条件を\texttt{NonNegative}として切り出している。
-\texttt{deposit\_preserves\_nonnegative}は、入金操作の後もその不変条件が保たれることを示している。
+このコードでは、口座残高が上限以下であるという不変条件を\texttt{WithinLimit}として切り出している。\texttt{withdraw\_preserves\_limit}は、減算で残高が増えることはないため、操作前に上限以下なら操作後も上限以下であることを示している。
 
 \subsection{実務での注意}
 
 \begin{warningbox}
-型を \texttt{Nat} にすると、非負性は自動的に成り立つ。そのため、この例は証明の形を示すための単純化である。実務で負の残高、丸め、通貨単位、ロック、同時更新を扱うなら、より正確な型と不変条件が必要になる。
+この \texttt{withdraw} は \texttt{Nat} の切り捨て減算を使う全域関数であり、残高不足を失敗として表していない。ここで証明したのは上限制約の保存だけである。実務の出金可能条件、負の残高、通貨単位、ロック、同時更新には、より正確な型と別の定理が必要になる。
 \end{warningbox}
 
 \section{パターン10：pre/post condition}
@@ -501,6 +515,11 @@ def IsEven (n : Nat) : Prop :=
 def ensureEven (n : Nat) : Option Nat :=
   if n % 2 = 0 then some n else none
 
+theorem ensureEven_success (n : Nat) (h : IsEven n) :
+    ensureEven n = some n := by
+  unfold IsEven at h
+  simp [ensureEven, h]
+
 theorem ensureEven_post (n out : Nat) :
     ensureEven n = some out -> IsEven out := by
   unfold ensureEven IsEven
@@ -512,12 +531,11 @@ theorem ensureEven_post (n out : Nat) :
   · intro hSome
     simp [h] at hSome
 \end{minted}
-\caption{成功した結果が事後条件を満たす例}
+\caption{\texttt{ensureEven\_success}・\texttt{ensureEven\_post}}
 \label{lst:appc_pre_post_condition}
 \end{listing}
 
-このコードでは、失敗しうる処理の成功結果だけに事後条件を課している。
-\path{withdrawChecked_success_post}は、\texttt{some newBalance}が返った場合、その値が期待する条件を満たすことを示す例である。
+このコードでは、\texttt{ensureEven\_success} が入力が偶数という事前条件から成功を導き、\texttt{ensureEven\_post} が \texttt{some out} という成功結果から出力が偶数という事後条件を導く。後者は \texttt{out = n} も証明できるモデルだが、ここでは必要な事後条件だけを主張している。
 
 \subsection{実務での注意}
 
@@ -564,16 +582,4 @@ Lean ファイルでは、性質ごとに定理名を分けるとよい。たと
 \item Lean で証明するモデルと、実装コードとの差分はどこか。
 \end{itemize}
 
-round-trip は、情報を失わない相互変換を確認する中心パターンである。
-
-idempotent は、再実行や正規化の安全性を表す。
-
-monotone は、完全な等式ではなく、仕様の強弱や安全な近似を扱う。
-
-length、keys、total の保存は、バッチ移行や集計処理で別々に証明する。
-
-naturality は、adapter が業務ロジックと干渉しないことを表す。
-
-invariant preservation と pre/post condition は、ドメイン操作の仕様を Lean に移す基本形である。
-
-証明対象は、自然言語仕様の全文ではなく、小さく重要な核として切り出す。
+一つの「安全」という言葉に複数の性質を押し込まず、必要な性質ごとに定理を分け、モデル外の条件も併記する。

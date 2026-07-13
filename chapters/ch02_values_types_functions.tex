@@ -6,7 +6,7 @@
 本章では、Lean の基本的な型と値、そして \texttt{def} による関数定義を扱う。
 前章で読み方を固定した \texttt{:}、\texttt{:=}、\texttt{\#check}、\texttt{\#eval} を使いながら、
 \texttt{Nat}、\texttt{Bool}、\texttt{String} の値を評価し、引数を取る関数を定義し、その型を確認する。
-ここでも新しい概念は小さく区切って導入し、命題や証明にはまだ進まない。
+命題や証明にはまだ進まない。
 \end{chapterabstract}
 
 \begin{learninggoals}
@@ -22,7 +22,9 @@
 Lean では、この区別が型として明示され、関数にも入力と出力の型が付く。
 本章では、その基本型と関数定義を、確認コマンドで結果を見ながら身につける。
 
-\FigurePlaceholder{fig-ch02-types-values-functions.png}{0.90}{型・値・関数の関係}{fig:ch02-types-values-functions}
+図\ref{fig:ch02-types-values-functions}では、型が値を分類し、関数が入力型の値を出力型の値へ移す関係を示す。
+
+\FigurePlaceholder{fig-ch02-types-values-functions.png}{0.90}{型・値・関数}{fig:ch02-types-values-functions}
 
 \section{基本型の値}
 
@@ -36,21 +38,12 @@ Lean では、この区別が型として明示され、関数にも入力と出
 #eval true && false
 #eval "lean" ++ "4"
 \end{minted}
-\caption{基本型の値を評価する}
+\caption{\texttt{Nat}・\texttt{Bool}・\texttt{String}}
 \label{lst:ch02_values}
 \end{listing}
 
 コード\ref{lst:ch02_values}では、\texttt{(3 : Nat) + 4} が \texttt{7} に、\texttt{true \&\& false} が \texttt{false} に、\texttt{"lean" ++ "4"} が \texttt{"lean4"} に評価される。
 型が違えば使える演算子も違う、という点が読み取れれば十分である。
-
-\begin{syntaxbox}
-基本型と演算子を固定する。
-\begin{itemize}
-\item \texttt{Nat} の値は \texttt{0}、\texttt{1}、\texttt{2 + 3} のように書く。
-\item \texttt{Bool} の値は \texttt{true}、\texttt{false}。\texttt{\&\&} は「かつ」。
-\item \texttt{String} の値は \texttt{"lean"} のように二重引用符で囲む。\texttt{++} は連結。
-\end{itemize}
-\end{syntaxbox}
 
 \section{\texttt{def} による値と関数}
 
@@ -73,7 +66,7 @@ def add (m : Nat) (n : Nat) : Nat :=
 #eval addOne 5
 #eval add 2 3
 \end{minted}
-\caption{\texttt{def} による値と関数の定義}
+\caption{\texttt{answer}・\texttt{addOne}・\texttt{add}}
 \label{lst:ch02_def}
 \end{listing}
 
@@ -104,7 +97,7 @@ def add (m : Nat) (n : Nat) : Nat :=
 #check addOne
 #check add
 \end{minted}
-\caption{関数の型を確認する}
+\caption{\texttt{addOne} と \texttt{add} の型}
 \label{lst:ch02_function_type}
 \end{listing}
 
@@ -119,15 +112,10 @@ def add (m : Nat) (n : Nat) : Nat :=
 
 \section{本章のまとめ}
 
-\texttt{Nat}、\texttt{Bool}、\texttt{String} は、それぞれ別の型であり、使える演算子も異なる。
-
-\texttt{def} は、引数のない値も、引数を取る関数も定義できる。
-
-関数の型 \texttt{A -> B} は「\texttt{A} を受け取り \texttt{B} を返す」と読む。
-
 \begin{summarybox}
-この章で新しく出た記法
+要点と記法
 \begin{itemize}
+\item \texttt{Nat} / \texttt{Bool} / \texttt{String} \quad 自然数・真偽値・文字列の型。
 \item \texttt{+} / \texttt{\&\&} / \texttt{++} \quad 加算・論理積・文字列連結。
 \item \texttt{def 名前 (引数 : 型) : 返り値の型 := 本体} \quad 関数定義の基本形。
 \item \texttt{A -> B} \quad 「\texttt{A} を受け取り \texttt{B} を返す」関数の型。

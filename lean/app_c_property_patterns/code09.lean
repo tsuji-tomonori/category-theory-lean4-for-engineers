@@ -51,6 +51,14 @@ theorem SpecLe_trans {A : Type} (p q r : A -> Prop) :
   intro hpq hqr x hx
   exact hqr x (hpq x hx)
 
+def addQuota (extra quota : Nat) : Nat :=
+  quota + extra
+
+theorem addQuota_monotone (extra x y : Nat) (h : x <= y) :
+    addQuota extra x <= addQuota extra y := by
+  unfold addQuota
+  exact Nat.add_le_add_right h extra
+
 structure ItemV1 where
   id : Nat
   payload : Nat
@@ -115,6 +123,11 @@ def toSmallV2 (x : SmallV1) : SmallV2 :=
 def toSmallV1 (x : SmallV2) : SmallV1 :=
   { id := x.id }
 
+theorem small_roundtrip (x : SmallV1) :
+    toSmallV1 (toSmallV2 x) = x := by
+  cases x
+  rfl
+
 theorem map_roundtrip (xs : List SmallV1) :
     (xs.map toSmallV2).map toSmallV1 = xs := by
   induction xs with
@@ -132,18 +145,19 @@ theorem optionToList_natural {A B : Type}
     List.map f (optionToList x) := by
   cases x <;> rfl
 
-structure Account where
+structure BoundedAccount where
   balance : Nat
+  ceiling : Nat
 
-def NonNegative (a : Account) : Prop :=
-  0 <= a.balance
+def WithinLimit (a : BoundedAccount) : Prop :=
+  a.balance <= a.ceiling
 
-def deposit (amount : Nat) (a : Account) : Account :=
-  { balance := a.balance + amount }
+def withdraw (amount : Nat) (a : BoundedAccount) : BoundedAccount :=
+  { balance := a.balance - amount, ceiling := a.ceiling }
 
-theorem deposit_preserves_nonnegative
-    (amount : Nat) (a : Account) :
-    NonNegative a -> NonNegative (deposit amount a) := by
+theorem withdraw_preserves_limit
+    (amount : Nat) (a : BoundedAccount) :
+    WithinLimit a -> WithinLimit (withdraw amount a) := by
   intro h
-  unfold NonNegative deposit
-  exact Nat.zero_le (a.balance + amount)
+  unfold WithinLimit withdraw
+  exact Nat.le_trans (Nat.sub_le a.balance amount) h

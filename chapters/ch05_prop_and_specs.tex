@@ -5,7 +5,6 @@
 \begin{chapterabstract}
 本章では、これまで具体例で読んできた \texttt{hasDiscount member = true} という形の主張に名前を付ける。
 そのために、命題の型 \texttt{Prop} を導入し、\texttt{member} の値ごとに命題を作る \texttt{DiscountSpec} を定義する。
-\texttt{Prop} という言葉を先に説明するのではなく、すでに読んできた等式に名前を与える、という順番で進める。
 \end{chapterabstract}
 
 \begin{learninggoals}
@@ -28,11 +27,13 @@
 一方、\texttt{hasDiscount member = true} は、計算する値ではなく、成り立つかどうかを問う\emph{主張}である。
 このような主張の型を、Lean では \texttt{Prop} と書く。
 
-\FigurePlaceholder{fig-ch05-bool-vs-prop.png}{0.88}{\texttt{Bool} と \texttt{Prop} の違い：実行時の判定と仕様上の主張}{fig:ch05-bool-vs-prop}
+図\ref{fig:ch05-bool-vs-prop}では、実行時に計算する判定と、その判定について証明する仕様を別の層として示す。
+
+\FigurePlaceholder{fig-ch05-bool-vs-prop.png}{0.88}{\texttt{Bool} と \texttt{Prop}}{fig:ch05-bool-vs-prop}
 
 \begin{table}[htbp]
 \centering
-\caption{\texttt{Bool} と \texttt{Prop} の使い分け}
+\caption{\texttt{Bool} と \texttt{Prop} の比較}
 \label{tab:ch05-bool-prop}
 \begin{tabular}{p{0.18\linewidth}p{0.34\linewidth}p{0.34\linewidth}}
 \toprule
@@ -60,22 +61,13 @@ def hasDiscount (member : Bool) : Bool :=
 def DiscountSpec (member : Bool) : Prop :=
   hasDiscount member = true
 \end{minted}
-\caption{命題に名前を付ける}
+\caption{\texttt{DiscountSpec}}
 \label{lst:ch05_discountspec}
 \end{listing}
 
 コード\ref{lst:ch05_discountspec}の \texttt{DiscountSpec} は、\texttt{Bool} を受け取って \texttt{Prop} を返す定義である。
 つまり、\texttt{member} の値ごとに「\texttt{hasDiscount member = true} が成り立つ」という命題を作る。
 返り値の型が \texttt{Prop} であることが、これが値ではなく主張の定義であることを示している。
-
-\begin{syntaxbox}
-\texttt{Prop} と仕様名について固定する。
-\begin{itemize}
-\item \texttt{Prop} は、証明したい主張を置くための型である。
-\item \texttt{def 名前 (引数) : Prop := 主張} で、仕様に名前を付けられる。
-\item \texttt{DiscountSpec member} は、\texttt{member} ごとの命題を表す。
-\end{itemize}
-\end{syntaxbox}
 
 \section{名前に値を入れて展開する}
 
@@ -92,7 +84,7 @@ def DiscountSpec (member : Bool) : Prop :=
 #check DiscountSpec true
 #check DiscountSpec false
 \end{minted}
-\caption{仕様名に値を入れる}
+\caption{\texttt{DiscountSpec true}・\texttt{DiscountSpec false}}
 \label{lst:ch05_apply}
 \end{listing}
 
@@ -101,7 +93,7 @@ def DiscountSpec (member : Bool) : Prop :=
 
 \begin{table}[htbp]
 \centering
-\caption{\texttt{DiscountSpec} を展開する}
+\caption{\texttt{DiscountSpec true}・\texttt{DiscountSpec false}}
 \label{tab:ch05-expand}
 \begin{tabular}{lll}
 \toprule
@@ -119,16 +111,10 @@ def DiscountSpec (member : Bool) : Prop :=
 
 \section{本章のまとめ}
 
-\texttt{Bool} は計算される値、\texttt{Prop} は証明したい主張の型である。
-
-\texttt{def ... : Prop := ...} で、主張に名前を付けて仕様にできる。
-
-\texttt{DiscountSpec true} は \texttt{true = true} に、\texttt{DiscountSpec false} は \texttt{false = true} に展開される。
-
 \begin{summarybox}
-この章で新しく出た記法
+要点と記法
 \begin{itemize}
-\item \texttt{Prop} \quad 証明したい主張の型。
+\item \texttt{Bool} は計算される真偽値、\texttt{Prop} は証明の対象となる命題の型。
 \item \texttt{def 名前 (引数) : Prop := 主張} \quad 仕様への命名。
 \end{itemize}
 \end{summarybox}

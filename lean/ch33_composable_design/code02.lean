@@ -21,11 +21,11 @@ theorem assoc_point
 
 end Chapter33
 
-namespace Ch27ETL
+namespace Ch33ETL
 
 structure RawRow where
   userId : Nat
-  amountText : Nat
+  rawAmount : Nat
   deriving Repr, DecidableEq
 
 structure ValidRow where

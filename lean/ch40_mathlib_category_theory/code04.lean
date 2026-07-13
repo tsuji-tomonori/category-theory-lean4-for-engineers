@@ -8,7 +8,7 @@ import Mathlib.CategoryTheory.Iso
 
 universe v u v1 v2 u1 u2
 
-namespace Chapter34
+namespace Chapter40
 
 open CategoryTheory
 open scoped CategoryTheory

@@ -32,11 +32,10 @@ Lean では、この主張を等式として書く。
 \end{tabular}
 \end{center}
 
-\begin{intuitionbox}
-等式証明は、単に「数学っぽい証明」を書く作業ではない。リファクタリングの変更差分に対して、「この行の変更はこの仕様に基づく置換である」「この整理はゼロを足しても変わらないという規則である」と説明する作業である。
-\end{intuitionbox}
+図\ref{fig:ch18-rewriting-flow}では、変更前の式を検査済みの等式で段階的に変形し、変更後と同じ形へ到達する。
+各矢印に使った補題を明示すれば、証明を変更理由のログとして読める。
 
-\FigurePlaceholder{fig-ch18-rewriting-flow.png}{0.92}{等式証明を、変更前の式から正規形へ進む変形ログとして読む}{fig:ch18-rewriting-flow}
+\FigurePlaceholder{fig-ch18-rewriting-flow.png}{0.92}{等式による書き換え}{fig:ch18-rewriting-flow}
 
 \section{仕様証明の多くは等式になる}
 
@@ -51,17 +50,12 @@ Lean では、この主張を等式として書く。
 \item 古い関数を新しい関数に置き換えても、すべての入力で同じ出力になる。
 \end{itemize}
 
-\begin{softwarebox}
-この章では、本番コードそのものではなく、計算ロジックの核だけを Lean に移す。実務コードには小数、丸め、通貨単位、外部設定、キャンペーン条件などが含まれるかもしれない。しかし、まずは自然数で表せる小さなモデルを作り、「この書き換えはどの範囲で安全か」を明確にする。
-\end{softwarebox}
+この章では、本番コード全体ではなく計算ロジックの核だけを Lean に移す。
+小数、丸め、通貨単位、外部設定などを省いた範囲を明示し、そのモデル内での書き換えを検証する。
 
 \section{最初のモデル：価格計算を小さく切り出す}
 
 最初に、割引後の小計に税を足すだけの小さな価格計算を考える。ここでは \texttt{Nat} を使う。\texttt{Nat} は自然数であり、負の値は扱わない。実務の金額型としては単純すぎるが、等式証明の形を学ぶには十分である。
-
-\begin{leanbox}
-\texttt{legacyPrice} は既存実装、\texttt{refactoredPrice} は書き換え後の実装だと読む。両者の定義を展開すると同じ式になるため、最初の証明は \texttt{rfl} で終わる。
-\end{leanbox}
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -90,7 +84,7 @@ theorem legacy_eq_refactored
       refactoredPrice base discount tax := by
   rfl
 \end{minted}
-\caption{価格計算の最小モデル}
+\caption{\texttt{legacyPrice\_eq\_refactored}}
 \label{lst:ch18-price-model}
 \end{listing}
 
@@ -146,13 +140,15 @@ theorem subtotal_eq_normalizedPrice
     (base discount : Nat) :
     subtotal base discount =
       normalizedPrice base discount := by
-  rw [normalizedPrice_eq_subtotal]
+  rw [← normalizedPrice_eq_subtotal]
 \end{minted}
-\caption{等式を逆向きに使う}
+\caption{\texttt{rw [← ...]}}
 \label{lst:ch18-rw-backward}
 \end{listing}
 
-この例では、ゴールの右辺 \texttt{normalizedPrice base discount} が \texttt{subtotal base discount} に書き換えられ、最後は同じ式同士の等式になる。\texttt{rw} は左辺だけでなく、ゴール全体の中から一致する部分を探して書き換える。
+この例では \texttt{normalizedPrice\_eq\_subtotal} を逆向きに使い、左辺の
+\texttt{subtotal base discount} を \texttt{normalizedPrice base discount} へ書き換える。
+最後は同じ式どうしの等式になる。
 
 \section{\texttt{simp}：自明な整理を正規化として使う}
 
@@ -186,20 +182,12 @@ theorem loadCode_normalized (n : Nat) :
     loadCode n = n := by
   simp [loadCode]
 \end{minted}
-\caption{\texttt{simp} で使う正規化規則を登録する}
+\caption{\texttt{normalizeCode\_eq}}
 \label{lst:ch18-simp}
 \end{listing}
 
-\begin{syntaxbox}
-\texttt{@[simp]} は、直後の定理や定義に属性を付ける構文である。
-\begin{itemize}
-\item \texttt{@[...]} は属性指定で、Lean に追加の扱い方を伝える。
-\item \texttt{@[simp] theorem ...} は、その定理を \texttt{simp} が使う単純化規則として登録する。
-\item 属性は証明そのものではなく、「この証明済みの事実をどの自動化で使うか」という設定である。
-\end{itemize}
-\end{syntaxbox}
-
-\texttt{@[simp]} は、この補題を \texttt{simp} の整理規則として使ってよい、という印である。上の例では、\texttt{normalizeCode} が何もしない処理であることを一度証明しておく。その後、二重に呼ばれていても \texttt{simp} がまとめて取り除く。
+\texttt{@[simp]} は、証明済みの補題を \texttt{simp} の単純化規則として登録する属性であり、それ自体が証明を作るわけではない。
+上の例では \texttt{normalizeCode} が恒等処理であることを一度証明し、二重の呼び出しも同じ規則で取り除く。
 
 \begin{warningbox}
 \texttt{simp} に何でも登録すればよいわけではない。向きの悪い規則や、式を大きくする規則を登録すると、証明が読みにくくなったり、単純化が期待通りに進まなくなったりする。本章では、「明らかに小さくなる」「正規形に近づく」規則だけを登録する。
@@ -239,15 +227,11 @@ theorem twoFees_eq_calc
           rw [Nat.add_assoc]
     _ = refactoredWithTwoFees base service shipping := by rfl
 \end{minted}
-\caption{\texttt{calc} による段階的な等式証明}
+\caption{\texttt{twoFees\_eq\_calc}}
 \label{lst:ch18-calc}
 \end{listing}
 
 この証明は、同じ定義展開と結合律を \texttt{simp} に渡して、もっと短く書けるかもしれない。しかし、レビュー目的なら、\texttt{calc} の方が「どこで結合律を使ったか」が明確である。
-
-\begin{softwarebox}
-\texttt{calc} は、設計文書に残す証明として相性がよい。レビュー担当者は Lean の全タクティクを知らなくても、「既存実装を展開する」「結合律で括弧を変える」「新実装の定義に戻す」という流れを読める。
-\end{softwarebox}
 
 \section{正規化：比較しやすい形へ寄せる}
 
@@ -263,7 +247,9 @@ theorem twoFees_eq_calc
 \end{itemize}
 \end{definitionbox}
 
-\FigurePlaceholder{fig-ch18-price-normalization.png}{0.90}{価格計算ロジックを同じ正規形へ寄せて比較する}{fig:ch18-price-normalization}
+図\ref{fig:ch18-price-normalization}は、変更前後の式から不要な \texttt{+ 0} を除き、加算の括弧をそろえて共通の式へ到達する流れを示す。
+
+\FigurePlaceholder{fig-ch18-price-normalization.png}{0.90}{価格式の正規化}{fig:ch18-price-normalization}
 
 次の例では、既存コードが小計、二つの手数料、税額 0 の追加を段階的に行っている。新コードでは、税額 0 を消し、二つの手数料をまとめている。\texttt{simp} と結合律を使うと、両者は同じ正規形へ整理できる。
 
@@ -286,7 +272,7 @@ theorem chargeLegacy_eq_chargeNormalized
   unfold chargeLegacy chargeNormalized subtotal addFee addTax
   simp [Nat.add_assoc]
 \end{minted}
-\caption{価格計算ロジックの正規化}
+\caption{\texttt{chargeLegacy\_eq\_chargeNormalized}}
 \label{lst:ch18-price-normalization}
 \end{listing}
 
@@ -316,9 +302,8 @@ theorem chargeLegacy_eq_chargeNormalized
 \end{tabular}
 \end{center}
 
-\begin{leanbox}
-証明が短ければよいとは限らない。Lean に慣れた人だけが読む補題なら \texttt{simp} で十分なことがある。一方、仕様レビューに載せる証明では、\texttt{calc} で変形理由を明示した方が有用である。
-\end{leanbox}
+自動化の短さと説明の明瞭さは別の基準である。
+仕様レビューで変形理由が重要なら、\texttt{calc} で途中式を残す。
 
 \section{よくある誤解}
 
