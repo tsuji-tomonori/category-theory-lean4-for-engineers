@@ -3,31 +3,29 @@
 \label{chap:ch07_variables_and_forall}
 
 \begin{chapterabstract}
-本章では、値を一つに固定しない主張を扱う。
-「任意の価格について」「すべてのユーザーについて」という形の仕様を書くために、
-引数を取る定理、\texttt{forall}、証明を始める \texttt{intro} を導入する。
-あわせて、無名関数・型パラメータ・関数合成と、\texttt{Option} と \texttt{match} を使った小さなパイプラインも扱い、
-後続の圏論の章への橋渡しとする。
+本章では、値を一つに固定しない主張を扱います。
+「任意の価格について」「すべてのユーザーについて」という形の仕様を書くために、引数を取る定理、\texttt{forall}、および証明を始める \texttt{intro} を導入します。
+さらに、無名関数、型パラメータ、関数合成と、\texttt{Option} と \texttt{match} を使った小さなパイプラインも扱い、後続の圏論の章へつなげます。
 \end{chapterabstract}
 
 \begin{learninggoals}
-\item 引数を取る定理で「任意の入力について成り立つ」主張を書ける。
-\item \texttt{forall} と \texttt{intro} を使い、すべての値についての仕様を証明できる。
-\item 無名関数 \texttt{fun}、型パラメータ、関数合成を読める。
-\item \texttt{Option} と \texttt{match} を使った小さなパイプラインを読める。
+\item 引数を取る定理で「任意の入力について成り立つ」主張を書けます。
+\item \texttt{forall} と \texttt{intro} を使い、すべての値についての仕様を証明できます。
+\item 無名関数 \texttt{fun}、型パラメータ、関数合成を読めます。
+\item \texttt{Option} と \texttt{match} を使った小さなパイプラインを読めます。
 \end{learninggoals}
 
 \section{この章を読む理由}
 
-テストは、選んだ具体例についての確認である。
-一方、仕様で本当に言いたいのは、しばしば「すべての入力でこの性質が成り立つ」という主張である。
-本章では、値を固定しない主張の書き方と証明の始め方を学ぶ。
-これは、後のマイグレーション証明や圏論の法則確認で何度も使う基本形になる。
+テストは、選んだ具体例についての確認です。
+一方、仕様で述べたい内容は、しばしば「すべての入力でこの性質が成り立つ」という主張です。
+本章では、値を固定しない主張の書き方と、証明の始め方を学びます。
+これは、後のマイグレーション証明や圏論の法則確認で何度も使う基本形になります。
 
 \section{任意の値についての定理}
 
-定理が引数を取ると、その引数は「任意の値」を表す。
-次は、税額が \texttt{0} のとき、税込金額が元の価格と一致することを、任意の \texttt{price} について示す定理である。
+定理が引数を取ると、その引数は「任意の値」を表します。
+次の定理は、税額が \texttt{0} のとき、税込金額が元の価格と一致することを任意の \texttt{price} について示します。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -42,14 +40,14 @@ theorem addTax_zero (price : Nat) :
 \label{lst:ch07_forall_price}
 \end{listing}
 
-コード\ref{lst:ch07_forall_price}の \texttt{addTax\_zero} は、特定の価格ではなく、任意の \texttt{price} についての主張である。
-\texttt{addTax price 0} は定義により \texttt{price + 0} になり、これは \texttt{price} に展開されるので、\texttt{rfl} で閉じられる。
+コード\ref{lst:ch07_forall_price}の \texttt{addTax\_zero} は、特定の価格ではなく、任意の \texttt{price} についての主張です。
+\texttt{addTax price 0} は定義により \texttt{price + 0} になり、\texttt{price} に展開されるため、\texttt{rfl} で閉じられます。
 
 \section{\texttt{forall} と \texttt{intro}}
 
-「すべての \texttt{x} について \texttt{P x}」という主張は、\texttt{forall x, P x} と書ける。
-これを証明するには、任意の値を一つ \texttt{intro} で受け取り、その値について示す。
-次は、ID を取り出す処理が値を変えない、という仕様である。
+「すべての \texttt{x} について \texttt{P x}」という主張は、\texttt{forall x, P x} と書けます。
+これを証明するには、任意の値を一つ \texttt{intro} で受け取り、その値について示します。
+次の例では、ID を取り出す処理が値を変えないという仕様を扱います。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -67,20 +65,21 @@ theorem toDtoId_preservesId : PreservesId toDtoId := by
 \label{lst:ch07_forall_intro}
 \end{listing}
 
-コード\ref{lst:ch07_forall_intro}の \texttt{PreservesId} は「すべての \texttt{id} について \texttt{f id = id}」という仕様である。
-\texttt{intro id} で任意の ID を一つ受け取り、\texttt{toDtoId} の定義から値がそのまま返るので、\texttt{rfl} で閉じる。
+コード\ref{lst:ch07_forall_intro}の \texttt{PreservesId} は、「すべての \texttt{id} について \texttt{f id = id}」という仕様です。
+\texttt{intro id} で任意の ID を一つ受け取ります。
+\texttt{toDtoId} の定義から値がそのまま返るため、\texttt{rfl} で閉じます。
 
 \section{高階関数と関数合成を段階的に読む}
 
 \subsection{無名関数と、関数を受け取る関数}
 
-関数はその場で名前なしに書ける。
-\texttt{fun n => n + 1} は「\texttt{n} を受け取り \texttt{n + 1} を返す関数」である。
-まずは\texttt{inc}と\texttt{applyTwice}だけを読み、値の引数と関数の引数を区別する。
+関数は、その場で名前を付けずに書けます。
+\texttt{fun n => n + 1} は、「\texttt{n} を受け取り \texttt{n + 1} を返す関数」です。
+まずは \texttt{inc} と \texttt{applyTwice} だけを読み、値の引数と関数の引数を区別します。
 
 \subsection{型パラメータと関数合成}
 
-型を引数に取る関数合成は、出力の型と入力の型が合う関数をつなぐ。
+型を引数に取る関数合成は、出力の型と入力の型が合う関数をつなぎます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -100,28 +99,29 @@ def compose {A B C : Type} (g : B -> C) (f : A -> B) : A -> C :=
 \label{lst:ch07_compose}
 \end{listing}
 
-コード\ref{lst:ch07_compose}では、\texttt{inc} は無名関数に名前を付けた定義、\texttt{applyTwice} は関数を引数に取る関数である。
-\texttt{compose} は \texttt{\{A B C : Type\}} という型パラメータを取り、\texttt{compose g f} を「先に \texttt{f}、後で \texttt{g}」と読む。
-波括弧の型パラメータは、呼び出し側の型から Lean が推論する。
+コード\ref{lst:ch07_compose}では、\texttt{inc} は無名関数に名前を付けた定義であり、\texttt{applyTwice} は関数を引数に取る関数です。
+\texttt{compose} は \texttt{\{A B C : Type\}} という型パラメータを取り、\texttt{compose g f} を「先に \texttt{f}、後で \texttt{g}」と読みます。
+波括弧で囲まれた型パラメータは、呼び出し側の型から Lean が推論します。
 
 \begin{leanbox}
-関数合成で大切なのは、型がつながることである。
-\texttt{A -> B} の出力 \texttt{B} が \texttt{B -> C} の入力と一致するからつなげられる。
-この見方が、後の章で扱う「射の合成」につながる。
+関数を合成するには、型がつながる必要があります。
+\texttt{A -> B} の出力 \texttt{B} が \texttt{B -> C} の入力と一致するため、この二つの関数をつなげられます。
+この見方は、後の章で扱う「射の合成」につながります。
 \end{leanbox}
 
 \begin{exercisebox}
-\texttt{compose g f}の途中の型を書き、なぜ\texttt{g}を先に適用できないかを説明する。答えでは、\texttt{f : A -> B}と\texttt{g : B -> C}の接続点\texttt{B}を明示する。
+\texttt{compose g f} の途中の型を書き、\texttt{g} を先に適用できない理由を説明してください。
+答えでは、\texttt{f : A -> B} と \texttt{g : B -> C} の接続点 \texttt{B} を明示してください。
 \end{exercisebox}
 
-図\ref{fig:ch07-pipeline}では、各関数の出力型を次の関数の入力型へつなぎ、複数の文字列変換を一つの処理として読む。
+図\ref{fig:ch07-pipeline}は、\texttt{f : A -> B} の出力型 \texttt{B} を \texttt{g : B -> C} の入力型へつなぎ、二つの関数を一つの処理として読む流れを示します。
 
-\FigurePlaceholder{fig-ch07-pipeline.png}{0.90}{文字列変換の合成}{fig:ch07-pipeline}
+\FigurePlaceholder{fig-ch07-pipeline.png}{0.90}{型がつながる関数合成}{fig:ch07-pipeline}
 
 \section{\texttt{Option} と \texttt{match} の小さなパイプライン}
 
-値が「あるかもしれない／ないかもしれない」ことは \texttt{Option} で表す。
-値がある場合は \texttt{some x}、ない場合は \texttt{none} と書き、\texttt{match} で場合分けする。
+値が「あるかもしれない／ないかもしれない」ことは、\texttt{Option} で表します。
+値がある場合は \texttt{some x}、ない場合は \texttt{none} と書き、\texttt{match} で場合分けします。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -147,12 +147,13 @@ def decorateAll (xs : List String) : List (Option String) :=
 \label{lst:ch07_pipeline}
 \end{listing}
 
-コード\ref{lst:ch07_pipeline}では、\texttt{nonempty} が空文字列を \texttt{none}、それ以外を \texttt{some s} に変換する。
-\texttt{decorateIfNonempty} は \texttt{match} で \texttt{Option} を場合分けし、値があるときだけ装飾する。
-\texttt{decorateAll} は \texttt{xs.map} で各要素に同じ処理を適用する。
+コード\ref{lst:ch07_pipeline}では、\texttt{nonempty} が空文字列を \texttt{none} に、それ以外を \texttt{some s} に変換します。
+\texttt{decorateIfNonempty} は \texttt{match} で \texttt{Option} を場合分けし、値があるときだけ装飾します。
+\texttt{decorateAll} は、\texttt{xs.map} で各要素に同じ処理を適用します。
 
 \begin{exercisebox}
-\texttt{decorateIfNonempty "lean"}を、\texttt{nonempty}の結果、\texttt{match}で選ばれる枝、最終的な\texttt{Option String}の順に追跡する。\texttt{List.map}は各要素へ同じ関数を適用するだけであり、第14章で扱う関手則まで本節が証明しているわけではない。
+\texttt{decorateIfNonempty "lean"} を、\texttt{nonempty} の結果、\texttt{match} で選ばれる枝、最終的な \texttt{Option String} の順に追跡してください。
+\texttt{List.map} は各要素へ同じ関数を適用するだけであり、本節では第14章で扱う関手則まで証明していません。
 \end{exercisebox}
 
 \section{本章のまとめ}
@@ -160,15 +161,15 @@ def decorateAll (xs : List String) : List (Option String) :=
 \begin{summarybox}
 要点と記法
 \begin{itemize}
-\item \texttt{forall x, P x} / \texttt{intro x} \quad 全称量化と、その導入。
-\item \texttt{fun x => 本体} \quad 無名関数。
-\item \texttt{\{A : Type\}} \quad 推論される型パラメータ。
-\item \texttt{some} / \texttt{none} / \texttt{match} / \texttt{xs.map} \quad \texttt{Option} と一括適用。
+\item \texttt{forall x, P x} / \texttt{intro x}：全称量化とその導入
+\item \texttt{fun x => 本体}：無名関数
+\item \texttt{\{A : Type\}}：推論される型パラメータ
+\item \texttt{some} / \texttt{none} / \texttt{match} / \texttt{xs.map}：\texttt{Option} と一括適用
 \end{itemize}
 \end{summarybox}
 
 \section{次章への接続}
 
-ここまでの証明は \texttt{rfl} だけで閉じてきた。
-次章では、\texttt{rfl} だけでは届かない場面のために、\texttt{simp} と \texttt{rw} という次の道具を導入する。
-\texttt{simp} は明らかな整理を任せ、\texttt{rw} は既知の等式で書き換える。
+ここまでの証明は、\texttt{rfl} だけで閉じてきました。
+次章では、\texttt{rfl} だけでは届かない場面のために、\texttt{simp} と \texttt{rw} という次の道具を導入します。
+\texttt{simp} は明らかな整理を任せ、\texttt{rw} は既知の等式で書き換えます。

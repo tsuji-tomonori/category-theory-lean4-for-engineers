@@ -31,4 +31,5 @@ ch00
 
 ## 使用前説明ゲート
 
-各章の監査時に、本文中の数学語、記号、Lean構文を `docs/quality/terminology-and-notation.md` と照合する。初出章が依存mapより後ならP1として扱う。
+各章の監査時に、本文中の数学用語、記号、Lean 構文を `docs/quality/terminology-and-notation.md` と照合します。
+初出章が依存マップより後であれば、P1 として扱います。

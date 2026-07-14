@@ -3,31 +3,30 @@
 \label{chap:ch04_rfl}
 
 \begin{chapterabstract}
-本章では、最初の証明道具 \texttt{rfl} だけを扱う。
-\texttt{rfl} は、左辺と右辺が定義を展開すると同じ形になる等式を閉じる道具である。
-前章で読んだ \texttt{hasDiscount true = true} を実際に \texttt{rfl} で証明し、
-\texttt{hasDiscount false = true} がなぜ閉じられないかも並べて確認する。
-\texttt{simp} や \texttt{rw} はまだ扱わない。
+本章では、最初の証明道具 \texttt{rfl} だけを扱います。
+\texttt{rfl} は、左辺と右辺が定義を展開すると同じ形になる等式を閉じる道具です。
+前章で読んだ \texttt{hasDiscount true = true} を実際に \texttt{rfl} で証明し、\texttt{hasDiscount false = true} が閉じられない理由も確認します。
+\texttt{simp} や \texttt{rw} は、まだ扱いません。
 \end{chapterabstract}
 
 \begin{learninggoals}
-\item \texttt{example : 命題 := by rfl} の形で、定義どおりの等式を証明できる。
-\item \texttt{rfl} が「定義を展開すると左右が同じになる」ときに使えると説明できる。
-\item 成り立たない等式では \texttt{rfl} が使えないことを、展開の過程から説明できる。
+\item \texttt{example : 命題 := by rfl} の形で、定義どおりの等式を証明できます。
+\item \texttt{rfl} を「定義を展開すると左右が同じになる」ときに使えると説明できます。
+\item 成り立たない等式では \texttt{rfl} を使えないことを、展開の過程から説明できます。
 \end{learninggoals}
 
 \section{この章を読む理由}
 
-前章で、\texttt{hasDiscount true = true} は「成り立つ主張」だと読んだ。
-しかし「成り立ちそう」と「Lean が成り立つと認める」は違う。
-本章では、Lean にその主張を確かめさせる。
-最初の証明道具は \texttt{rfl} 一つだけにする。
-\texttt{rfl} の使える条件をはっきりさせることが、後の証明の土台になる。
+前章では、\texttt{hasDiscount true = true} を「成り立つ主張」と読みました。
+しかし、「成り立ちそう」と判断することと、Lean が成り立つと認めることは異なります。
+本章では、その主張を Lean に確かめさせます。
+最初に使う証明道具は、\texttt{rfl} 一つだけです。
+\texttt{rfl} を使える条件を明確にすることが、後の証明の土台になります。
 
 \section{\texttt{rfl} で成り立つ等式を閉じる}
 
-証明を書くには、命題の後に \texttt{:= by} と書いて証明モードに入り、そこで \texttt{rfl} を使う。
-名前を付けない小さな証明は \texttt{example} で書ける。
+証明を書くには、命題の後に \texttt{:= by} と書いて証明モードに入り、そこで \texttt{rfl} を使います。
+名前を付けない小さな証明は、\texttt{example} で書けます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -41,8 +40,8 @@ example : hasDiscount true = true := by
 \label{lst:ch04_rfl_success}
 \end{listing}
 
-コード\ref{lst:ch04_rfl_success}では、\texttt{hasDiscount true = true} を \texttt{rfl} で証明している。
-なぜ閉じられるのかは、ゴールの展開を順に追うと分かる。
+コード\ref{lst:ch04_rfl_success}では、\texttt{hasDiscount true = true} を \texttt{rfl} で証明しています。
+この等式を閉じられる理由は、ゴールの展開を順に追うと分かります。
 
 \begin{table}[htbp]
 \centering
@@ -61,9 +60,10 @@ example : hasDiscount true = true := by
 
 \section{成り立たない等式は \texttt{rfl} で閉じられない}
 
-\texttt{rfl} は何でも証明する魔法ではない。
-左右が違う形に展開される等式には使えない。
-次は、わざと成り立たない主張を書いた例である（証明できないのでコメントにしてある）。
+\texttt{rfl} は、どのような主張でも証明する道具ではありません。
+左右が異なる形に展開される等式には使えません。
+次のコードは、意図的に成り立たない主張を書いた例です。
+証明できないため、該当箇所をコメントにしています。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -78,8 +78,8 @@ def hasDiscount (member : Bool) : Bool :=
 \label{lst:ch04_rfl_failure}
 \end{listing}
 
-コード\ref{lst:ch04_rfl_failure}のコメントを外すと、Lean はエラーを出す。
-その理由も、展開を追うと分かる。
+コード\ref{lst:ch04_rfl_failure}のコメントを外すと、Lean はエラーを出します。
+その理由も、展開を追うと分かります。
 
 \begin{table}[htbp]
 \centering
@@ -98,7 +98,7 @@ def hasDiscount (member : Bool) : Bool :=
 
 \section{数値の計算でも \texttt{rfl} は使える}
 
-\texttt{rfl} は \texttt{Bool} だけでなく、定義どおりに計算が進む等式なら数値でも使える。
+\texttt{rfl} は \texttt{Bool} だけでなく、定義どおりに計算が進む等式であれば数値にも使えます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -112,22 +112,22 @@ example : addTax 100 0 = 100 := by
 \label{lst:ch04_rfl_addtax}
 \end{listing}
 
-コード\ref{lst:ch04_rfl_addtax}では、\texttt{addTax 100 0} は定義により \texttt{100 + 0} になり、これは \texttt{100} に計算される。
-左右が同じ \texttt{100} になるので、\texttt{rfl} で閉じられる。
+コード\ref{lst:ch04_rfl_addtax}では、\texttt{addTax 100 0} は定義により \texttt{100 + 0} になり、\texttt{100} に計算されます。
+左右が同じ \texttt{100} になるため、\texttt{rfl} で閉じられます。
 
 \section{本章のまとめ}
 
 \begin{summarybox}
 要点と記法
 \begin{itemize}
-\item \texttt{example : P := by ...} \quad 名前のない証明。
-\item \texttt{by} \quad 証明モードへの入口。
-\item \texttt{rfl} \quad 定義展開で左右が同じになる等式を閉じる。
+\item \texttt{example : P := by ...}：名前のない証明
+\item \texttt{by}：証明モードへの入口
+\item \texttt{rfl}：定義展開で左右が同じになる等式を閉じるタクティク
 \end{itemize}
 \end{summarybox}
 
 \section{次章への接続}
 
-ここまでは、具体的な値（\texttt{true} や \texttt{100}）についての等式を扱った。
-次章では、これまで何度も出てきた \texttt{hasDiscount member = true} という形の主張に名前を付ける。
-そこで初めて \texttt{Prop} という言葉と、仕様に名前を与える \texttt{DiscountSpec} を導入する。
+ここまでは、\texttt{true} や \texttt{100} などの具体的な値についての等式を扱いました。
+次章では、これまで何度も現れた \texttt{hasDiscount member = true} という形の主張に名前を付けます。
+そこで初めて \texttt{Prop} という言葉と、仕様に名前を与える \texttt{DiscountSpec} を導入します。

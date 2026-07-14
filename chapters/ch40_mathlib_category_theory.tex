@@ -3,72 +3,97 @@
 \label{chap:mathlib-category-theory}
 
 \begin{chapterabstract}
-本章では、本書で使ってきた自作のミニ定義から、Mathlib の \texttt{CategoryTheory} ライブラリへ進むための最初の地図を作る。目的は、Mathlib の圏論 API を網羅することではない。\texttt{Category}、\texttt{Functor}、\texttt{NatTrans}、\texttt{Iso} という入口を読み、本書で学んだ「対象・射・合成・同型・関手・自然変換」が、Mathlib ではどの名前と記法で現れるかを対応づけることである。
+本章では、本書で使ってきた自作のミニ定義から、Mathlib の \texttt{CategoryTheory} ライブラリへ進むための最初の地図を作ります。
+目的は、Mathlib の圏論 API を網羅することではありません。
+\texttt{Category}、\texttt{Functor}、\texttt{NatTrans}、\texttt{Iso} という入口を読み、本書で学んだ「対象・射・合成・同型・関手・自然変換」が、Mathlib ではどの名前と記法で現れるかを対応付けます。
 
-ここまで本書では、概念の理解を優先して小さな構造体を自作してきた。本格的な形式化に進むときは、その自作定義を捨てるのではなく、Mathlib の語彙へ翻訳する。本章は、その翻訳のための足場である。
+ここまで本書では、概念の理解を優先して小さな構造体を自作してきました。
+本格的な形式化に進むときは、その自作定義を捨てるのではなく、Mathlib の語彙へ翻訳します。
+本章は、その翻訳のための足場です。
 \end{chapterabstract}
 
 \begin{learninggoals}
-\item 自作ミニ定義と Mathlib の \texttt{CategoryTheory} 定義の役割の違いを説明できる。
-\item \texttt{Category}、\texttt{Functor}、\texttt{NatTrans}、\texttt{Iso} の基本フィールドを読める。
-\item \texttt{X ⟶ Y}、\texttt{𝟙 X}、\texttt{f ≫ g}、\texttt{C ⥤ D}、\texttt{X ≅ Y} の記法を本書の言葉へ戻せる。
-\item いきなり Mathlib 圏論から始める難しさを、型クラス・universe・暗黙引数の観点から理解できる。
-\item 自作定義を Mathlib の語彙へ移すための小さな手順を持てる。
+\item 自作ミニ定義と Mathlib の \texttt{CategoryTheory} 定義について、役割の違いを説明できるようになります。
+\item \texttt{Category}、\texttt{Functor}、\texttt{NatTrans}、\texttt{Iso} の基本フィールドを読めるようになります。
+\item \texttt{X ⟶ Y}、\texttt{𝟙 X}、\texttt{f ≫ g}、\texttt{C ⥤ D}、\texttt{X ≅ Y} の記法を本書の言葉へ戻せるようになります。
+\item Mathlib 圏論からすぐに始める難しさを、型クラス、universe、暗黙引数の観点から理解できます。
+\item 自作定義を Mathlib の語彙へ移すための、小さな手順を持てるようになります。
 \end{learninggoals}
 
 \section{この章を読む理由}
 
-ここまでの章では、圏論の概念を実務に近い形で導入してきた。圏は合成できる処理の世界であり、同型は情報を失わない相互変換であり、関手は構造を保った一括変換であり、自然変換は一貫した adapter であった。Lean コードでも、これらを小さな \texttt{structure} と関数で表した。
+ここまでの章では、圏論の概念を実務に近い形で導入してきました。
+圏は合成できる処理の世界であり、同型は情報を失わない相互変換であり、関手は構造を保つ一括変換であり、自然変換は一貫した adapter です。
+Lean コードでも、これらを小さな \texttt{structure} と関数で表しました。
 
-しかし、Lean 上で既存の数学的結果を使いたい場合や、他の形式化プロジェクトと接続したい場合、自作定義だけでは足りない。Mathlib にはすでに圏論の大きなライブラリがある。そこには圏、関手、自然変換、同型、極限、随伴、モナド、具体圏、加法圏、アーベル圏など、多くの定義と定理が蓄積されている。
+しかし、Lean 上で既存の数学的結果を使う場合や、ほかの形式化プロジェクトと接続する場合には、自作定義だけでは足りません。
+Mathlib には、すでに大規模な圏論ライブラリがあります。
+そこには圏、関手、自然変換、同型、極限、随伴、モナド、具体圏、加法圏、アーベル圏など、多くの定義と定理が蓄積されています。
 
-本章の目的は、その巨大なライブラリに正面から飛び込むことではない。まず「本書で見た概念が Mathlib のどこにあるか」を確認する。そして、Mathlib の記法を見たときに、実務寄りの意味へ戻して読めるようにする。
+本章の目的は、その巨大なライブラリに正面から飛び込むことではありません。
+まず、「本書で見た概念が Mathlib のどこにあるか」を確認します。
+そのうえで、Mathlib の記法を見たときに、実務寄りの意味へ戻して読めるようにします。
 
 \begin{intuitionbox}
-自作ミニ定義は、学習用の模型である。模型は小さく、見通しがよく、どこに何が入っているかを自分で確認できる。一方、Mathlib の定義は、実プロジェクトで再利用するための標準部品である。標準部品は強力だが、型クラス、記法、暗黙引数、universe が絡むため、最初は見通しが悪い。本章では、模型から標準部品へ乗り換えるための対応表を作る。
+自作ミニ定義は、学習用の模型です。
+模型は小さく、見通しがよいため、どこに何が含まれているかを自分で確認できます。
+一方、Mathlib の定義は、実際のプロジェクトで再利用するための標準部品です。
+標準部品は強力ですが、型クラス、記法、暗黙引数、universe が関わるため、最初は見通しがよくありません。
+本章では、模型から標準部品へ移行するための対応表を作ります。
 \end{intuitionbox}
 
 \FigurePlaceholder{fig-ch40-overview.png}{0.90}{自作モデルと Mathlib}{fig:ch40-overview}
 
-図\ref{fig:ch40-overview}は、本書で個別に書いた型・関数・法則のモデルから、Mathlibが提供する一般の圏論構造へ対応をたどるための入口を示している。
+図\ref{fig:ch40-overview}は、本書で個別に記述した型、関数、法則のモデルから、Mathlib が提供する一般の圏論構造へ対応をたどるための入口を示しています。
 
 \section{本書の自作ミニ定義と Mathlib の違い}
 
-本書の前半では、説明しやすさを優先して、型と関数を圏の例として使い、\texttt{Iso} や \texttt{NatTransOptionList} のような概念別の小さな構造体と、\texttt{List.map} の法則のような個別定理を書いた。一般の圏や一般の関手を表す共通構造体までは定義していない。この形は、それぞれの法則が実務例で何を意味するかを学ぶには向いている。
+本書の前半では、説明しやすさを優先し、型と関数を圏の例として使いました。
+また、\texttt{Iso} や \texttt{NatTransOptionList} のような概念別の小さな構造体と、\texttt{List.map} の法則のような個別の定理を記述しました。
+一般の圏や一般の関手を表す共通構造体までは定義していません。
+この形は、それぞれの法則が実務例で何を意味するかを学ぶのに適しています。
 
-Mathlib の定義は、それよりも Lean の型クラス機構に強く合わせて設計されている。特に重要なのは、\textbf{対象の集まりをフィールドとして持つ構造体ではなく、対象の型 \texttt{C} に対して \texttt{Category C} という型クラスを載せる}という点である。
+Mathlib の定義は、それよりも Lean の型クラス機構に強く合わせて設計されています。
+特に重要なのは、\textbf{対象の集まりをフィールドとして持つ構造体ではなく、対象の型 \texttt{C} に対して \texttt{Category C} という型クラスを載せる}という点です。
 
 \begin{softwarebox}
-ソフトウェア的に言えば、自作ミニ定義は「設定オブジェクトに全部を詰める」設計に近い。Mathlib の \texttt{Category C} は、「型 \texttt{C} に、圏として振る舞うためのインターフェース実装を与える」設計に近い。つまり、対象は \texttt{C} の値であり、射・恒等射・合成・法則は型クラスから取り出される。
+ソフトウェアの観点では、自作ミニ定義は「設定オブジェクトにすべてを詰める」設計に近いものです。
+Mathlib の \texttt{Category C} は、「型 \texttt{C} に、圏として振る舞うためのインターフェース実装を与える」設計に近いものです。
+つまり、対象は \texttt{C} の値であり、射、恒等射、合成、法則は型クラスから取り出されます。
 \end{softwarebox}
 
 \begin{longtable}{p{0.25\linewidth}p{0.30\linewidth}p{0.35\linewidth}}
 \toprule
 本書のミニ定義での言葉 & Mathlib でよく見る形 & 読み替え \\
 \midrule
-対象 & \texttt{X : C} & 圏 \texttt{C} の中のオブジェクト。型 \texttt{C} の値として表される。 \\
-射 & \texttt{X ⟶ Y} & \texttt{X} から \texttt{Y} への morphism。ソフトウェアでは変換・処理・対応として読む。 \\
-恒等射 & \texttt{𝟙 X} & 対象 \texttt{X} 上の「何もしない射」。 \\
-合成 & \texttt{f ≫ g} & 先に \texttt{f}、次に \texttt{g} を適用する矢印向きの合成。 \\
-圏 & \texttt{[Category C]} & 型 \texttt{C} に圏構造がある、という型クラス引数。 \\
-関手 & \texttt{F : C ⥤ D} & 圏 \texttt{C} から圏 \texttt{D} への構造保存写像。 \\
-対象への作用 & \texttt{F.obj X} & 関手が対象をどう移すか。 \\
-射への作用 & \texttt{F.map f} & 関手が射をどう移すか。 \\
-自然変換 & \texttt{NatTrans F G} & 関手 \texttt{F} から \texttt{G} への一貫した変換。 \\
-自然変換の成分 & \texttt{α.app X} & 各対象 \texttt{X} での adapter。 \\
-同型 & \texttt{X ≅ Y} & 互いに戻せる射を束ねたもの。 \\
+対象 & \texttt{X : C} & 圏 \texttt{C} の中のオブジェクトであり、型 \texttt{C} の値として表されます。 \\
+射 & \texttt{X ⟶ Y} & \texttt{X} から \texttt{Y} への morphism であり、ソフトウェアでは変換、処理、対応として読みます。 \\
+恒等射 & \texttt{𝟙 X} & 対象 \texttt{X} 上の「何もしない射」です。 \\
+合成 & \texttt{f ≫ g} & 先に \texttt{f}、次に \texttt{g} を適用する矢印向きの合成です。 \\
+圏 & \texttt{[Category C]} & 型 \texttt{C} に圏構造があることを表す型クラス引数です。 \\
+関手 & \texttt{F : C ⥤ D} & 圏 \texttt{C} から圏 \texttt{D} への構造保存写像です。 \\
+対象への作用 & \texttt{F.obj X} & 関手が対象をどのように移すかを表します。 \\
+射への作用 & \texttt{F.map f} & 関手が射をどのように移すかを表します。 \\
+自然変換 & \texttt{NatTrans F G} & 関手 \texttt{F} から \texttt{G} への一貫した変換です。 \\
+自然変換の成分 & \texttt{α.app X} & 各対象 \texttt{X} における adapter です。 \\
+同型 & \texttt{X ≅ Y} & 互いに戻せる射を束ねたものです。 \\
 \bottomrule
 \end{longtable}
 
 \begin{warningbox}
-Lean の標準ライブラリにも \texttt{Functor} や \texttt{Monad} という名前がある。これはプログラミング用の型クラスであり、\texttt{List.map} や \texttt{Option.bind} のような計算上の抽象化を扱う。一方、Mathlib の \texttt{CategoryTheory.Functor} は一般の圏の間の関手である。名前は似ているが、扱う抽象度が違う。本章では常に \texttt{CategoryTheory} 名前空間の圏論用語を扱う。
+Lean の標準ライブラリにも、\texttt{Functor} や \texttt{Monad} という名前があります。
+これらはプログラミング用の型クラスであり、\texttt{List.map} や \texttt{Option.bind} のような計算上の抽象化を扱います。
+一方、Mathlib の \texttt{CategoryTheory.Functor} は、一般の圏の間の関手です。
+名前は似ていますが、扱う抽象度が異なります。
+本章では常に、\texttt{CategoryTheory} 名前空間の圏論用語を扱います。
 \end{warningbox}
 
 \section{\texttt{Category}：対象の型に圏構造を載せる}
 
-本章のAPI名と型は、リポジトリが固定するMathlib revisionの公式sourceを基準とする~\cite{mathlib-category-theory-v430}。Leanの一般構文については公式reference~\cite{lean4-reference}を参照する。
+本章の API 名と型は、リポジトリが固定する Mathlib revision の公式 source を基準とします~\cite{mathlib-category-theory-v430}。
+Lean の一般構文については、公式 reference~\cite{lean4-reference}を参照します。
 
-Mathlib で圏を読むとき、まず見るべき形は次である。
+Mathlib で圏を読むとき、最初に確認すべき形は次のとおりです。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -97,13 +122,18 @@ end Chapter40
 \label{lst:ch40_category_basic}
 \end{listing}
 
-\texttt{open CategoryTheory} は名前空間内の名前を短く参照できるようにし、\texttt{open scoped CategoryTheory} は圏論用の記法を有効にする。\texttt{section} は変数宣言を局所化する囲いである。ここで \texttt{C} は対象の型であり、\texttt{[Category.\{v\} C]} は、その値を対象とする圏構造を型クラス推論で探して使う指定である。射の型は \texttt{X ⟶ Y}、恒等射は \texttt{𝟙 X}、合成は \texttt{f ≫ g} と書く。
+\texttt{open CategoryTheory} は、名前空間内の名前を短く参照できるようにします。
+\texttt{open scoped CategoryTheory} は、圏論用の記法を有効にします。
+\texttt{section} は、変数宣言を局所化するための囲いです。
+ここで \texttt{C} は対象の型であり、\texttt{[Category.\{v\} C]} は、その値を対象とする圏構造を型クラス推論で探して使うための指定です。
+射の型は \texttt{X ⟶ Y}、恒等射は \texttt{𝟙 X}、合成は \texttt{f ≫ g} と書きます。
 
 \begin{definitionbox}
-Mathlib の \texttt{Category C} は、対象型 \texttt{C} に対して、射 \texttt{X ⟶ Y}、恒等射 \texttt{𝟙 X}、合成 \texttt{f ≫ g}、および恒等律・結合律を与える型クラスである。第11章では型と関数の圏を具体例として読んだが、Mathlibでは同じインターフェースで一般の圏を扱う。
+Mathlib の \texttt{Category C} は、対象型 \texttt{C} に対して、射 \texttt{X ⟶ Y}、恒等射 \texttt{𝟙 X}、合成 \texttt{f ≫ g}、恒等律、結合律を与える型クラスです。
+第11章では型と関数の圏を具体例として読みましたが、Mathlib では同じインターフェースで一般の圏を扱います。
 \end{definitionbox}
 
-圏の法則も、Mathlib ではすでに \texttt{simp} で扱いやすい形になっている。
+圏の法則も、Mathlib ではすでに \texttt{simp} で扱いやすい形になっています。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -130,12 +160,15 @@ end CategoryLaws
 \end{listing}
 
 \begin{leanbox}
-この三証明はすべて \texttt{simp} を使っている。圏の左恒等律、右恒等律、結合律が単純化規則として利用できるためである。既存定理を明示したい場合は、対応する \texttt{Category.id\_comp}、\texttt{Category.comp\_id}、\texttt{Category.assoc} を調べる。
+この三つの証明は、すべて \texttt{simp} を使っています。
+圏の左恒等律、右恒等律、結合律を、単純化規則として利用できるためです。
+既存の定理を明示したい場合は、対応する \texttt{Category.id\_comp}、\texttt{Category.comp\_id}、\texttt{Category.assoc} を調べます。
 \end{leanbox}
 
 \section{\texttt{Functor}：対象と射を同時に運ぶ}
 
-本書では、\texttt{List.map} や \texttt{Option.map} を使って、「構造を保ったまま中身を変える」操作として関手を導入した。Mathlib の一般圏論では、関手は圏から圏への構造保存写像であり、型は \texttt{C ⥤ D} と書く。
+本書では、\texttt{List.map} や \texttt{Option.map} を使い、「構造を保ったまま中身を変える」操作として関手を導入しました。
+Mathlib の一般圏論では、関手は圏から圏への構造保存写像であり、その型を \texttt{C ⥤ D} と書きます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -165,9 +198,12 @@ end Chapter40
 \label{lst:ch40_functor_basic}
 \end{listing}
 
-\texttt{F.obj X} は、関手 \texttt{F} が対象 \texttt{X} をどの対象へ移すかを表す。\texttt{F.map f} は、射 \texttt{f} をどの射へ移すかを表す。ここまでは、本書で作ったミニ関手とほぼ同じ感覚で読める。
+\texttt{F.obj X} は、関手 \texttt{F} が対象 \texttt{X} をどの対象へ移すかを表します。
+\texttt{F.map f} は、射 \texttt{f} をどの射へ移すかを表します。
+ここまでは、本書で作ったミニ関手とほぼ同じ感覚で読めます。
 
-違いは、Mathlib の関手が一般の圏を対象にしている点である。\texttt{List.map} のような「型の中身を変える操作」だけでなく、群の圏、位相空間の圏、加法圏、関手圏など、さまざまな圏の間の構造保存写像を同じ型で扱う。
+違いは、Mathlib の関手が一般の圏を対象としている点です。
+\texttt{List.map} のような「型の中身を変える操作」だけでなく、群の圏、位相空間の圏、加法圏、関手圏など、さまざまな圏の間の構造保存写像を同じ型で扱います。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -193,12 +229,16 @@ end FunctorLaws
 \end{listing}
 
 \begin{softwarebox}
-実務で \texttt{F.map} を読むときは、「ある変換を、別の文脈へ壊さずに持ち上げる」と考えるとよい。第30章のバッチマイグレーションでは、1件の \texttt{migrate} を \texttt{List.map migrate} でリスト全体へ持ち上げた。Mathlib の関手では、その考え方を任意の圏の間へ一般化している。
+実務で \texttt{F.map} を読むときは、「ある変換を、別の文脈へ壊さずに持ち上げる」と考えるとよいでしょう。
+第30章のバッチマイグレーションでは、1件の \texttt{migrate} を \texttt{List.map migrate} によってリスト全体へ持ち上げました。
+Mathlib の関手では、その考え方を任意の圏の間へ一般化しています。
 \end{softwarebox}
 
 \section{\texttt{NatTrans}：各対象の成分と自然性}
 
-自然変換は、二つの関手の間の変換である。本書では、API response wrapper の adapter として読んだ。Mathlib では、自然変換 \texttt{α : NatTrans F G} は、各対象 \texttt{X} に対する成分 \texttt{α.app X} と、任意の射に対する自然性の等式を持つ。
+自然変換は、二つの関手の間の変換です。
+本書では、API response wrapper の adapter として読みました。
+Mathlib では、自然変換 \texttt{α : NatTrans F G} は、各対象 \texttt{X} に対する成分 \texttt{α.app X} と、任意の射に対する自然性の等式を持ちます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -228,7 +268,7 @@ end Chapter40
 \label{lst:ch40_nattrans_basic}
 \end{listing}
 
-自然性は、次のような等式として現れる。
+自然性は、次の等式として現れます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -249,17 +289,24 @@ end NatTransNaturality
 \label{lst:ch40_nattrans_naturality}
 \end{listing}
 
-この式は、第15章と第31章で見た可換図式そのものである。左辺は「先に \texttt{F} 側で処理してから adapter を通す」経路であり、右辺は「先に adapter を通してから \texttt{G} 側で処理する」経路である。両者が等しいとき、このモデルで射として表した処理について、adapter の前後で結果が一貫する。外部副作用を含む任意の業務処理まで自動的に対象になるわけではない。
+この式は、第15章と第31章で見た可換図式そのものです。
+左辺は「先に \texttt{F} 側で処理してから adapter を通す」経路であり、右辺は「先に adapter を通してから \texttt{G} 側で処理する」経路です。
+両者が等しいとき、このモデルで射として表した処理について、adapter の前後で結果が一貫します。
+外部副作用を含む任意の業務処理まで、自動的に対象となるわけではありません。
 
 \begin{intuitionbox}
-\texttt{α.app X} は、対象 \texttt{X} ごとに用意された adapter である。しかし、それだけでは「一貫した adapter」とは言えない。自然性 \texttt{α.naturality f} があることで、始域の圏で量化された各射 \texttt{f} について、二経路を入れ替えられるという保証が加わる。
+\texttt{α.app X} は、対象 \texttt{X} ごとに用意された adapter です。
+しかし、それだけでは「一貫した adapter」とはいえません。
+自然性 \texttt{α.naturality f} により、始域の圏で量化された各射 \texttt{f} について、二つの経路を入れ替えられるという保証が加わります。
 \end{intuitionbox}
 
 \section{\texttt{Iso}：round-trip をライブラリの語彙で読む}
 
-第12章では、同型を「情報を失わない相互変換」として導入した。\texttt{to} と \texttt{from} があり、両方向の round-trip law を証明する、という形である。
+第12章では、同型を「情報を失わない相互変換」として導入しました。
+\texttt{to} と \texttt{from} があり、両方向の round-trip law を証明するという形です。
 
-Mathlib では、圏 \texttt{C} の対象 \texttt{X} と \texttt{Y} の同型は \texttt{X ≅ Y} と書く。中身には、前向きの射 \texttt{hom}、後ろ向きの射 \texttt{inv}、そして両方向の合成が恒等射になる証明が入っている。
+Mathlib では、圏 \texttt{C} の対象 \texttt{X} と \texttt{Y} の同型を \texttt{X ≅ Y} と書きます。
+その中には、前向きの射 \texttt{hom}、後ろ向きの射 \texttt{inv}、両方向の合成が恒等射になることの証明が含まれています。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -290,8 +337,8 @@ end Chapter40
 \label{lst:ch40_iso_basic}
 \end{listing}
 
-このコードでは、Mathlibの同型\texttt{X ≅ Y}が、順方向の射\texttt{hom}、逆方向の射\texttt{inv}、二つのround-trip lawを持つことを\texttt{\#check}で確認している。
-自作の同型構造で見てきた「行って戻ると元に戻る」という読み方を、Mathlibのフィールド名へ対応させている。
+このコードでは、Mathlib の同型\texttt{X ≅ Y}が、順方向の射\texttt{hom}、逆方向の射\texttt{inv}、二つの round-trip law を持つことを\texttt{\#check}で確認しています。
+自作の同型構造で見てきた「行って戻ると元に戻る」という読み方を、Mathlib のフィールド名へ対応させています。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -314,120 +361,145 @@ end IsoRoundTrip
 \end{listing}
 
 \begin{softwarebox}
-型と関数の圏でスキーマ移行をモデル化するなら、\texttt{e.hom} が \texttt{migrate}、\texttt{e.inv} が \texttt{rollback} に対応する。\texttt{e.hom\_inv\_id} は「移行して戻すと元に戻る」、\texttt{e.inv\_hom\_id} は「戻して移行すると元に戻る」という主張である。Mathlib の \texttt{Iso} 自体は一般の圏の射についての同型であり、通常の関数同型だけに限られない。
+型と関数の圏でスキーマ移行をモデル化するなら、\texttt{e.hom} が \texttt{migrate} に、\texttt{e.inv} が \texttt{rollback} に対応します。
+\texttt{e.hom\_inv\_id} は「移行して戻すと元に戻る」という主張であり、\texttt{e.inv\_hom\_id} は「戻して移行すると元に戻る」という主張です。
+Mathlib の \texttt{Iso} 自体は一般の圏の射についての同型であり、通常の関数同型だけに限られません。
 \end{softwarebox}
 
 \section{いきなり Mathlib 圏論から始めない理由}
 
-Mathlib の \texttt{CategoryTheory} は強力である。しかし、圏論と Lean の両方を学び始めた段階で、いきなりここから入るとつまずきやすい。理由は、概念そのもの以外の学習負荷が大きいからである。
+Mathlib の \texttt{CategoryTheory} は強力です。
+しかし、圏論と Lean の両方を学び始めた段階で、すぐにここから入るとつまずきやすくなります。
+その理由は、概念自体とは別の学習負荷が大きいためです。
 
 \subsection{型クラス推論が前提になる}
 
-Mathlib では、\texttt{[Category C]} のような型クラス引数が頻繁に出てくる。これは、「\texttt{C} が圏であることを Lean が文脈から探して使う」という仕組みである。便利な一方で、エラーが出たときに「圏構造が見つからない」のか、「射の向きが違う」のか、「universe が合っていない」のかを見分ける必要がある。
+Mathlib では、\texttt{[Category C]} のような型クラス引数が頻繁に現れます。
+これは、「\texttt{C} が圏であることを Lean が文脈から探して使う」という仕組みです。
+便利な一方で、エラーが発生したときには、「圏構造が見つからない」のか、「射の向きが異なる」のか、「universe が合っていない」のかを見分ける必要があります。
 
 \subsection{universe が見える}
 
-小さな自作定義では、対象も射も同じ \texttt{Type} レベルに置いても大きな問題にならない。しかし Mathlib では、型の圏や関手圏のように大きさの違う対象を扱うため、universe level が明示的に現れる。\texttt{Category.\{v\} C} の \texttt{v} は、射の型が住む universe を指定している。
+小さな自作定義では、対象も射も同じ \texttt{Type} レベルに置いても、大きな問題にはなりません。
+しかし、Mathlib では、型の圏や関手圏のように大きさが異なる対象を扱うため、universe level が明示的に現れます。
+\texttt{Category.\{v\} C} の \texttt{v} は、射の型が属する universe を指定しています。
 
 \subsection{記法が多い}
 
-Mathlib の圏論では、\texttt{X ⟶ Y}、\texttt{𝟙 X}、\texttt{f ≫ g}、\texttt{C ⥤ D}、\texttt{X ≅ Y} など、読みやすさのための記法が多く使われる。慣れると自然だが、最初はどれが型で、どれが項で、どれが定理なのかが見えにくい。
+Mathlib の圏論では、\texttt{X ⟶ Y}、\texttt{𝟙 X}、\texttt{f ≫ g}、\texttt{C ⥤ D}、\texttt{X ≅ Y} など、読みやすくするための記法が多く使われます。
+慣れると自然に読めますが、最初はどれが型で、どれが項で、どれが定理なのかが分かりにくいかもしれません。
 
 \begin{warningbox}
-Mathlib の記法を見て混乱したときは、記法を本書の言葉へ戻すとよい。\texttt{X ⟶ Y} は「\texttt{X} から \texttt{Y} への射」、\texttt{f ≫ g} は「\texttt{f} の後に \texttt{g}」、\texttt{C ⥤ D} は「\texttt{C} から \texttt{D} への関手」である。記法を覚えることより、何を保存しているかを読むことが重要である。
+Mathlib の記法を見て混乱したときは、記法を本書の言葉へ戻すとよいでしょう。
+\texttt{X ⟶ Y} は「\texttt{X} から \texttt{Y} への射」、\texttt{f ≫ g} は「\texttt{f} の後に \texttt{g}」、\texttt{C ⥤ D} は「\texttt{C} から \texttt{D} への関手」です。
+記法を覚えることよりも、何を保存しているかを読むことが重要です。
 \end{warningbox}
 
 \FigurePlaceholder{fig-ch40-mini-to-mathlib.png}{0.92}{Mathlib への対応}{fig:ch40-mini-to-mathlib}
 
-図\ref{fig:ch40-mini-to-mathlib}は、本書の具体的な型・関数・法則を、Mathlibの対象・射・構造体・既存定理へ読み替える順序を示している。
+図\ref{fig:ch40-mini-to-mathlib}は、本書の具体的な型、関数、法則を、Mathlib の対象、射、構造体、既存の定理へ読み替える順序を示しています。
 
 \section{発展課題：自作定義を Mathlib の語彙へ移す}
 
-ここでは、実際に移行するときの考え方を整理する。ゴールは、過去の章で作ったミニ定義を一気に置き換えることではない。まず、どの概念が Mathlib のどの構成要素に対応するかを一つずつ確認する。
+ここでは、実際に移行するときの考え方を整理します。
+目標は、過去の章で作ったミニ定義を一度に置き換えることではありません。
+まず、各概念が Mathlib のどの構成要素に対応するかを、一つずつ確認します。
 
 \subsection{第一段階：名前の対応を作る}
 
-最初にやることは、証明を書き直すことではなく、名前の対応表を作ることである。
+最初に行うのは、証明を書き直すことではなく、名前の対応表を作ることです。
 
 \begin{longtable}{p{0.30\linewidth}p{0.30\linewidth}p{0.30\linewidth}}
 \toprule
 移行前に探すもの & Mathlib で探すもの & 確認すること \\
 \midrule
-\texttt{A : Type}（第11章） & \texttt{X : C} & 型そのものを対象とした具体例から、圏 \texttt{C} の任意の対象へ一般化する。 \\
-\texttt{A -> B}（第11章） & \texttt{X ⟶ Y} & 関数に限らない一般の射になり、向きが一致しているか。 \\
-\texttt{id} & \texttt{𝟙 X} & 恒等射の対象が合っているか。 \\
-\texttt{comp f g} & \texttt{f ≫ g} & 合成順序が逆になっていないか。 \\
-\texttt{List.map} とその法則（第14章） & \texttt{F.obj}・\texttt{F.map} と関手則 & 型構成子・map の具体例から、対象と射への一般の作用へ移る。 \\
-\texttt{NatTransOptionList}\newline\texttt{app}・\texttt{naturality} & \texttt{α.app}・\texttt{α.naturality} & 特定の \texttt{Option}/\texttt{List} 間のモデルから、任意の二関手間へ一般化する。 \\
-\texttt{Iso}\newline\texttt{toFun}・\texttt{invFun} & \texttt{e.hom}・\texttt{e.inv} & 関数同型から一般の圏の同型へ移り、round-trip の向きが一致しているか。 \\
+\texttt{A : Type}（第11章） & \texttt{X : C} & 型そのものを対象とした具体例から、圏 \texttt{C} の任意の対象へ一般化します。 \\
+\texttt{A -> B}（第11章） & \texttt{X ⟶ Y} & 関数に限らない一般の射になるため、向きが一致しているかを確認します。 \\
+\texttt{id} & \texttt{𝟙 X} & 恒等射の対象が合っているかを確認します。 \\
+\texttt{comp f g} & \texttt{f ≫ g} & 合成順序が逆になっていないかを確認します。 \\
+\texttt{List.map} とその法則（第14章） & \texttt{F.obj}・\texttt{F.map} と関手則 & 型構成子と map の具体例から、対象と射への一般の作用へ移ります。 \\
+\texttt{NatTransOptionList}\newline\texttt{app}・\texttt{naturality} & \texttt{α.app}・\texttt{α.naturality} & 特定の \texttt{Option}/\texttt{List} 間のモデルから、任意の二関手間へ一般化します。 \\
+\texttt{Iso}\newline\texttt{toFun}・\texttt{invFun} & \texttt{e.hom}・\texttt{e.inv} & 関数同型から一般の圏の同型へ移り、round-trip の向きが一致しているかを確認します。 \\
 \bottomrule
 \end{longtable}
 
 \subsection{第二段階：小さな定理だけを移す}
 
-次に、過去の章で使った小さな定理を一つだけ選び、Mathlib の記法で書き直す。おすすめは、次の順である。
+次に、過去の章で使った小さな定理を一つだけ選び、Mathlib の記法で書き直します。
+推奨する順序は、次のとおりです。
 
 \begin{enumerate}
-\item 恒等射を合成しても変わらないこと。
-\item 関手が恒等射を保存すること。
-\item 関手が合成を保存すること。
-\item 自然変換の自然性。
-\item 同型の round-trip law。
+\item 恒等射を合成しても変わらないことを確認します。
+\item 関手が恒等射を保存することを確認します。
+\item 関手が合成を保存することを確認します。
+\item 自然変換の自然性を確認します。
+\item 同型の round-trip law を確認します。
 \end{enumerate}
 
-これらは本章のコード例にすでに出てきた。つまり、過去の自作定義で証明した内容は、Mathlib では既存のフィールドや simp ルールとして利用できる場合が多い。
+これらは、本章のコード例にすでに現れました。
+つまり、過去の自作定義で証明した内容は、Mathlib では既存のフィールドや simp ルールとして利用できる場合が多くあります。
 
 \begin{leanbox}
-Mathlib に移すときは、「自分で証明する」よりも「どの既存定理が対応するかを探す」作業が増える。たとえば、関手の合成保存は \texttt{F.map\_comp f g}、自然性は \texttt{α.naturality f}、同型の round-trip は \texttt{e.hom\_inv\_id} と \texttt{e.inv\_hom\_id} としてすでに入っている。
+Mathlib に移すときは、「自分で証明する」作業よりも「どの既存定理が対応するかを探す」作業が増えます。
+たとえば、関手の合成保存は \texttt{F.map\_comp f g}、自然性は \texttt{α.naturality f}、同型の round-trip は \texttt{e.hom\_inv\_id} と \texttt{e.inv\_hom\_id} として、すでに含まれています。
 \end{leanbox}
 
 \subsection{第三段階：実務モデルに戻す}
 
-Mathlib の \texttt{CategoryTheory} で抽象定理を読めるようになったら、もう一度、実務のモデルへ戻す。たとえば API adapter の自然性を、一般の \texttt{NatTrans} として完全に表す必要があるかを判断する。多くの実務モデルでは、第31章のような小さな \texttt{map} と adapter の等式で十分である。
+Mathlib の \texttt{CategoryTheory} で抽象定理を読めるようになったら、もう一度、実務のモデルへ戻します。
+たとえば、API adapter の自然性を、一般の \texttt{NatTrans} として完全に表す必要があるかを判断します。
+多くの実務モデルでは、第31章のような小さな \texttt{map} と adapter の等式で十分です。
 
-本格的な Mathlib 圏論を使うべき場面は、既存の圏論的定理を再利用したいときである。単に業務ロジックの round-trip を証明したいだけなら、自作の小さなモデルのほうが読みやすいことも多い。
+本格的な Mathlib 圏論を使うべき場面は、既存の圏論的な定理を再利用したいときです。
+単に業務ロジックの round-trip を証明したいだけなら、自作の小さなモデルのほうが読みやすい場合も多くあります。
 
 \section{実務への接続：いつ Mathlib を使うべきか}
 
-Mathlib の \texttt{CategoryTheory} は、すべての実務証明に必要なわけではない。むしろ、最初の導入では小さな自作モデルのほうがチームに説明しやすい。では、いつ Mathlib へ進むべきか。
+Mathlib の \texttt{CategoryTheory} は、すべての実務証明に必要なわけではありません。
+むしろ、最初の導入では、小さな自作モデルのほうがチームに説明しやすいでしょう。
+それでは、どのような場合に Mathlib へ進むべきでしょうか。
 
 \begin{softwarebox}
-Mathlib を使う価値が大きいのは、証明したい内容がすでに標準的な数学構造に乗っているときである。たとえば、一般の関手・自然変換・同型・極限・随伴に関する定理を使いたい場合、Mathlib の語彙に乗せることで既存ライブラリの定理を再利用できる。一方、単一システム内の小さなデータ変換や業務仕様だけを扱うなら、自作モデルで十分な場合がある。
+Mathlib を使う価値が大きいのは、証明したい内容が、すでに標準的な数学構造に乗っているときです。
+たとえば、一般の関手、自然変換、同型、極限、随伴に関する定理を使う場合、Mathlib の語彙に乗せることで既存ライブラリの定理を再利用できます。
+一方、単一システム内の小さなデータ変換や業務仕様だけを扱うなら、自作モデルで十分な場合があります。
 \end{softwarebox}
 
-判断基準は次のように置くとよい。
+判断基準は、次のように設定するとよいでしょう。
 
 \begin{longtable}{p{0.42\linewidth}p{0.48\linewidth}}
 \toprule
 状況 & 推奨する方針 \\
 \midrule
-チーム内で Lean の導入を始める & 自作の小さなモデルで仕様の核を表す。 \\
-API adapter や migration の局所性を示す & まずは本書の小さな定義で証明する。 \\
-圏論の標準定理を使いたい & Mathlib の \texttt{CategoryTheory} に移す。 \\
-他の Mathlib 形式化と接続したい & Mathlib の標準定義を使う。 \\
-研究寄りの形式化を進める & 最初から Mathlib の語彙で設計する。 \\
+チーム内で Lean の導入を始める & 自作の小さなモデルで仕様の核を表します。 \\
+API adapter や migration の局所性を示す & まずは本書の小さな定義で証明します。 \\
+圏論の標準定理を使いたい & Mathlib の \texttt{CategoryTheory} に移します。 \\
+ほかの Mathlib 形式化と接続したい & Mathlib の標準定義を使います。 \\
+研究寄りの形式化を進める & 最初から Mathlib の語彙で設計します。 \\
 \bottomrule
 \end{longtable}
 
 \section{本章のまとめ}
 
-Mathlib の \texttt{Category C} は、対象型 \texttt{C} に圏構造を載せる型クラスとして読む。
+Mathlib の \texttt{Category C} は、対象型 \texttt{C} に圏構造を載せる型クラスとして読みます。
 
-\texttt{X ⟶ Y} は射、\texttt{𝟙 X} は恒等射、\texttt{f ≫ g} は矢印向きの合成である。
+\texttt{X ⟶ Y} は射、\texttt{𝟙 X} は恒等射、\texttt{f ≫ g} は矢印向きの合成です。
 
-\texttt{F : C ⥤ D} は関手であり、\texttt{F.obj} と \texttt{F.map} によって対象と射を移す。
+\texttt{F : C ⥤ D} は関手であり、\texttt{F.obj} と \texttt{F.map} によって対象と射を移します。
 
-\texttt{NatTrans F G} は自然変換であり、\texttt{α.app X} と \texttt{α.naturality f} が中心になる。
+\texttt{NatTrans F G} は自然変換であり、\texttt{α.app X} と \texttt{α.naturality f} が中心になります。
 
-\texttt{X ≅ Y} は同型であり、\texttt{hom}、\texttt{inv}、二つの round-trip law を持つ。
+\texttt{X ≅ Y} は同型であり、\texttt{hom}、\texttt{inv}、二つの round-trip law を持ちます。
 
-Mathlib は強力だが、型クラス、universe、記法の負荷があるため、本書のミニ定義で概念を掴んでから進むのが安全である。
+Mathlib は強力ですが、型クラス、universe、記法による学習負荷があります。
+そのため、本書のミニ定義で概念を理解してから進むのが安全です。
 
-実務では、Mathlib を使うこと自体が目的ではない。既存の標準定義と定理を再利用したいときに、必要な範囲で移行する。
+実務では、Mathlib を使うこと自体が目的ではありません。
+既存の標準定義と定理を再利用したいときに、必要な範囲で移行します。
 
 \section{参考リンク}
 
-本章の Mathlib API 名は、次の公式ドキュメントを入口として確認できる。
+本章の Mathlib API 名は、次の公式ドキュメントを入口として確認できます。
 
 \begin{itemize}
 \item \texttt{Mathlib.CategoryTheory.Category.Basic}: \url{https://leanprover-community.github.io/mathlib4_docs/Mathlib/CategoryTheory/Category/Basic.html}

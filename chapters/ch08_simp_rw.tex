@@ -3,29 +3,29 @@
 \label{chap:ch08_simp_rw}
 
 \begin{chapterabstract}
-本章では、\texttt{rfl} の次の証明道具として \texttt{simp} と \texttt{rw} を導入する。
-\texttt{simp} は、Lean が知っている単純化規則で式を整理する。
-\texttt{rw} は、すでに証明済みの等式を使って式を書き換える。
-どちらも \texttt{rfl} だけでは届かない場面で使う、等式推論の基本道具である。
+本章では、\texttt{rfl} の次の証明道具として \texttt{simp} と \texttt{rw} を導入します。
+\texttt{simp} は、Lean が知っている単純化規則で式を整理します。
+\texttt{rw} は、すでに証明済みの等式を使って式を書き換えます。
+どちらも \texttt{rfl} だけでは届かない場面で使う、等式推論の基本道具です。
 \end{chapterabstract}
 
 \begin{learninggoals}
-\item \texttt{simp} を使って、分岐や明らかな整理を含む等式を証明できる。
-\item \texttt{rw} を使って、既知の等式でゴールを書き換えられる。
-\item \texttt{rfl}・\texttt{simp}・\texttt{rw} の役割を読み分けられる。
+\item \texttt{simp} を使って、分岐や明らかな整理を含む等式を証明できます。
+\item \texttt{rw} を使って、既知の等式でゴールを書き換えられます。
+\item \texttt{rfl}、\texttt{simp}、\texttt{rw} の役割を読み分けられます。
 \end{learninggoals}
 
 \section{この章を読む理由}
 
-これまでの証明は \texttt{rfl} だけで閉じてきた。
-しかし、分岐の整理や、別の場所で証明した等式を使いたい場面では、\texttt{rfl} だけでは足りない。
-本章では、その二つの場面に対応する \texttt{simp} と \texttt{rw} を導入する。
-これらは、次章の等式推論とリファクタリング証明で中心的に使う。
+これまでの証明は、\texttt{rfl} だけで閉じてきました。
+しかし、分岐を整理する場面や、別の場所で証明した等式を使う場面では、\texttt{rfl} だけでは足りません。
+本章では、この二つの場面に対応する \texttt{simp} と \texttt{rw} を導入します。
+これらは、次章の等式推論とリファクタリング証明で中心的に使います。
 
 \section{\texttt{simp} で明らかな整理を任せる}
 
-\texttt{simp} は、Lean が知っている単純化規則を使って式を整理する道具である。
-たとえば、条件が \texttt{true} に決まっている分岐の整理に使える。
+\texttt{simp} は、Lean が知っている単純化規則を使って式を整理する道具です。
+たとえば、条件が \texttt{true} に決まっている分岐を整理できます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -46,9 +46,9 @@ theorem member_shipping_zero (shipping : Nat) :
 \label{lst:ch08_simp}
 \end{listing}
 
-コード\ref{lst:ch08_simp}では、\texttt{chargeShipping true shipping} は \texttt{if true then 0 else shipping} になり、\texttt{simp [chargeShipping]} がこれを \texttt{0} に整理する。
-角括弧の \texttt{[chargeShipping]} は「この定義も使って整理してよい」という指定である。
-コメントアウトした \texttt{nonmember\_shipping\_zero} は、非会員の場合に \texttt{shipping} がそのまま残るため、任意の \texttt{shipping} については証明できない。
+コード\ref{lst:ch08_simp}では、\texttt{chargeShipping true shipping} は \texttt{if true then 0 else shipping} になり、\texttt{simp [chargeShipping]} がこれを \texttt{0} に整理します。
+角括弧の \texttt{[chargeShipping]} は、「この定義も使って整理してよい」という指定です。
+コメントアウトした \texttt{nonmember\_shipping\_zero} は、非会員の場合に \texttt{shipping} がそのまま残るため、任意の \texttt{shipping} については証明できません。
 
 \begin{table}[htbp]
 \centering
@@ -68,8 +68,8 @@ theorem member_shipping_zero (shipping : Nat) :
 
 \section{\texttt{rw} で既知の等式を使う}
 
-\texttt{rw} は rewrite の略で、すでに証明済みの等式を使って式の一部を書き換える。
-書き換えた結果、左右が同じ形になれば証明が閉じる。
+\texttt{rw} は rewrite の略であり、すでに証明済みの等式を使って式の一部を書き換えます。
+書き換えた結果、左右が同じ形になれば証明が閉じます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -91,8 +91,8 @@ theorem addTax_after_normalize (price tax : Nat) :
 \label{lst:ch08_rw}
 \end{listing}
 
-コード\ref{lst:ch08_rw}では、\texttt{normalizePrice\_eq} という等式を使って、\texttt{normalizePrice price} を \texttt{price} に書き換えている。
-書き換えの過程は次のように追える。
+コード\ref{lst:ch08_rw}では、\texttt{normalizePrice\_eq} という等式を使って、\texttt{normalizePrice price} を \texttt{price} に書き換えています。
+書き換えの過程は、次のように追えます。
 
 \begin{table}[htbp]
 \centering
@@ -110,8 +110,8 @@ theorem addTax_after_normalize (price tax : Nat) :
 \end{table}
 
 \begin{leanbox}
-\texttt{rfl} は「定義を見れば同じ」、\texttt{simp} は「明らかな整理をまとめて行う」、\texttt{rw} は「既知の等式で置き換える」と読む。
-この三つが、次章以降の等式推論とリファクタリング証明の基本語彙になる。
+\texttt{rfl} は「定義を見れば同じ」、\texttt{simp} は「明らかな整理をまとめて行う」、\texttt{rw} は「既知の等式で置き換える」と読みます。
+この三つが、次章以降の等式推論とリファクタリング証明の基本語彙になります。
 \end{leanbox}
 
 \section{本章のまとめ}
@@ -119,14 +119,14 @@ theorem addTax_after_normalize (price tax : Nat) :
 \begin{summarybox}
 要点と記法
 \begin{itemize}
-\item \texttt{simp} \quad 既知の単純化規則で整理する。
-\item \texttt{simp [name]} \quad 指定した定義・補題も使って整理する。
-\item \texttt{rw [h]} \quad 等式 \texttt{h} でゴールを書き換える。
+\item \texttt{simp}：既知の単純化規則による整理
+\item \texttt{simp [name]}：指定した定義や補題も使う整理
+\item \texttt{rw [h]}：等式 \texttt{h} によるゴールの書き換え
 \end{itemize}
 \end{summarybox}
 
 \section{次章への接続}
 
-ここまでで、\texttt{rfl}・\texttt{simp}・\texttt{rw} という等式の道具がそろった。
-次章では、これらを使って、リファクタリングを「意味を保存する書き換え」として証明する。
-\texttt{calc} を導入し、段階的な式変形をレビュー可能なログとして書く方法を学ぶ。
+ここまでで、\texttt{rfl}、\texttt{simp}、\texttt{rw} という等式の道具がそろいました。
+次章では、これらを使って、リファクタリングを「意味を保存する書き換え」として証明します。
+\texttt{calc} を導入し、段階的な式変形をレビュー可能なログとして書く方法を学びます。

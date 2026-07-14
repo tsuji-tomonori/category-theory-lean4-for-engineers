@@ -45,7 +45,7 @@
 - 対応箇所: 第15章 ミニケース：API response wrapper の変更
 - 目的: 旧APIレスポンスから新APIレスポンスへのadapterと、業務ロジックmapの順序交換を実務例として示す。
 - 画像生成プロンプト:
-  日本語技術書向けの白背景フラットベクター図。左上に「OldResponse A」、右上に「OldResponse B」、左下に「NewResponse A」、右下に「NewResponse B」を置く。上辺に「oldMap f」、下辺に「newMap f」、縦方向に「adapt」を配置し、二つの経路が「同じNewResponse B」に到達することを示す。図の横に小さく「traceIdは保存」「payload/itemsだけmap」「statusはpayload有無から作る」と書ける注釈領域を置く。システム構成図ではなく、仕様の可換性を説明する図にする。
+  日本語技術書向けの16:9横長、白背景フラットベクター図。左上に「OldResponse A」、右上に「OldResponse B」、左下に「NewResponse A」、右下に「NewResponse B」を置く。上辺に「oldMap f」、下辺に「newMap f」、左右の縦方向に「adapt」を配置し、二つの経路が同じ「NewResponse B」に到達する可換な四角形を描く。右側に「trace ID は保存」「payload / items だけ map」「status は payload の有無から作る」の3注記を置く。文字列は指定どおり正確に一度だけ描き、章番号、図番号、図タイトルは画像内に入れない。システム構成図ではなく、仕様の可換性を説明する図にする。
 - スタイル指定:
   - 日本語技術書向け
   - フラットなベクター図

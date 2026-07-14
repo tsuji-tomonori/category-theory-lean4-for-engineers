@@ -3,44 +3,52 @@
 \label{chap:appA-lean4-min-cheatsheet}
 
 \begin{chapterabstract}
-この付録は、本書の本文で何度も使う Lean 4 の最小語彙を、仕様・変更・証明の文脈から引けるように整理したチートシートである。目的は、Lean の全機能を網羅することではない。読者が本文のコードを読み返すときに、「これは何をしている構文か」「ソフトウェア上の何に対応するか」「どの証明で使うか」をすぐ確認できるようにする。
+この付録は、本書の本文で繰り返し使う Lean 4 の最小語彙を、仕様、変更、証明の文脈から参照できるように整理したチートシートです。
+目的は、Lean の全機能を網羅することではありません。
+読者が本文のコードを読み返すときに、「これは何をしている構文か」「ソフトウェア上の何に対応するか」「どの証明で使うか」をすぐに確認できるようにします。
 
-本書では Lean 4 を、実装そのものを置き換える言語としてではなく、仕様の核を小さく切り出して検査するための言語として使う。そのため、この付録でも、型、関数、構造体、命題、証明、場合分け、帰納法という最小限の道具に集中する。
+本書では Lean 4 を、実装そのものを置き換える言語ではなく、仕様の核を小さく切り出して検査するための言語として使います。
+そのため、この付録でも、型、関数、構造体、命題、証明、場合分け、帰納法という最小限の道具に集中します。
 \end{chapterabstract}
 
 \begin{learninggoals}
-\item \texttt{def}、\texttt{structure}、\texttt{inductive} の役割を、仕様モデルを書く道具として説明できる。
-\item \texttt{example}、\texttt{theorem}、\texttt{by} を使った最小の証明の形を読める。
-\item \texttt{rfl}、\texttt{simp}、\texttt{rw}、\texttt{calc} を、等式による意味保存の道具として使い分けられる。
-\item \texttt{cases} と \texttt{induction} を、全パターン検査と任意長データの検査として読める。
-\item \texttt{constructor}、\texttt{exact}、\texttt{apply} を、証明を組み立てる基本操作として理解できる。
+\item \texttt{def}、\texttt{structure}、\texttt{inductive} の役割を、仕様モデルを書くための道具として説明できるようになります。
+\item \texttt{example}、\texttt{theorem}、\texttt{by} を使った最小の証明の形を読めるようになります。
+\item \texttt{rfl}、\texttt{simp}、\texttt{rw}、\texttt{calc} を、等式による意味保存の道具として使い分けられるようになります。
+\item \texttt{cases} と \texttt{induction} を、全パターンの検査と任意長データの検査として読めるようになります。
+\item \texttt{constructor}、\texttt{exact}、\texttt{apply} を、証明を組み立てる基本操作として理解できます。
 \end{learninggoals}
 
 \section{この付録の使い方}
 
-この付録は、最初から順番に暗記するための表ではない。本文を読んでいて Lean コードに詰まったときに戻ってくる場所である。特に、次の三つの読み方を意識するとよい。
+この付録は、最初から順番に暗記するための表ではありません。
+本文を読んでいて Lean コードで行き詰まったときに、戻ってくるための場所です。
+特に、次の三つの読み方を意識するとよいでしょう。
 
 \begin{intuitionbox}
-Lean の構文は、単なる記号ではなく、「何を定義しているか」「何を主張しているか」「どの根拠で主張を閉じているか」を分けるための印である。
+Lean の構文は、単なる記号ではなく、「何を定義しているか」「何を主張しているか」「どの根拠で主張を閉じているか」を分けるための印です。
 \end{intuitionbox}
 
 \begin{softwarebox}
-ソフトウェア設計に置き換えると、\texttt{def} は関数や変換、\texttt{structure} は DTO やドメインモデル、\texttt{theorem} は設計上守りたい仕様、\texttt{by} 以下はレビュー可能な根拠に対応する。
+ソフトウェア設計に置き換えると、\texttt{def} は関数や変換、\texttt{structure} は DTO やドメインモデル、\texttt{theorem} は設計上守りたい仕様、\texttt{by} 以下はレビュー可能な根拠に対応します。
 \end{softwarebox}
 
 \FigurePlaceholder{fig-appA-lean4-cheatsheet-map.png}{0.90}{Lean 4 の最小語彙}{fig:appA-lean4-cheatsheet-map}
 
-図\ref{fig:appA-lean4-cheatsheet-map}では、この付録の語彙を四つの領域に分けている。値や関数を作る語彙、仕様を主張する語彙、等式を閉じる語彙、データの形を分解する語彙である。本文でコードを読むときは、まず今見ている行がどの領域に属するかを確認するとよい。
+図\ref{fig:appA-lean4-cheatsheet-map}では、この付録の語彙を四つの領域に分けています。
+値や関数を作る語彙、仕様を主張する語彙、等式を閉じる語彙、データの形を分解する語彙です。
+本文でコードを読むときは、まず現在見ている行がどの領域に属するかを確認するとよいでしょう。
 
 \section{値・型・関数を書く}
 
 \subsection{\texttt{def}：名前を付けて値や関数を定義する}
 
 \begin{definitionbox}
-\texttt{def} は、値や関数に名前を付ける構文である。本書では、仕様モデル上の処理、データ変換、計算ロジックを小さく定義するときに使う。
+\texttt{def} は、値や関数に名前を付ける構文です。
+本書では、仕様モデル上の処理、データ変換、計算ロジックを小さく定義するときに使います。
 \end{definitionbox}
 
-たとえば、価格に手数料を足す関数や、二つの処理をつないだパイプラインは、次のように書ける。
+たとえば、価格に手数料を足す関数や、二つの処理をつないだパイプラインは、次のように書けます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -66,15 +74,19 @@ def pipeline (n : Nat) : Nat :=
 \end{listing}
 
 \begin{leanbox}
-\texttt{Nat} は自然数の型である。\texttt{price : Nat} は「\texttt{price} という名前の入力は \texttt{Nat} 型である」と読む。\texttt{pipeline} は \texttt{inc} の結果を \texttt{double} に渡す関数であり、本文で扱うパイプライン合成の最小例である。
+\texttt{Nat} は自然数の型です。
+\texttt{price : Nat} は、「\texttt{price} という名前の入力は \texttt{Nat} 型である」と読みます。
+\texttt{pipeline} は \texttt{inc} の結果を \texttt{double} に渡す関数であり、本文で扱うパイプライン合成の最小例です。
 \end{leanbox}
 
 \subsection{\texttt{\#eval}：小さく動かして確認する}
 
-\texttt{\#eval} は、定義した値や関数をその場で評価するための命令である。証明ではないが、モデルを作っている途中で意図を確認するのに役立つ。
+\texttt{\#eval} は、定義した値や関数をその場で評価するための命令です。
+証明ではありませんが、モデルを作っている途中で意図を確認するのに役立ちます。
 
 \begin{warningbox}
-\texttt{\#eval} はテストに近い確認であり、すべての入力に対する保証ではない。すべての場合について保証したい性質は、後で \texttt{theorem} として書く。
+\texttt{\#eval} はテストに近い確認であり、すべての入力に対する保証ではありません。
+すべての場合について保証したい性質は、後で \texttt{theorem} として書きます。
 \end{warningbox}
 
 \section{データモデルを書く}
@@ -82,7 +94,8 @@ def pipeline (n : Nat) : Nat :=
 \subsection{\texttt{structure}：フィールドを持つ型を作る}
 
 \begin{definitionbox}
-\texttt{structure} は、複数のフィールドを持つデータ型を定義する構文である。ソフトウェアでは、レコード、DTO、設定オブジェクト、ドメインモデルに対応する。
+\texttt{structure} は、複数のフィールドを持つデータ型を定義する構文です。
+ソフトウェアでは、レコード、DTO、設定オブジェクト、ドメインモデルに対応します。
 \end{definitionbox}
 
 \begin{listing}[htbp]
@@ -106,12 +119,14 @@ def rollbackUser (u : UserV2) : UserV1 :=
 \end{listing}
 
 \begin{softwarebox}
-\texttt{UserV1} から \texttt{UserV2} への変換は、スキーマ移行の最小モデルである。フィールド名は変わっているが、保持している情報が同じなら、後で round-trip 性質を証明できる。
+\texttt{UserV1} から \texttt{UserV2} への変換は、スキーマ移行の最小モデルです。
+フィールド名は変わっていますが、保持している情報が同じなら、後で round-trip 性質を証明できます。
 \end{softwarebox}
 
 \subsection{フィールドアクセス}
 
-構造体の値 \texttt{u : UserV1} から \texttt{id} フィールドを取り出すには、\texttt{u.id} と書く。これは、多くのプログラミング言語のドットアクセスと同じ感覚で読める。
+構造体の値 \texttt{u : UserV1} から \texttt{id} フィールドを取り出すには、\texttt{u.id} と書きます。
+これは、多くのプログラミング言語のドットアクセスと同じ感覚で読めます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -122,15 +137,16 @@ def sameIdAfterMigrate (u : UserV1) : Nat :=
 \label{lst:appA_field_access}
 \end{listing}
 
-このコードでは、\texttt{migrateUser u}で作った新形式の値から、\texttt{.userId}でフィールドを取り出している。
-構造体の変換を読むときは、どのフィールドがどの名前へ移ったかを、このような小さな関数で確認するとよい。
+このコードでは、\texttt{migrateUser u}で作った新形式の値から、\texttt{.userId}でフィールドを取り出しています。
+構造体の変換を読むときは、どのフィールドがどの名前へ移ったかを、このような小さな関数で確認するとよいでしょう。
 
 \section{分岐を持つ型を書く}
 
 \subsection{\texttt{inductive}：値の形を列挙する}
 
 \begin{definitionbox}
-\texttt{inductive} は、値が取りうる形を列挙して新しい型を作る構文である。成功か失敗か、左右どちらか、空か追加か、といった分岐を表すときに使う。
+\texttt{inductive} は、値が取り得る形を列挙して、新しい型を作る構文です。
+成功か失敗か、左右のどちらか、空か追加かといった分岐を表すときに使います。
 \end{definitionbox}
 
 \begin{listing}[htbp]
@@ -150,7 +166,8 @@ def validatePositive (n : Nat) : Result Nat :=
 \end{listing}
 
 \begin{leanbox}
-\texttt{Result.ok} と \texttt{Result.err} は、この型の値を作る方法である。後で \texttt{cases} を使うと、成功ケースと失敗ケースを漏れなく分解できる。
+\texttt{Result.ok} と \texttt{Result.err} は、この型の値を作る方法です。
+後で \texttt{cases} を使うと、成功ケースと失敗ケースを漏れなく分解できます。
 \end{leanbox}
 
 \section{命題と証明を書く}
@@ -158,7 +175,8 @@ def validatePositive (n : Nat) : Result Nat :=
 \subsection{\texttt{example} と \texttt{theorem}：性質を主張する}
 
 \begin{definitionbox}
-\texttt{example} と \texttt{theorem} は、命題を Lean に主張するための構文である。\texttt{example} は名前を付けない一時的な例、\texttt{theorem} は名前を付けて再利用できる定理である。
+\texttt{example} と \texttt{theorem} は、Lean で命題を主張するための構文です。
+\texttt{example} は名前を付けない一時的な例であり、\texttt{theorem} は名前を付けて再利用できる定理です。
 \end{definitionbox}
 
 \begin{listing}[htbp]
@@ -179,15 +197,18 @@ theorem rollback_migrate_user (u : UserV1) :
 \end{listing}
 
 \begin{softwarebox}
-\texttt{rollback\_migrate\_user} は、「移行してから戻すと元のユーザーに戻る」という仕様である。テストケースではなく、任意の \texttt{u : UserV1} について成り立つ主張として書いている。
+\texttt{rollback\_migrate\_user} は、「移行してから戻すと元のユーザーに戻る」という仕様です。
+テストケースではなく、任意の \texttt{u : UserV1} について成り立つ主張として書いています。
 \end{softwarebox}
 
 \subsection{\texttt{by}：ここから証明を書く}
 
-\texttt{by} は、命題の証明を始める合図である。\texttt{by} の後ろには、\texttt{rfl}、\texttt{simp}、\texttt{rw} などの証明手順を書く。
+\texttt{by} は、命題の証明を始める合図です。
+\texttt{by} の後ろには、\texttt{rfl}、\texttt{simp}、\texttt{rw} などの証明手順を書きます。
 
 \begin{leanbox}
-\texttt{theorem 名前 : 命題 := by ...} という形は、「この命題を、\texttt{by} 以下の手順で証明する」と読む。本文では、この形が仕様証明の基本単位になる。
+\texttt{theorem 名前 : 命題 := by ...} という形は、「この命題を、\texttt{by} 以下の手順で証明する」と読みます。
+本文では、この形が仕様証明の基本単位になります。
 \end{leanbox}
 
 \section{等式を閉じる}
@@ -195,7 +216,7 @@ theorem rollback_migrate_user (u : UserV1) :
 \subsection{\texttt{rfl}：定義どおりなら閉じる}
 
 \begin{definitionbox}
-\texttt{rfl} は反射律のタクティクであり、両辺が定義を展開すれば同じ形になるときに証明を閉じる。
+\texttt{rfl} は反射律のタクティクであり、両辺が定義を展開すれば同じ形になるときに証明を閉じます。
 \end{definitionbox}
 
 \begin{listing}[htbp]
@@ -209,13 +230,15 @@ theorem pipeline_ten :
 \end{listing}
 
 \begin{warningbox}
-\texttt{rfl} は「何となく明らか」なら何でも解いてくれる道具ではない。定義を展開して同じ形になるときだけ使える。
+\texttt{rfl} は、「何となく明らか」であれば何でも解決する道具ではありません。
+定義を展開して同じ形になるときだけ使えます。
 \end{warningbox}
 
 \subsection{\texttt{simp}：明らかな整理を任せる}
 
 \begin{definitionbox}
-\texttt{simp} は、Lean が知っている単純化規則を使って式を整理するタクティクである。空リスト、恒等的な演算、不要な \texttt{if} の分岐などを片付けるときによく使う。
+\texttt{simp} は、Lean が知っている単純化規則を使って式を整理するタクティクです。
+空リスト、恒等的な演算、不要な \texttt{if} の分岐などを整理するときによく使います。
 \end{definitionbox}
 
 \begin{listing}[htbp]
@@ -233,13 +256,15 @@ theorem map_nil_inc :
 \end{listing}
 
 \begin{softwarebox}
-\texttt{simp} は、レビューで言えば「定義上すぐ消えるノイズを整理する」操作に近い。証明の本筋を読みやすくするために使う。
+\texttt{simp} は、レビューに置き換えると「定義上すぐに消えるノイズを整理する」操作に近いものです。
+証明の本筋を読みやすくするために使います。
 \end{softwarebox}
 
 \subsection{\texttt{rw}：既知の等式で書き換える}
 
 \begin{definitionbox}
-\texttt{rw} は、既に持っている等式を使って、ゴールや仮定の中の式を書き換えるタクティクである。リファクタリング前後の式を同じ形へ近づけるときによく使う。
+\texttt{rw} は、すでに持っている等式を使って、ゴールや仮定の中の式を書き換えるタクティクです。
+リファクタリング前後の式を同じ形へ近付けるときによく使います。
 \end{definitionbox}
 
 \begin{listing}[htbp]
@@ -256,13 +281,15 @@ theorem rewrite_price
 \end{listing}
 
 \begin{warningbox}
-\texttt{rw [h]} は、等式 \texttt{h} の左辺を右辺へ書き換える。逆向きに使いたいときは \texttt{rw [← h]} と書く。
+\texttt{rw [h]} は、等式 \texttt{h} の左辺を右辺へ書き換えます。
+逆向きに使う場合は、\texttt{rw [← h]} と書きます。
 \end{warningbox}
 
 \subsection{\texttt{calc}：段階的な式変形を書く}
 
 \begin{definitionbox}
-\texttt{calc} は、式変形を複数行に分けて書く構文である。証明を、レビューしやすい変更ログとして残したいときに向いている。
+\texttt{calc} は、式変形を複数行に分けて書く構文です。
+証明をレビューしやすい変更ログとして残す場合に適しています。
 \end{definitionbox}
 
 \begin{listing}[htbp]
@@ -278,7 +305,8 @@ theorem add_assoc_calc (a b c : Nat) :
 \end{listing}
 
 \begin{softwarebox}
-\texttt{calc} は、計算式や変換パイプラインのリファクタリングを説明するのに向いている。各行が「この理由で次の形に変える」という根拠になる。
+\texttt{calc} は、計算式や変換パイプラインのリファクタリングを説明するのに適しています。
+各行が、「この理由で次の形に変える」という根拠になります。
 \end{softwarebox}
 
 \section{全パターンを分解する}
@@ -286,7 +314,8 @@ theorem add_assoc_calc (a b c : Nat) :
 \subsection{\texttt{cases}：値の形ごとに場合分けする}
 
 \begin{definitionbox}
-\texttt{cases} は、値が取りうる形に応じてゴールを分解するタクティクである。\texttt{Option}、\texttt{Bool}、\texttt{Sum}、自作の \texttt{inductive} 型でよく使う。
+\texttt{cases} は、値が取り得る形に応じてゴールを分解するタクティクです。
+\texttt{Option}、\texttt{Bool}、\texttt{Sum}、自作の \texttt{inductive} 型でよく使います。
 \end{definitionbox}
 
 \begin{listing}[htbp]
@@ -309,7 +338,8 @@ theorem isSomeNat_cases (x : Option Nat) :
 \end{listing}
 
 \begin{softwarebox}
-\texttt{cases} は、成功ケースだけを見てしまうレビューを防ぐ。失敗ケース、空ケース、例外ケースを Lean に明示させることで、仕様漏れに気づきやすくなる。
+\texttt{cases} は、成功ケースだけを見るレビューを防ぎます。
+失敗ケース、空ケース、例外ケースを Lean に明示させることで、仕様漏れに気付きやすくなります。
 \end{softwarebox}
 
 \section{任意の長さのデータを扱う}
@@ -317,7 +347,7 @@ theorem isSomeNat_cases (x : Option Nat) :
 \subsection{\texttt{induction}：空ケースと追加ケースで証明する}
 
 \begin{definitionbox}
-\texttt{induction} は、自然数、リスト、木のような再帰的データ構造について、すべての場合に成り立つことを示すタクティクである。
+\texttt{induction} は、自然数、リスト、木のような再帰的データ構造について、すべての場合に成り立つことを示すタクティクです。
 \end{definitionbox}
 
 \begin{listing}[htbp]
@@ -335,11 +365,11 @@ theorem map_length_inc (xs : List Nat) :
 \end{listing}
 
 \begin{intuitionbox}
-リストの帰納法は、「空リストで成り立つ」「先頭に一つ追加しても成り立つ」を示すことで、任意の長さのリストについて成り立つことを確認する方法である。
+リストの帰納法は、「空リストで成り立つ」「先頭に一つ追加しても成り立つ」ことを示すことで、任意の長さのリストについて成り立つことを確認する方法です。
 \end{intuitionbox}
 
 \begin{softwarebox}
-一件の移行を \texttt{List.map} でバッチ全体へ持ち上げるとき、件数保存や全要素の性質保存はこの形の証明になる。
+1件の移行を \texttt{List.map} でバッチ全体へ持ち上げるとき、件数の保存や全要素の性質の保存は、この形の証明になります。
 \end{softwarebox}
 
 \section{証明を組み立てる基本操作}
@@ -347,7 +377,7 @@ theorem map_length_inc (xs : List Nat) :
 \subsection{\texttt{constructor}：かつ条件や構造体を組み立てる}
 
 \begin{definitionbox}
-\texttt{constructor} は、ゴールが「両方を示せ」や「この構造を作れ」という形のとき、必要な部品ごとにゴールを分けるタクティクである。
+\texttt{constructor} は、ゴールが「両方を示せ」または「この構造を作れ」という形のときに、必要な部品ごとにゴールを分けるタクティクです。
 \end{definitionbox}
 
 \begin{listing}[htbp]
@@ -362,13 +392,13 @@ theorem pair_spec (n : Nat) :
 \label{lst:appA_constructor_exact}
 \end{listing}
 
-このコードでは、ゴールが二つの条件の組になっているため、\texttt{constructor}で左右のゴールへ分けている。
-それぞれのゴールは定義どおりの等式なので、手元の証拠として\texttt{rfl}を\texttt{exact}に渡して閉じている。
+このコードでは、ゴールが二つの条件の組であるため、\texttt{constructor}で左右のゴールへ分けています。
+それぞれのゴールは定義どおりの等式であるため、手元の証拠として\texttt{rfl}を\texttt{exact}に渡して閉じています。
 
 \subsection{\texttt{exact}：手元の証拠でゴールを閉じる}
 
 \begin{definitionbox}
-\texttt{exact} は、現在のゴールにぴったり合う証拠を渡して証明を閉じるタクティクである。
+\texttt{exact} は、現在のゴールに一致する証拠を渡して証明を閉じるタクティクです。
 \end{definitionbox}
 
 \begin{listing}[htbp]
@@ -382,13 +412,13 @@ theorem use_existing_evidence
 \label{lst:appA_exact}
 \end{listing}
 
-このコードでは、仮定\texttt{hp : P}がそのままゴール\texttt{P}の証拠になっている。
-\texttt{exact hp}は、新しい証明を作るのではなく、すでに手元にある証拠を提出する読み方をする。
+このコードでは、仮定\texttt{hp : P}が、そのままゴール\texttt{P}の証拠になっています。
+\texttt{exact hp}は、新しい証明を作るのではなく、すでに手元にある証拠を提出するものとして読みます。
 
 \subsection{\texttt{apply}：使いたい定理にゴールを合わせる}
 
 \begin{definitionbox}
-\texttt{apply} は、現在のゴールを、使いたい定理や仮定の前提へ変換するタクティクである。
+\texttt{apply} は、現在のゴールを、使いたい定理や仮定の前提へ変換するタクティクです。
 \end{definitionbox}
 
 \begin{listing}[htbp]
@@ -404,28 +434,33 @@ theorem use_implication
 \label{lst:appA_apply}
 \end{listing}
 
-\texttt{apply h} は、「\texttt{Q} を示すには \texttt{h : P -> Q} が使えるので、残る前提 \texttt{P} を示せばよい」とゴールを変える。\texttt{exact} が完成済みの証拠を渡すのに対し、\texttt{apply} は使う証明の形を先に決める。
+\texttt{apply h} は、「\texttt{Q} を示すには \texttt{h : P -> Q} が使えるため、残る前提 \texttt{P} を示せばよい」という形へゴールを変えます。
+\texttt{exact} が完成済みの証拠を渡すのに対し、\texttt{apply} は使う証明の形を先に決めます。
 
 \section{よくある読み方ミス}
 
 \begin{warningbox}
 \textbf{\texttt{Bool} と \texttt{Prop} を混同しない。}
-\texttt{Bool} は計算される真偽値であり、\texttt{Prop} は証明対象となる命題である。仕様として「すべての場合に成り立つ」と言いたいときは、たいてい \texttt{Prop} 側で書く。
+\texttt{Bool} は計算される真偽値であり、\texttt{Prop} は証明対象となる命題です。
+仕様として「すべての場合に成り立つ」と述べる場合は、通常 \texttt{Prop} 側で書きます。
 \end{warningbox}
 
 \begin{warningbox}
 \textbf{\texttt{simp} を魔法だと思わない。}
-\texttt{simp} は既知の単純化規則で整理する道具である。モデルが曖昧なままでも仕様を発見してくれるわけではない。
+\texttt{simp} は、既知の単純化規則を使って整理する道具です。
+モデルが曖昧なままでも仕様を発見するわけではありません。
 \end{warningbox}
 
 \begin{warningbox}
 \textbf{\texttt{rw} の向きに注意する。}
-\texttt{rw [h]} で進まないとき、等式の向きが逆かもしれない。その場合は \texttt{rw [← h]} を検討する。
+\texttt{rw [h]} で進まないときは、等式の向きが逆かもしれません。
+その場合は、\texttt{rw [← h]} を検討します。
 \end{warningbox}
 
 \begin{warningbox}
 \textbf{\texttt{cases} と \texttt{induction} を混同しない。}
-\texttt{cases} は値の現在の形を分ける。\texttt{induction} は再帰的データについて、より小さい場合の仮定を使って全体を示す。
+\texttt{cases} は、値の現在の形を分けます。
+\texttt{induction} は、再帰的データについて、より小さい場合の仮定を使って全体を示します。
 \end{warningbox}
 
 \section{最小コマンド一覧}
@@ -439,27 +474,33 @@ theorem use_implication
 \normalfont コマンド & \normalfont 読み方 & \normalfont 典型的な使い所 \\
 \midrule
 \endhead
-\#eval & 評価して確認する & 小さな入力で関数の動きを見る。証明ではない。 \\
-def & 定義する & 値、関数、変換、仕様モデル上の処理に名前を付ける。 \\
-structure & フィールドを持つ型を作る & DTO、設定、ドメインモデル、スキーマ移行の対象を表す。 \\
-inductive & 値の形を列挙する & 成功・失敗、左右分岐、再帰的データ構造を表す。 \\
-example & 名前なしの命題を書く & 小さな証明例、局所的な確認を書く。 \\
-theorem & 名前付きの命題を書く & 仕様、同値性、不変条件保存、round-trip を再利用可能に書く。 \\
-by & 証明を開始する & 命題の後で、証明手順を書く。 \\
-rfl & 定義どおりに閉じる & 両辺が定義展開で同じ形になる等式を証明する。 \\
-simp & 単純化する & 明らかな整理、空リスト、不要な計算、既知の簡約を処理する。 \\
-rw & 書き換える & 既知の等式で、式を仕様上の期待形へ近づける。 \\
-calc & 段階的に変形する & リファクタリングや計算式の意味保存をレビュー可能に書く。 \\
-cases & 場合分けする & \texttt{Option}、\texttt{Bool}、\texttt{Sum}、自作分岐型を漏れなく分解する。 \\
-induction & 帰納法を使う & リスト、木、自然数など、任意の大きさのデータについて証明する。 \\
-constructor & 部品に分けて作る & 論理積や構造体のゴールを、必要な部品ごとに分解する。 \\
-exact & 証拠をそのまま渡す & ゴールと一致する仮定や証明を使って閉じる。 \\
-apply & 定理を適用する & ゴールを、使いたい定理の前提へ変換する。 \\
+\#eval & 評価して確認します & 小さな入力で関数の動きを確認しますが、証明ではありません。 \\
+def & 定義します & 値、関数、変換、仕様モデル上の処理に名前を付けます。 \\
+structure & フィールドを持つ型を作ります & DTO、設定、ドメインモデル、スキーマ移行の対象を表します。 \\
+inductive & 値の形を列挙します & 成功と失敗、左右の分岐、再帰的データ構造を表します。 \\
+example & 名前のない命題を書きます & 小さな証明例や局所的な確認を書きます。 \\
+theorem & 名前付きの命題を書きます & 仕様、同値性、不変条件の保存、round-trip を再利用可能な形で書きます。 \\
+by & 証明を開始します & 命題の後に、証明手順を書きます。 \\
+rfl & 定義どおりに閉じます & 両辺が定義展開によって同じ形になる等式を証明します。 \\
+simp & 単純化します & 明らかな整理、空リスト、不要な計算、既知の簡約を処理します。 \\
+rw & 書き換えます & 既知の等式により、式を仕様上の期待形へ近付けます。 \\
+calc & 段階的に変形します & リファクタリングや計算式の意味保存をレビュー可能な形で書きます。 \\
+cases & 場合分けします & \texttt{Option}、\texttt{Bool}、\texttt{Sum}、自作の分岐型を漏れなく分解します。 \\
+induction & 帰納法を使います & リスト、木、自然数など、任意の大きさのデータについて証明します。 \\
+constructor & 部品に分けて作ります & 論理積や構造体のゴールを、必要な部品ごとに分解します。 \\
+exact & 証拠をそのまま渡します & ゴールと一致する仮定や証明を使って閉じます。 \\
+apply & 定理を適用します & ゴールを、使いたい定理の前提へ変換します。 \\
 \bottomrule
 \end{longtable}
 
 \section{本付録のまとめ}
 
-Lean 4 の最小語彙は、四つの役割に分けて読むと整理しやすい。\texttt{def}、\texttt{structure}、\texttt{inductive} はモデルを作る語彙である。\texttt{example}、\texttt{theorem}、\texttt{by} は仕様を主張して証明を始める語彙である。\texttt{rfl}、\texttt{simp}、\texttt{rw}、\texttt{calc} は等式を扱う語彙である。\texttt{cases} と \texttt{induction} は、分岐や任意長のデータを漏れなく扱う語彙である。最後に、\texttt{constructor}、\texttt{exact}、\texttt{apply} は、証明を小さな部品から組み立てる語彙である。
+Lean 4 の最小語彙は、役割に分けて読むと整理しやすくなります。
+\texttt{def}、\texttt{structure}、\texttt{inductive} は、モデルを作るための語彙です。
+\texttt{example}、\texttt{theorem}、\texttt{by} は、仕様を主張して証明を始めるための語彙です。
+\texttt{rfl}、\texttt{simp}、\texttt{rw}、\texttt{calc} は、等式を扱うための語彙です。
+\texttt{cases} と \texttt{induction} は、分岐や任意長のデータを漏れなく扱うための語彙です。
+最後に、\texttt{constructor}、\texttt{exact}、\texttt{apply} は、証明を小さな部品から組み立てるための語彙です。
 
-本書の本文では、これらを組み合わせて、リファクタリング前後の意味保存、データ移行の round-trip、不変条件の保存、API adapter の一貫性を表す。分からない構文に出会ったら、まずこの一覧に戻り、その構文が「モデルを書く」「仕様を書く」「等式を閉じる」「ケースを分ける」のどれに当たるかを確認するとよい。
+本書の本文では、これらを組み合わせて、リファクタリング前後の意味保存、データ移行の round-trip、不変条件の保存、API adapter の一貫性を表します。
+分からない構文に出会ったら、まずこの一覧に戻り、その構文が「モデルを書く」「仕様を書く」「等式を閉じる」「ケースを分ける」のどれに当たるかを確認するとよいでしょう。

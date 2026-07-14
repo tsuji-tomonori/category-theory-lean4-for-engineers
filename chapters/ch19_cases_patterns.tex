@@ -3,38 +3,45 @@
 \label{chap:cases-patterns}
 
 \begin{chapterabstract}
-本章では、\texttt{Bool}、\texttt{Option}、\texttt{Sum}、そして小さなバリデーション結果型を題材に、Lean 4 の \texttt{cases} による場合分けを学ぶ。目的は、成功ケースだけを証明することではない。値が取りうるすべての形を分解し、失敗ケース、エラーケース、例外的な分岐を仕様から漏らさないことである。通常のテストでは代表例を選ぶが、Lean の場合分け証明では、型が持つ全コンストラクタを順に処理する。
+本章では、\texttt{Bool}、\texttt{Option}、\texttt{Sum}、小さなバリデーション結果型を題材に、Lean 4 の \texttt{cases} による場合分けを学びます。
+目的は、成功ケースだけを証明することではありません。
+値が取りうるすべての形を分解し、失敗ケース、エラーケース、例外的な分岐を仕様から漏らさないことが目的です。
+通常のテストでは代表例を選びますが、Lean の場合分け証明では、型が持つ全コンストラクタを順に処理します。
 \end{chapterabstract}
 
 \begin{learninggoals}
-\item \texttt{Bool}、\texttt{Option}、\texttt{Sum} の値をケースごとに読むことができる。
-\item \texttt{cases} が証明ゴールをどのように分解するかを説明できる。
-\item 成功ケースと失敗ケースを分け、各ケースの事後条件を Lean で証明できる。
-\item バリデーション結果のような業務上の分岐型を、漏れのない仕様確認に使える。
+\item \texttt{Bool}、\texttt{Option}、\texttt{Sum} の値をケースごとに読めます。
+\item \texttt{cases} が証明ゴールをどのように分解するかを説明できます。
+\item 成功ケースと失敗ケースを分け、各ケースの事後条件を Lean で証明できます。
+\item バリデーション結果のような業務上の分岐型を、漏れのない仕様確認に使えます。
 \end{learninggoals}
 
 \section{この章を読む理由}
 
-ソフトウェアのバグは、計算式そのものよりも、分岐の扱いに潜むことが多い。正常系だけを考えれば正しい。けれども、入力が空だったらどうなるか。認証に失敗したらどうなるか。API がエラーを返したらどうなるか。データが存在しないとき、古い形式の値が来たとき、想定外に見えるが型としては許される値が来たとき、仕様はどう振る舞うべきか。
+ソフトウェアのバグは、計算式そのものよりも、分岐の扱いに潜むことがよくあります。
+正常系だけを考えれば正しく見えても、入力が空の場合、認証に失敗した場合、API がエラーを返した場合などを考える必要があります。
+データが存在しないとき、古い形式の値が来たとき、想定外に見えても型としては許される値が来たときに、仕様がどう振る舞うべきかを決めなければなりません。
 
-テストでは、このような分岐に対して代表的な例をいくつか選ぶ。これは実務上とても重要である。しかし、代表例を選ぶということは、選ばなかったケースが残るということでもある。Lean の \texttt{cases} は、この残りやすい部分を型から機械的に引き出す。
+テストでは、このような分岐に対して代表的な例をいくつか選びます。
+これは実務上重要ですが、選ばなかったケースは残ります。
+Lean の \texttt{cases} は、この残りやすい部分を型から機械的に引き出します。
 
-図\ref{fig:ch19-cases-overview}は、帰納型の値をコンストラクタごとのゴールへ分ける流れを示す。
-各コンストラクタの引数は任意のまま残るため、有限個の具体値を試すテストとは異なる。
+図\ref{fig:ch19-cases-overview}は、帰納型の値をコンストラクタごとのゴールへ分ける流れを示します。
+各コンストラクタの引数は任意のまま残るため、有限個の具体値を試すテストとは異なります。
 
 \FigurePlaceholder{fig-ch19-cases-overview.png}{0.90}{\texttt{cases} による分解}{fig:ch19-cases-overview}
 
 \section{ソフトウェア上の問題：成功ケースだけでは仕様にならない}
 
-次のような入力バリデーションを考える。
+次のような入力バリデーションを考えます。
 
 \begin{itemize}
-\item 名前が入力されていれば次へ進む。
-\item 名前がなければエラーを返す。
-\item 年齢が条件を満たさなければ別のエラーを返す。
+\item 名前が入力されていれば次へ進みます。
+\item 名前がなければエラーを返します。
+\item 年齢が条件を満たさなければ別のエラーを返します。
 \end{itemize}
 
-自然言語では簡単に書ける。しかし、この仕様を実装するときには、少なくとも三つの結果を区別する必要がある。
+自然言語では簡単に書けますが、この仕様を実装するときには、少なくとも三つの結果を区別する必要があります。
 
 \begin{center}
 \begin{tabular}{p{0.22\linewidth}p{0.30\linewidth}p{0.36\linewidth}}
@@ -48,33 +55,40 @@
 \end{tabular}
 \end{center}
 
-成功ケースだけを証明しても、バリデーション全体の仕様を証明したことにはならない。エラーケースについても、「どのように失敗するか」「失敗したときに何を返さないか」を明示する必要がある。
+成功ケースだけを証明しても、バリデーション全体の仕様を証明したことにはなりません。
+エラーケースについても、「どのように失敗するか」「失敗したときに何を返さないか」を明示する必要があります。
 
 \section{場合分けとは何か}
 
-場合分けとは、ある値が取りうる形を一つずつ分けて考えることである。Lean では、値の形は型によって決まる。
+場合分けとは、ある値が取りうる形を一つずつ分けて考えることです。
+Lean では、値の形が型によって決まります。
 
 \begin{definitionbox}
-本章では、次のように読む。
+本章では、次のように読みます。
 \begin{itemize}
-\item \texttt{Bool} は \texttt{true} または \texttt{false} の二通りを持つ型である。
-\item \texttt{Option A} は \texttt{some a} または \texttt{none} の二通りを持つ型である。
-\item \texttt{Sum A B} は \texttt{Sum.inl a} または \texttt{Sum.inr b} の二通りを持つ型である。
+\item \texttt{Bool} は、\texttt{true} または \texttt{false} の二通りを持つ型です。
+\item \texttt{Option A} は、\texttt{some a} または \texttt{none} の二通りを持つ型です。
+\item \texttt{Sum A B} は、\texttt{Sum.inl a} または \texttt{Sum.inr b} の二通りを持つ型です。
 \end{itemize}
-これらの各形を分けて証明する操作が、Lean における \texttt{cases} の基本的な使い方である。
+これらの各形を分けて証明する操作が、Lean における \texttt{cases} の基本的な使い方です。
 \end{definitionbox}
 
-ここで重要なのは、「値の個数」と「値の形」を区別することである。\texttt{Option Nat} の値は無限にある。\texttt{some 0}、\texttt{some 1}、\texttt{some 2}、\ldots{} と続くからである。しかし形としては \texttt{none} と \texttt{some n} の二通りである。\texttt{cases} は、この形を分解する。
+ここでは、「値の個数」と「値の形」を区別します。
+\texttt{Option Nat} には、\texttt{some 0}、\texttt{some 1}、\texttt{some 2}、\ldots{} と無限に多くの値があります。
+しかし、形としては \texttt{none} と \texttt{some n} の二通りです。
+\texttt{cases} は、この形を分解します。
 
 \subsection{圏論側の読み替え：余積から出る処理}
 
-\texttt{Sum A B} は、第13章で扱った余積のプログラミング上の姿である。余積から別の型 \(C\) へ処理を作るには、\texttt{A} 側をどう処理するか、\texttt{B} 側をどう処理するかを両方決める必要がある。
+\texttt{Sum A B} は、第13章で扱った余積のプログラミング上の姿です。
+余積から別の型 \(C\) へ処理を作るには、\texttt{A} 側と \texttt{B} 側をどう処理するか、両方を決める必要があります。
 
-この見方をソフトウェアに戻すと、\texttt{Either Error Value} や \texttt{Result Error Value} を扱う関数は、エラー側と成功側の両方を処理して初めて全体の処理になる、ということである。
+この見方をソフトウェアに戻すと、\texttt{Either Error Value} や \texttt{Result Error Value} を扱う関数は、エラー側と成功側の両方を処理して初めて全体の処理になります。
 
 \section{\texttt{Bool}、\texttt{Option}、\texttt{Sum} の場合分け}
 
-まずは三つの基本的な分岐型を小さく扱う。次のコードでは、値を数値コードに変換し、その結果がどのケースに対応するかを証明している。
+まず、三つの基本的な分岐型を小さく扱います。
+次のコードでは、値を数値コードに変換し、その結果がどのケースに対応するかを証明しています。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -111,21 +125,26 @@ theorem optionCode_all (x : Option Nat) :
 \end{listing}
 
 \begin{syntaxbox}
-\texttt{∃} は存在量化を表す記号である。
+\texttt{∃} は、存在量化を表す記号です。
 \begin{itemize}
-\item \texttt{∃ x, P x} は「ある \texttt{x} が存在して、\texttt{P x} が成り立つ」と読む。
-\item 証明するときは、実際の値と、その値で条件が成り立つ証明を渡す。
-\item \(\langle a, b\rangle\) は、存在証明や複数条件の証明をまとめて渡す匿名コンストラクタである。Lean のコードでは山括弧の記法で表示される。
-\item 全称量化 \texttt{∀} が「すべて」、存在量化 \texttt{∃} が「少なくとも一つ」に対応する。
+\item \texttt{∃ x, P x} は、「ある \texttt{x} が存在して、\texttt{P x} が成り立ちます」と読みます。
+\item 証明するときは、実際の値と、その値で条件が成り立つ証明を渡します。
+\item \(\langle a, b\rangle\) は、存在証明や複数条件の証明をまとめて渡す匿名コンストラクタです。
+Lean のコードでは山括弧の記法で表示されます。
+\item 全称量化 \texttt{∀} が「すべて」、存在量化 \texttt{∃} が「少なくとも一つ」に対応します。
 \end{itemize}
 \end{syntaxbox}
 
 
-この証明では、\texttt{Bool} の二通り、\texttt{Option Nat} の二通りを Lean に出させている。\texttt{Option Nat} の \texttt{some n} ケースでは、\texttt{n} は任意の自然数である。つまり、\texttt{some 0} だけを確認しているわけではない。
+この証明では、\texttt{Bool} と \texttt{Option Nat} の二通りの形を Lean に出させています。
+\texttt{Option Nat} の \texttt{some n} ケースでは、\texttt{n} は任意の自然数です。
+つまり、\texttt{some 0} だけを確認しているわけではありません。
 
 \subsection{\texttt{Sum} の左右を分ける}
 
-\texttt{Sum Nat Nat} は、左右どちらにも自然数を持てる型である。同じ \texttt{Nat} を持っていても、左から来た値と右から来た値は区別される。APIレスポンスで言えば、同じ数値でも「成功値」と「エラーコード」では意味が違う、という状況に近い。
+\texttt{Sum Nat Nat} は、左右のどちらにも自然数を持てる型です。
+同じ \texttt{Nat} を持っていても、左から来た値と右から来た値は区別されます。
+APIレスポンスで言えば、同じ数値でも「成功値」と「エラーコード」では意味が異なる、という状況に近い例です。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -149,57 +168,66 @@ theorem sumTag_is_left_or_right (x : Sum Nat Nat) :
 \label{lst:ch19-sum-cases}
 \end{listing}
 
-この例では、\texttt{sumTag} が左側なら \texttt{0}、右側なら \texttt{1} を返すことを示している。\texttt{cases} によって、左側を処理する証明と右側を処理する証明に分かれる。
+この例では、\texttt{sumTag} が左側なら \texttt{0}、右側なら \texttt{1} を返すことを示しています。
+\texttt{cases} によって、左側を処理する証明と右側を処理する証明に分かれます。
 
 \section{\texttt{cases} による仕様の分解}
 
-\texttt{cases} を使うと、証明ゴールが現在の値の形に合わせて具体化される。抽象的な \texttt{x : Option Nat} を相手にしているときは、\texttt{x} が \texttt{none} なのか \texttt{some n} なのか分からない。しかし \texttt{cases x} の後は、それぞれの枝で \texttt{x} の形が固定される。
+\texttt{cases} を使うと、証明ゴールが現在の値の形に合わせて具体化されます。
+抽象的な \texttt{x : Option Nat} を扱っている段階では、\texttt{x} が \texttt{none} か \texttt{some n} か分かりません。
+しかし、\texttt{cases x} の後は、それぞれの枝で \texttt{x} の形が固定されます。
 
 \begin{definitionbox}
-\texttt{cases} は、帰納型の値をコンストラクタごとに分解するタクティクである。本章では、帰納型を「いくつかの作り方を持つ型」と考える。\texttt{Bool} には \texttt{false} と \texttt{true} という作り方があり、\texttt{Option A} には \texttt{none} と \texttt{some} という作り方がある。
+\texttt{cases} は、帰納型の値をコンストラクタごとに分解するタクティクです。
+本章では、帰納型を「いくつかの作り方を持つ型」と考えます。
+\texttt{Bool} には \texttt{false} と \texttt{true} という作り方があり、\texttt{Option A} には \texttt{none} と \texttt{some} という作り方があります。
 \end{definitionbox}
 
 \subsection{\texttt{match} と \texttt{cases} の違い}
 
-\texttt{match} も \texttt{cases} も、帰納型の除去原理に基づいて値の形を分ける。
-\texttt{match} は値や証明を直接組み立てる項の構文であり、\texttt{cases} は証明状態をコンストラクタごとのゴールへ分けるタクティクである。
+\texttt{match} も \texttt{cases} も、帰納型の除去原理に基づいて値の形を分けます。
+\texttt{match} は値や証明を直接組み立てる項の構文であり、\texttt{cases} は証明状態をコンストラクタごとのゴールへ分けるタクティクです。
 
 \begin{center}
 \begin{tabular}{p{0.20\linewidth}p{0.34\linewidth}p{0.34\linewidth}}
 \toprule
 道具 & 使う場所 & 目的 \\
 \midrule
-\texttt{match} & 項・関数・証明の定義 & 入力の形に応じた項を直接書く \\
-\texttt{cases} & タクティク証明 & 値の形に応じて証明ゴールを分解する \\
+\texttt{match} & 項・関数・証明の定義 & 入力の形に応じた項を直接書きます。 \\
+\texttt{cases} & タクティク証明 & 値の形に応じて証明ゴールを分解します。 \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-実装では \texttt{match}、対話的な証明では \texttt{cases} が典型的だが、両者を「プログラム専用」「証明専用」と分けるのは正確ではない。
+実装では \texttt{match}、対話的な証明では \texttt{cases} を使うのが典型的です。
+ただし、両者を「プログラム専用」「証明専用」と分けるのは正確ではありません。
 
 \section{エラーケースを証明から漏らさない}
 
-エラー処理では、成功したときの値だけでなく、失敗したときに何が起きないかも重要である。たとえば、バリデーションに失敗した結果からユーザーIDを取り出せてしまうなら、後続処理は不正な値を使ってしまうかもしれない。
+エラー処理では、成功したときの値だけでなく、失敗したときに何が起きないかも重要です。
+たとえば、バリデーションに失敗した結果からユーザーIDを取り出せてしまうなら、後続処理が不正な値を使うかもしれません。
 
 \begin{warningbox}
-「エラーを返す」と自然言語で書くだけでは、仕様としては弱い。エラーの種類、成功値を返さないこと、後続処理に渡してよい情報と渡してはいけない情報を分ける必要がある。
+「エラーを返します」と自然言語で書くだけでは、仕様として不十分です。
+エラーの種類、成功値を返さないこと、後続処理に渡してよい情報と渡してはいけない情報を分ける必要があります。
 \end{warningbox}
 
-次のミニケースでは、入力バリデーションの結果を三つに分ける。
+次のミニケースでは、入力バリデーションの結果を三つに分けます。
 
 \begin{itemize}
-\item \texttt{ok userId}: 成功し、ユーザーIDを返す。
-\item \texttt{missingName}: 名前がない。
-\item \texttt{ageTooLow}: 年齢が条件を満たさない。
+\item \texttt{ok userId}: 成功し、ユーザーIDを返します。
+\item \texttt{missingName}: 名前がありません。
+\item \texttt{ageTooLow}: 年齢が条件を満たしません。
 \end{itemize}
 
-図\ref{fig:ch19-validation-postcondition}では、成功・名前欠損・年齢不正の各コンストラクタに対応する事後条件を別々に確認する。
+図\ref{fig:ch19-validation-postcondition}では、成功、名前欠損、年齢不正の各コンストラクタに対応する事後条件を別々に確認します。
 
 \FigurePlaceholder{fig-ch19-validation-postcondition.png}{0.90}{バリデーションの分岐}{fig:ch19-validation-postcondition}
 
 \section{ミニケース：バリデーション結果ごとの事後条件}
 
-まず、入力とバリデーション結果を小さく定義する。ここでは実務の入力フォーム全体を表すのではなく、証明したい性質に必要なフィールドだけを持たせる。
+まず、入力とバリデーション結果を小さく定義します。
+ここでは実務の入力フォーム全体を表さず、証明したい性質に必要なフィールドだけを持たせます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -232,13 +260,17 @@ def userIdOpt (r : ValidationResult) : Option Nat :=
 \label{lst:ch19-validation-types}
 \end{listing}
 
-このコードでは、\texttt{namePresent} が \texttt{false} なら名前なしエラーになる。\texttt{namePresent} が \texttt{true} でも、\texttt{age} が \texttt{0} なら年齢エラーになる。それ以外では、年齢の値をここでは簡易的にユーザーIDの代わりとして返す。
+このコードでは、\texttt{namePresent} が \texttt{false} なら名前なしエラーになります。
+\texttt{namePresent} が \texttt{true} でも、\texttt{age} が \texttt{0} なら年齢エラーになります。
+それ以外では、年齢の値を簡易的にユーザーIDの代わりとして返します。
 
-もちろん、現実のシステムではユーザーIDを年齢から作ることはない。ここでは、証明の構造を見やすくするために、ドメインモデルを極端に小さくしている。
+現実のシステムで、ユーザーIDを年齢から作ることはありません。
+ここでは、証明の構造を見やすくするために、ドメインモデルを極端に小さくしています。
 
 \subsection{事後条件を結果型ごとに定義する}
 
-次に、バリデーション結果が満たすべき事後条件を定義する。成功ケースでは \texttt{userIdOpt} が \texttt{some userId} を返す。エラーケースでは \texttt{none} を返す。
+次に、バリデーション結果が満たすべき事後条件を定義します。
+成功ケースでは \texttt{userIdOpt} が \texttt{some userId} を返し、エラーケースでは \texttt{none} を返します。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -265,14 +297,15 @@ theorem postcondition_all (r : ValidationResult) :
 \label{lst:ch19-postcondition}
 \end{listing}
 
-この証明は、\texttt{ValidationResult} の各コンストラクタと \texttt{userIdOpt} の符号化が整合することを示す。
-\texttt{postcondition} と \texttt{userIdOpt} が同じ場合分けを使うため、各枝は定義を展開すると \texttt{rfl} で閉じる。
-ただし、この定理だけでは \texttt{validate} が入力に対して正しい結果を選ぶことまでは示さない。
-その対応は、次の三つの補題と \texttt{validate\_result\_post} で入力側も分解して確認する。
+この証明は、\texttt{ValidationResult} の各コンストラクタと \texttt{userIdOpt} の符号化が整合することを示します。
+\texttt{postcondition} と \texttt{userIdOpt} が同じ場合分けを使うため、各枝は定義を展開すると \texttt{rfl} で閉じます。
+ただし、この定理だけでは、\texttt{validate} が入力に対して正しい結果を選ぶことまでは示しません。
+その対応は、次の三つの補題と \texttt{validate\_result\_post} で、入力側も分解して確認します。
 
 \subsection{入力側の全パターンも分解する}
 
-結果型についての証明だけでなく、入力からバリデーション結果を作る関数についても、全パターンを確認できる。\texttt{namePresent} は \texttt{false} または \texttt{true} であり、\texttt{age} は \texttt{0} または \texttt{Nat.succ n} である。
+結果型についての証明だけでなく、入力からバリデーション結果を作る関数についても、全パターンを確認できます。
+\texttt{namePresent} は \texttt{false} または \texttt{true} であり、\texttt{age} は \texttt{0} または \texttt{Nat.succ n} です。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -306,11 +339,12 @@ theorem validate_result_post (input : SignupInput) :
 \label{lst:ch19-validate-result-post}
 \end{listing}
 
-最後の定理では、まず構造体 \texttt{SignupInput} を分解し、次に \texttt{namePresent} を分解し、さらに必要な枝で \texttt{age} を分解している。これにより、入力が取りうる形に対応して、結果の事後条件がすべて確認される。
+最後の定理では、まず構造体 \texttt{SignupInput} を分解し、次に \texttt{namePresent} を分解し、さらに必要な枝で \texttt{age} を分解しています。
+これにより、入力が取りうる形に対応して、結果の事後条件がすべて確認されます。
 
 \section{証明をレビュー可能な分岐表として読む}
 
-\texttt{validate\_result\_post} の証明は、次のような分岐表として読める。
+\texttt{validate\_result\_post} の証明は、次のような分岐表として読めます。
 
 \begin{center}
 \begin{tabular}{p{0.20\linewidth}p{0.20\linewidth}p{0.28\linewidth}p{0.20\linewidth}}
@@ -324,46 +358,56 @@ theorem validate_result_post (input : SignupInput) :
 \end{tabular}
 \end{center}
 
-この表の各行が、Lean の証明内の各枝に対応している。コードレビューでは、このような表を仕様書側に置き、Lean の定理名を対応させると読みやすい。
+この表の各行が、Lean の証明内の各枝に対応しています。
+コードレビューでは、このような表を仕様書側に置き、Lean の定理名を対応させると読みやすくなります。
 
 \section{よくある誤解}
 
 \subsection{誤解1：\texttt{cases} はテストケースを増やす機能である}
 
-\texttt{cases} はテストケース生成ではない。具体的な入力例を増やすのではなく、型のコンストラクタに沿って証明を分解する。\texttt{Option Nat} の \texttt{some n} ケースは、特定の一つの数値ではなく、任意の \texttt{n} を代表している。
+\texttt{cases} は、テストケース生成ではありません。
+具体的な入力例を増やすのではなく、型のコンストラクタに沿って証明を分解します。
+\texttt{Option Nat} の \texttt{some n} ケースは、特定の一つの数値ではなく、任意の \texttt{n} を代表しています。
 
 \subsection{誤解2：分岐が多いほど証明は常に良い}
 
-場合分けは強力だが、無計画に細かく分けると証明が読みにくくなる。まずは仕様上意味のある分岐を見つけるべきである。たとえば、エラー種別が業務上区別されるなら分ける価値がある。内部実装上だけの細かな枝は、補助関数の中に閉じ込めたほうがよいこともある。
+場合分けは強力ですが、無計画に細かく分けると証明が読みにくくなります。
+まず、仕様上意味のある分岐を見つけます。
+たとえば、エラー種別が業務上区別されるなら、分ける価値があります。
+内部実装上だけの細かな枝は、補助関数の中に閉じ込めたほうがよい場合もあります。
 
 \subsection{誤解3：成功ケースの証明だけで十分である}
 
-バリデーションやAPIレスポンスでは、失敗ケースが仕様の中心になることも多い。成功ケースだけが正しいプログラムは、実務では安全とは言えない。失敗時に成功値を返さないこと、状態を更新しないこと、後続処理へ渡す値がないことも、証明すべき性質になる。
+バリデーションやAPIレスポンスでは、失敗ケースが仕様の中心になることも多くあります。
+成功ケースだけが正しいプログラムを、実務で安全だとは言えません。
+失敗時に成功値を返さないこと、状態を更新しないこと、後続処理へ渡す値がないことも、証明すべき性質になります。
 
 \section{実務への読み替え}
 
-本章の考え方は、次のような場面に対応する。
+本章の考え方は、次のような場面に対応します。
 
 \begin{itemize}
-\item 入力バリデーションで、各エラー種別に対応する事後条件を確認する。
-\item APIレスポンスで、成功、認証エラー、入力エラー、サーバーエラーを分けて扱う。
-\item DB更新処理で、成功時と失敗時の状態変化を分けて証明する。
-\item マイグレーションで、変換成功、変換不能、情報不足を分けて仕様を明示する。
+\item 入力バリデーションで、各エラー種別に対応する事後条件を確認します。
+\item APIレスポンスで、成功、認証エラー、入力エラー、サーバーエラーを分けて扱います。
+\item DB更新処理で、成功時と失敗時の状態変化を分けて証明します。
+\item マイグレーションで、変換成功、変換不能、情報不足を分けて仕様を明示します。
 \end{itemize}
 
-大事なのは、業務仕様の分岐を型に反映することである。型に反映された分岐は、Lean が \texttt{cases} で取り出せる。逆に、すべてを \texttt{String} や \texttt{Nat} のコード値で表してしまうと、Lean は業務上の分岐を自動的には認識できない。
+業務仕様の分岐を型に反映することが重要です。
+型に反映された分岐は、Lean が \texttt{cases} で取り出せます。
+逆に、すべてを \texttt{String} や \texttt{Nat} のコード値で表すと、Lean は業務上の分岐を自動的には認識できません。
 
-レビューで区別しているケースを \texttt{inductive}、\texttt{Sum}、\texttt{Option} として明示すると、コンストラクタ単位で証明できる。
-ただし、各コンストラクタ内の値について必要な性質は、別の等式や述語として与える必要がある。
+レビューで区別しているケースを \texttt{inductive}、\texttt{Sum}、\texttt{Option} として明示すると、コンストラクタ単位で証明できます。
+ただし、各コンストラクタ内の値について必要な性質は、別の等式や述語として与える必要があります。
 
 \section{本章のまとめ}
 
-\texttt{cases} は、値が取りうる形をコンストラクタごとに分解する証明道具である。
+\texttt{cases} は、値が取りうる形をコンストラクタごとに分解する証明道具です。
 
-\texttt{Bool}、\texttt{Option}、\texttt{Sum} は、場合分け証明を学ぶための基本的な型である。
+\texttt{Bool}、\texttt{Option}、\texttt{Sum} は、場合分け証明を学ぶための基本的な型です。
 
-\texttt{match} は実装上の分岐、\texttt{cases} は証明上の分岐として読める。
+\texttt{match} は実装上の分岐、\texttt{cases} は証明上の分岐として読めます。
 
-エラーケースも仕様の一部であり、成功値を返さないことを事後条件として表せる。
+エラーケースも仕様の一部であり、成功値を返さないことを事後条件として表せます。
 
-バリデーション結果を型として定義すると、全ケースを Lean に分解させて証明できる。
+バリデーション結果を型として定義すると、全ケースを Lean に分解させて証明できます。

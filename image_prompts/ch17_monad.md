@@ -65,7 +65,7 @@
 - 対応箇所: 第17章 17.5節「サンプル：失敗するマイグレーションを安全に合成する」
 - 目的: 欠損を含む旧ユーザーデータが、`requireEmail` と `requireAge` を通って、成功または失敗へ分岐する流れを示す。
 - 画像生成プロンプト:
-  日本語の技術書に入れる白背景のフラットなベクター図。左に「UserDraft」を置き、その右に「requireEmail : UserDraft -> Option UserWithEmail」、さらに右に「requireAge : UserWithEmail -> Option UserV2」をパイプラインとして並べる。各ステップの下に失敗分岐を描き、メール欠損なら「none」、年齢欠損なら「none」へ落ちるようにする。成功ルートは最右の「some UserV2」へ到達する。上部に `bind` が各段階をつないでいることを示す細い矢印を置く。
+  日本語の技術書に入れる16:9横長、白背景のフラットなベクター図。成功ルートを左から「UserDraft」「requireEmail」「UserWithEmail」「requireAge」「some UserV2」の順に矢印でつなぐ。「requireEmail」の下に「UserDraft → Option UserWithEmail」、「requireAge」の下に「UserWithEmail → Option UserV2」と小さく置く。各処理から下向きの失敗分岐を描き、前者は「メール欠損 → none」、後者は「年齢欠損 → none」へ到達させる。上部に「bind で成功時だけ次へ」と置く。文字列、特に requireEmail と requireAge は指定どおり正確に描き、章番号、図番号、図タイトルは画像内に入れない。
 - スタイル指定:
   - 日本語技術書向け
   - フラットなベクター図

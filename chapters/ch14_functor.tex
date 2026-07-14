@@ -3,40 +3,41 @@
 \label{chap:ch14_functor}
 
 \begin{chapterabstract}
-本章では、関手を「構造を壊さずに中身の変換を持ち上げる仕組み」として導入する。
-ソフトウェアでは、\texttt{List.map}、\texttt{Option.map}、\texttt{Result.map} のような操作が典型例である。
-これらは、中身の値には関数を適用するが、リストであること、値がないかもしれないこと、エラーを含むかもしれないことは保つ。
-本章の中心は、関手が恒等関数と合成を保存するという二つの法則である。
-この法則により、一件の変換をコレクション全体や失敗可能な値へ安全に持ち上げられる。
+本章では、関手を「構造を壊さずに中身の変換を持ち上げる仕組み」として導入します。
+ソフトウェアでは、\texttt{List.map}、\texttt{Option.map}、\texttt{Result.map} のような操作が典型例です。
+これらの操作は中身の値に関数を適用しますが、リストであること、値がないかもしれないこと、エラーを含むかもしれないことは保ちます。
+本章の中心は、関手が恒等関数と合成を保存するという二つの法則です。
+この法則により、一件の変換をコレクション全体や失敗可能な値へ安全に持ち上げられます。
 \end{chapterabstract}
 
 \begin{learninggoals}
-\item 関手を、型やデータ構造の形を保った一括変換として説明できる。
-\item \texttt{List.map}、\texttt{Option.map}、\texttt{Result.map} を関手的な操作として読める。
-\item 恒等関数の保存と合成の保存を、Lean 4 の小さな証明として書ける。
-\item 一件のマイグレーションをリスト全体へ持ち上げる意味を説明できる。
+\item 関手を、型やデータ構造の形を保った一括変換として説明できます。
+\item \texttt{List.map}、\texttt{Option.map}、\texttt{Result.map} を関手的な操作として読めます。
+\item 恒等関数の保存と合成の保存を、Lean 4 の小さな証明として書けます。
+\item 一件のマイグレーションをリスト全体へ持ち上げる意味を説明できます。
 \end{learninggoals}
 
 \section{この章を読む理由}
 
-実務では、単体の値を変換する関数を書くことよりも、その変換を「まとまった構造」へ広げることの方が多い。
-ユーザーを一件だけ移行する関数を書いたら、次にはユーザー一覧を移行したくなる。
-値が存在する場合だけ変換したいなら、\texttt{Option} の中身にだけ関数を適用したくなる。
-成功時だけ値を変換し、エラーはそのまま残したいなら、\texttt{Result} や \texttt{Except} のような構造を使いたくなる。
+実務では、単体の値を変換する関数を書くだけでなく、その変換を「まとまった構造」へ広げることがよくあります。
+ユーザーを一件だけ移行する関数を書いたら、次にはユーザー一覧を移行します。
+値が存在する場合だけ変換したいなら、\texttt{Option} の中身にだけ関数を適用します。
+成功時だけ値を変換し、エラーはそのまま残したいなら、\texttt{Result} や \texttt{Except} のような構造を使います。
 
-図\ref{fig:ch14-overview}では、関数 \texttt{A -> B} を \texttt{List A -> List B}、\texttt{Option A -> Option B} などへ持ち上げる例を並べる。
+図\ref{fig:ch14-overview}では、関数 \texttt{A -> B} を \texttt{List A -> List B}、\texttt{Option A -> Option B} などへ持ち上げる例を並べます。
 
 \FigurePlaceholder{fig-ch14-overview.png}{0.92}{関数の持ち上げ}{fig:ch14-overview}
 
-この章では、いきなり Mathlib の \texttt{CategoryTheory.Functor} には進まない。
-まず、型と関数の世界で \texttt{map} を観察する。
-そのうえで、関手則を Lean で確認する。
-本格的な一般圏論へ進む前に、\texttt{map} がなぜ安全な設計語彙なのかを掴むことを目標にする。
-「箱の形を保つ」は、ここで扱う \texttt{List}、\texttt{Option}、\texttt{Result} の直感である。一般の関手に必須なのは恒等射と合成の保存であり、要素数、順序、内部表現の保存は、それぞれの具体例について別に証明する性質である。
+この章では、すぐに Mathlib の \texttt{CategoryTheory.Functor} へ進みません。
+まず、型と関数の世界で \texttt{map} を観察し、関手則を Lean で確認します。
+本格的な一般圏論へ進む前に、\texttt{map} が安全な設計語彙になる理由を捉えることが目標です。
+「箱の形を保つ」という表現は、ここで扱う \texttt{List}、\texttt{Option}、\texttt{Result} に対する直感です。
+一般の関手に必須なのは、恒等射と合成の保存です。
+要素数、順序、内部表現の保存は、それぞれの具体例について別に証明する性質です。
 
 \section{ソフトウェア上の問題：一件の変換を全体へ広げたい}
 
-次のような単体変換を考える。
+次のような単体変換を考えます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -50,31 +51,29 @@ def isEven (n : Nat) : Bool :=
 \label{lst:ch14_single_functions}
 \end{listing}
 
-\texttt{addOne} は \texttt{Nat} から \texttt{Nat} への関数である。
-\texttt{isEven} は \texttt{Nat} から \texttt{Bool} への関数である。
-単体の値に対しては、そのまま関数を適用すればよい。
-しかし実務では、入力は単体の値だけではない。
+\texttt{addOne} は \texttt{Nat} から \texttt{Nat} への関数です。
+\texttt{isEven} は \texttt{Nat} から \texttt{Bool} への関数です。
+単体の値には、そのまま関数を適用できます。
+しかし実務では、入力が単体の値だけとは限りません。
 
-\texttt{map} は、この要求に対する標準的な答えである。
-\texttt{List.map addOne} は、\texttt{Nat} のリストを \texttt{Nat} のリストへ変換する。
-\texttt{List.map isEven} は、\texttt{Nat} のリストを \texttt{Bool} のリストへ変換する。
-要素数や順序というリストの形は保たれる。
-変わるのは各要素の中身である。
+\texttt{map} は、この要求に対する標準的な答えです。
+\texttt{List.map addOne} は、\texttt{Nat} のリストを \texttt{Nat} のリストへ変換します。
+\texttt{List.map isEven} は、\texttt{Nat} のリストを \texttt{Bool} のリストへ変換します。
+要素数や順序というリストの形は保たれ、各要素の中身だけが変わります。
 
 \section{関手の直感}
 
-圏論では、関手は二つの対応を持つ。
-一つは対象の対応であり、もう一つは射の対応である。
-型と関数の世界では、対象は型、射は関数として読める。
-そのため、\texttt{List} を例にすると次のようになる。
+圏論の関手は、対象と射に対する二つの対応を持ちます。
+型と関数の世界では、対象を型、射を関数として読めます。
+そのため、\texttt{List} の例は次のように説明できます。
 
 \begin{definitionbox}
-型と関数の世界での \texttt{List} 関手は、次の対応として読める。
+型と関数の世界における \texttt{List} 関手は、次の対応として読めます。
 \begin{itemize}
-\item 型 \texttt{A} を、型 \texttt{List A} へ対応させる。
-\item 関数 \texttt{f : A -> B} を、関数 \texttt{List.map f : List A -> List B} へ対応させる。
+\item 型 \texttt{A} を、型 \texttt{List A} へ対応させます。
+\item 関数 \texttt{f : A -> B} を、関数 \texttt{List.map f : List A -> List B} へ対応させます。
 \end{itemize}
-この対応が、恒等関数と関数合成を保存するとき、関手として振る舞っていると言える。
+この対応が恒等関数と関数合成を保存するとき、関手として振る舞っていると言えます。
 \end{definitionbox}
 
 \begin{center}
@@ -89,41 +88,41 @@ def isEven (n : Nat) : Bool :=
 \end{tabular}
 \end{center}
 
-図\ref{fig:ch14-object-arrow-mapping}では、型を移す対応と、その型の間の関数を移す対応が対になっていることを示す。
+図\ref{fig:ch14-object-arrow-mapping}では、型を移す対応と、その型の間の関数を移す対応が対になっていることを示します。
 
 \FigurePlaceholder{fig-ch14-object-arrow-mapping.png}{0.92}{対象と射の対応}{fig:ch14-object-arrow-mapping}
 
-重要なのは、関手は単なる「便利なループ処理」ではないという点である。
-\texttt{map} は、構造の内側だけを変える。
-そして、内側で何もしないなら外側でも何も起きない。
-また、内側で二段階に変換するなら、外側でも同じ二段階変換として扱える。
-これが次に見る二つの関手則である。
+関手は、単なる「便利なループ処理」ではありません。
+\texttt{map} は、構造の内側だけを変えます。
+内側で何もしなければ、外側でも何も起きません。
+また、内側で二段階に変換するなら、外側でも同じ二段階の変換として扱えます。
+これらが、次に見る二つの関手則です。
 
 \section{関手が保存するもの}
 
-関手は対象と射を写すだけでなく、恒等射と合成を保存する~\cite{leinster-basic-category-theory}。したがって、\texttt{map}という名前の関数があるだけでは関手とは呼ばない。
+関手は対象と射を写すだけでなく、恒等射と合成を保存します~\cite{leinster-basic-category-theory}。
+したがって、\texttt{map}という名前の関数があるだけでは関手とは呼べません。
 
-関手が保存するものは、圏の最小構造である。
-つまり、恒等射と合成である。
-型と関数の世界では、恒等射は恒等関数、合成は関数合成として読める。
+関手が保存するものは、圏の最小構造である恒等射と合成です。
+型と関数の世界では、恒等射を恒等関数、合成を関数合成として読めます。
 
 \subsection{恒等関数を保存する}
 
-恒等関数とは、入力をそのまま返す関数である。
-\texttt{map} に恒等関数を渡したとき、構造全体にも何も起きないはずである。
-リストの全要素に「そのまま返す」を適用しても、リスト全体は変わらない。
+恒等関数とは、入力をそのまま返す関数です。
+\texttt{map} に恒等関数を渡したとき、構造全体にも何も起きません。
+リストの全要素に「そのまま返す」を適用しても、リスト全体は変わりません。
 
 \begin{definitionbox}
-第一の関手則は、恒等関数の保存である。
+第一の関手則は、恒等関数の保存です。
 \[
   \mathrm{map}(\mathrm{id}) = \mathrm{id}
 \]
-つまり、中身に何もしない変換を構造全体へ持ち上げても、全体として何もしない変換になる。
+つまり、中身に何もしない変換を構造全体へ持ち上げても、全体として何もしない変換になります。
 \end{definitionbox}
 
-Lean では、\texttt{List.map} についてこの性質を帰納法で証明できる。
-空リストでは自明である。
-先頭要素と残りのリストからなる場合は、残りのリストに対する仮定を使う。
+Lean では、\texttt{List.map} についてこの性質を帰納法で証明できます。
+空リストの場合は自明です。
+先頭要素と残りのリストからなる場合は、残りのリストに対する仮定を使います。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -139,29 +138,31 @@ theorem list_map_id {A : Type} (xs : List A) :
 \label{lst:ch14_list_map_id}
 \end{listing}
 
-\texttt{induction xs} は、空リストと \texttt{cons x xs} の場合に分け、後者では残りのリストに対する帰納仮定 \texttt{ih} を使う。\texttt{simp} が \texttt{List.map} の定義と \texttt{ih} で各ゴールを整理する。
+\texttt{induction xs} は、空リストと \texttt{cons x xs} の場合に分けます。
+後者では、残りのリストに対する帰納仮定 \texttt{ih} を使います。
+\texttt{simp} は、\texttt{List.map} の定義と \texttt{ih} を使って各ゴールを整理します。
 
 
 \subsection{合成を保存する}
 
-次に、二段階の変換を考える。
-\texttt{f : A -> B} と \texttt{g : B -> C} があるとする。
-先に \texttt{f} を適用し、次に \texttt{g} を適用する処理は、単体の値に対しては \texttt{fun x => g (f x)} と書ける。
+次に、二段階の変換を考えます。
+\texttt{f : A -> B} と \texttt{g : B -> C} があるとします。
+単体の値に対して先に \texttt{f}、次に \texttt{g} を適用する処理は、\texttt{fun x => g (f x)} と書けます。
 
 \begin{definitionbox}
-第二の関手則は、合成の保存である。
+第二の関手則は、合成の保存です。
 \[
   \mathrm{map}(g) \circ \mathrm{map}(f) = \mathrm{map}(g \circ f)
 \]
-つまり、中身で二段階に変換してから構造へ持ち上げても、各段階を構造へ持ち上げてから合成しても、結果は同じになる。
+つまり、中身で二段階に変換してから構造へ持ち上げても、各段階を構造へ持ち上げてから合成しても、結果は同じになります。
 \end{definitionbox}
 
-図\ref{fig:ch14-functor-laws}では、恒等関数を持ち上げる経路と、二段階の関数を合成の前後で持ち上げる二経路を分けて示す。
+図\ref{fig:ch14-functor-laws}では、恒等関数を持ち上げる経路と、二段階の関数を合成の前後で持ち上げる二つの経路を分けて示します。
 
 \FigurePlaceholder{fig-ch14-functor-laws.png}{0.90}{二つの関手則}{fig:ch14-functor-laws}
 
-Lean では、\texttt{List.map g (List.map f xs)} と \texttt{List.map (fun x => g (f x)) xs} が等しいことを示す。
-これもリストに対する帰納法で証明できる。
+Lean では、\texttt{List.map g (List.map f xs)} と \texttt{List.map (fun x => g (f x)) xs} が等しいことを示します。
+これも、リストに対する帰納法で証明できます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -179,21 +180,21 @@ theorem list_map_comp {A B C : Type}
 \label{lst:ch14_list_map_comp}
 \end{listing}
 
-この定理は、リファクタリング規則として読める。
-たとえば、リスト全体に対して二回 \texttt{map} するコードは、一回の \texttt{map} にまとめられる。
-逆に、一回の複雑な変換を二段階に分けても、意味が変わらないことを示せる。
+この定理は、リファクタリング規則として読めます。
+たとえば、リスト全体に対して二回 \texttt{map} するコードを、一回の \texttt{map} にまとめられます。
+逆に、一回の複雑な変換を二段階に分けても、意味が変わらないことを示せます。
 
 \section{List、Option、Result を同じ目で見る}
 
-\texttt{List.map} だけを見ると、単なる反復処理に見える。
-しかし \texttt{Option.map} や \texttt{Result.map} と並べると、共通点が見えてくる。
-いずれも、中身に関数を適用し、外側の構造は保つ。
+\texttt{List.map} だけを見ると、単なる反復処理に見えます。
+しかし、\texttt{Option.map} や \texttt{Result.map} と並べると、共通点が見えてきます。
+いずれも、中身に関数を適用し、外側の構造を保ちます。
 
 \subsection{Option.map}
 
-\texttt{Option A} は、\texttt{A} の値があるかもしれないし、ないかもしれないことを表す。
-\texttt{Option.map f} は、値があるときだけ \texttt{f} を適用する。
-値がない \texttt{none} の場合は、何も変えない。
+\texttt{Option A} は、\texttt{A} の値がある場合とない場合を表します。
+\texttt{Option.map f} は、値があるときだけ \texttt{f} を適用します。
+値がない \texttt{none} の場合は、何も変えません。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -219,15 +220,15 @@ theorem option_map_comp {A B C : Type}
 \label{lst:ch14_option_map_laws}
 \end{listing}
 
-ここでの証明は、リストの帰納法より単純である。
-\texttt{Option} には \texttt{none} と \texttt{some a} の二つの形しかないため、\texttt{cases} で分ければ終わる。
+ここでの証明は、リストの帰納法より単純です。
+\texttt{Option} には \texttt{none} と \texttt{some a} の二つの形しかないため、\texttt{cases} で分ければ証明できます。
 
 \subsection{Result.map}
 
-Lean 標準ではエラーを含む処理に \texttt{Except} がある。
-本章では初学者向けに、小さな \texttt{Result} 型を自作して考える。
-\texttt{Result E A} は、成功して \texttt{A} を持つか、失敗して \texttt{E} を持つかを表す。
-\texttt{Result.map f} は成功値だけを変換し、エラーはそのまま残す。
+Lean 標準には、エラーを含む処理のための \texttt{Except} があります。
+本章では初学者向けに、小さな \texttt{Result} 型を自作して考えます。
+\texttt{Result E A} は、成功して \texttt{A} を持つ場合と、失敗して \texttt{E} を持つ場合を表します。
+\texttt{Result.map f} は成功値だけを変換し、エラーをそのまま残します。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -244,11 +245,11 @@ def Result.map {E A B : Type}
 \label{lst:ch14_result_map}
 \end{listing}
 
-\texttt{Result.map} も、\texttt{List.map} や \texttt{Option.map} と同じ関手則を満たす。
-違うのは、構造の意味である。
-リストでは「複数個ある」という構造を保つ。
-\texttt{Option} では「値がないかもしれない」という構造を保つ。
-\texttt{Result} では「失敗するかもしれない」という構造を保つ。
+\texttt{Result.map} も、\texttt{List.map} や \texttt{Option.map} と同じ関手則を満たします。
+異なるのは、各構造が表す意味です。
+リストでは「複数個ある」という構造を保ちます。
+\texttt{Option} では「値がないかもしれない」という構造を保ちます。
+\texttt{Result} では「失敗するかもしれない」という構造を保ちます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -274,15 +275,16 @@ theorem result_map_comp {E A B C : Type}
 \label{lst:ch14_result_map_laws}
 \end{listing}
 
-このコードでは、\texttt{Result.map}が成功値だけを変換し、エラー値には触れないことを前提に二つの関手則を確認している。
-\texttt{result\_map\_id}は何もしない関数を写しても全体が変わらないこと、\texttt{result\_map\_comp}は二段階の変換を一つの合成関数としてまとめても同じであることを表す。
+このコードでは、\texttt{Result.map}が成功値だけを変換し、エラー値には触れないという定義について、二つの関手則を確認しています。
+\texttt{result\_map\_id}は、何もしない関数を写しても全体が変わらないことを表します。
+\texttt{result\_map\_comp}は、二段階の変換を一つの合成関数としてまとめても同じであることを表します。
 
 \section{一件のマイグレーションをコレクション全体へ持ち上げる}
 
-ここから、より実務に近い例へ移る。
-旧形式のユーザーを新形式へ移行する関数を考える。
-この章では、情報損失のない単純なフィールド名変更だけを扱う。
-同型性そのものは第12章で扱ったので、ここでは一件の変換をリスト全体へ持ち上げることに集中する。
+ここからは、より実務に近い例へ移ります。
+旧形式のユーザーを新形式へ移行する関数を考えます。
+この章では、情報損失のない単純なフィールド名変更だけを扱います。
+同型性そのものは第12章で扱ったため、ここでは一件の変換をリスト全体へ持ち上げることに集中します。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -304,9 +306,9 @@ def migrateUser (u : UserV1) : UserV2 :=
 \label{lst:ch14_user_migration_one}
 \end{listing}
 
-一件の移行が定義できたら、リスト全体の移行は \texttt{List.map migrateUser} として書ける。
-ここで関手の考え方が効いている。
-リストという構造は保たれ、中身だけが \texttt{UserV1} から \texttt{UserV2} へ変わる。
+一件の移行を定義したら、リスト全体の移行は \texttt{List.map migrateUser} として書けます。
+ここで関手の考え方が働きます。
+リストという構造は保たれ、中身だけが \texttt{UserV1} から \texttt{UserV2} へ変わります。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -323,8 +325,8 @@ def migrateUsers (users : List UserV1) : List UserV2 :=
 \label{lst:ch14_user_migration_list}
 \end{listing}
 
-この \texttt{migrateUsers} について、まず件数が保存されることを示せる。
-これは関手則そのものではないが、\texttt{List.map} がリストの形を保つことを示す重要な性質である。
+この \texttt{migrateUsers} について、まず件数が保存されることを示せます。
+これは関手則そのものではありませんが、\texttt{List.map} がリストの形を保つことを示す重要な性質です。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -345,8 +347,8 @@ theorem migrateUsers_length (users : List UserV1) :
 \label{lst:ch14_list_map_length}
 \end{listing}
 
-さらに、ユーザーIDが保存されることも示せる。
-一件の移行で \texttt{id} が \texttt{userId} に移るなら、\texttt{List.map} で持ち上げたリスト全体でも、ID列は保存される。
+さらに、ユーザーIDが保存されることも示せます。
+一件の移行で \texttt{id} が \texttt{userId} に移るなら、\texttt{List.map} で持ち上げたリスト全体でも、ID列は保存されます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -368,65 +370,65 @@ theorem migrateUsers_preserves_ids (users : List UserV1) :
 \label{lst:ch14_preserve_ids}
 \end{listing}
 
-このコードでは、移行前のID列\texttt{idsV1}と移行後のID列\texttt{idsV2}を別々の関数として定義している。
-\texttt{migrateUsers\_preserves\_ids}は、リスト全体を移行してもIDの並びが保存されることを確認している。
+このコードでは、移行前のID列\texttt{idsV1}と移行後のID列\texttt{idsV2}を別々の関数として定義しています。
+\texttt{migrateUsers\_preserves\_ids}は、リスト全体を移行してもIDの並びが保存されることを確認しています。
 
-図\ref{fig:ch14-migration-lift}では、一件用の \texttt{migrateUser} を各要素に適用し、リストの並びに沿って新しいリストを作る経路を示す。
+図\ref{fig:ch14-migration-lift}では、一件用の \texttt{migrateUser} を各要素に適用し、リストの並びに沿って新しいリストを作る経路を示します。
 
 \FigurePlaceholder{fig-ch14-migration-lift.png}{0.92}{リスト移行への持ち上げ}{fig:ch14-migration-lift}
 
 \section{実務への読み替え}
 
-関手の価値は、抽象語を覚えることではない。
-一件の処理を、構造全体の処理へ安全に広げるための設計パターンとして使える点にある。
+関手の価値は、抽象語を覚えることだけにあるのではありません。
+一件の処理を構造全体の処理へ安全に広げるための設計パターンとして使えます。
 
-この観点は、後の第30章で重要になる。
-第30章では、一件のマイグレーションからリスト全体のマイグレーションへ進み、件数保存や合成保存をより実務的なバッチ移行として扱う。
-本章はそのための基礎である。
+この観点は、後の第30章で重要になります。
+第30章では、一件のマイグレーションからリスト全体のマイグレーションへ進み、件数保存や合成保存を、より実務的なバッチ移行として扱います。
+本章は、そのための基礎です。
 
 \section{よくある誤解}
 
 \begin{warningbox}
 \textbf{誤解1：map があれば必ず関手である。}
 
-名前が \texttt{map} であっても、恒等関数と合成を保存しなければ関手としては扱えない。
-たとえば、\texttt{map} のたびに勝手に要素を並べ替える、ログ以外の状態を変更する、失敗ケースを成功に変える、といった操作は注意が必要である。
+名前が \texttt{map} であっても、恒等関数と合成を保存しなければ関手として扱えません。
+たとえば、\texttt{map} のたびに要素を勝手に並べ替える、ログ以外の状態を変更する、失敗ケースを成功に変える、といった操作には注意が必要です。
 \end{warningbox}
 
 \begin{warningbox}
 \textbf{誤解2：関手はリスト専用の話である。}
 
-リストは最もわかりやすい例だが、関手の考え方は \texttt{Option}、\texttt{Result}、木、レスポンス wrapper、非同期計算などにも現れる。
-共通しているのは、外側の構造を保ったまま中身の関数を持ち上げるという点である。
+リストは最も分かりやすい例ですが、関手の考え方は \texttt{Option}、\texttt{Result}、木、レスポンス wrapper、非同期計算などにも現れます。
+これらに共通するのは、外側の構造を保ったまま中身の関数を持ち上げるという点です。
 \end{warningbox}
 
 \begin{warningbox}
 \textbf{誤解3：関手則は数学的なおまけである。}
 
-関手則は実務上のリファクタリング規則である。
-\texttt{map id} が何もしないこと、\texttt{map g} と \texttt{map f} の合成が \texttt{map (g after f)} と一致することにより、処理を分割・統合しても意味が保たれる。
+関手則は、実務上のリファクタリング規則です。
+\texttt{map id} が何もしないことと、\texttt{map g} と \texttt{map f} の合成が \texttt{map (g after f)} と一致することにより、処理を分割または統合しても意味が保たれます。
 \end{warningbox}
 
 \section{一般の関手との境界}
 
-本章では、関手を型と関数の世界で説明した。
-一般の圏から一般の圏への関手、反変関手、双関手、Mathlib の \texttt{CategoryTheory.Functor} などは扱っていない。
-ここで必要なのは、\texttt{map} を「構造を保った一括変換」として読み、二つの法則を Lean で確認できることである。
+本章では、関手を型と関数の世界で説明しました。
+一般の圏から一般の圏への関手、反変関手、双関手、Mathlib の \texttt{CategoryTheory.Functor} などは扱っていません。
+ここでは、\texttt{map} を「構造を保った一括変換」として読み、二つの法則を Lean で確認できることを目指しました。
 
 \section{本章のまとめ}
 
-関手は、対象と射を対応させ、恒等関数と合成を保存する構造である。
+関手は、対象と射を対応させ、恒等関数と合成を保存する構造です。
 
-ソフトウェアでは、\texttt{List.map}、\texttt{Option.map}、\texttt{Result.map} として直感的に読める。
+ソフトウェアでは、\texttt{List.map}、\texttt{Option.map}、\texttt{Result.map} として直感的に読めます。
 
-恒等関数の保存は、\texttt{map} に何もしない関数を渡すと全体も変わらないことを意味する。
+恒等関数の保存は、\texttt{map} に何もしない関数を渡すと全体も変わらないことを意味します。
 
-合成の保存は、二段階の変換を \texttt{map} の内側で合成しても、外側で二回 \texttt{map} しても同じであることを意味する。
+合成の保存は、二段階の変換を \texttt{map} の内側で合成しても、外側で二回 \texttt{map} しても同じであることを意味します。
 
-一件のマイグレーションは、\texttt{List.map} によってバッチ全体のマイグレーションへ持ち上げられる。
+一件のマイグレーションは、\texttt{List.map} によってバッチ全体のマイグレーションへ持ち上げられます。
 
 \section{次章への接続}
 
-次章では、関手どうしの間の変換である自然変換へ進む。
-そこで中心になるのは、adapter と業務ロジックの順序を入れ替えても結果が変わらないという自然性である。
-本章の \texttt{map} と関手則は、その自然性を読むための前提になる。
+次章では、関手どうしの間の変換である自然変換へ進みます。
+そこで中心になるのは、adapter と業務ロジックの順序を入れ替えても結果が変わらないという自然性です。
+本章の \texttt{map} と関手則は、その自然性を読むための前提になります。

@@ -3,63 +3,63 @@
 \label{chap:ch31-api-adapter-naturality}
 
 \begin{chapterabstract}
-本章では、APIレスポンス形式の変更を題材に、adapter の正しさを自然性として表す。
-旧形式のレスポンスに業務ロジックを適用してから新形式へ変換しても、先に新形式へ変換してから業務ロジックを適用しても、結果が一致する。
-この性質を、自然性の四角形と Lean 4 の等式として確認する。
-本章の狙いは、adapter を「変換関数があるから安全」と見るのではなく、「業務ロジックと干渉しないことを証明できる層」として扱うことである。
+本章では、API レスポンス形式の変更を題材に、adapter の正しさを自然性として表します。
+旧形式のレスポンスに業務ロジックを適用してから新形式へ変換しても、先に新形式へ変換してから業務ロジックを適用しても、結果が一致します。
+この性質を、自然性の四角形と Lean 4 の等式として確認します。
+本章の狙いは、adapter を「変換関数があるから安全」と見るのではなく、「業務ロジックと干渉しないことを証明できる層」として扱うことです。
 \end{chapterabstract}
 
 \begin{learninggoals}
-\item APIレスポンスwrapperの変更を、型に依存しない変換として整理できる。
-\item 自然性の四角形を、adapter と \texttt{map} の順序交換として読める。
-\item \texttt{OldResponse A} と \texttt{NewResponse A} の小さな Lean モデルを書ける。
-\item adapter を通す位置を変えても結果が同じであることを、Lean の定理として表せる。
-\item 実務で自然性を使うべき範囲と、使ってはいけない範囲を区別できる。
+\item API レスポンス wrapper の変更を、型に依存しない変換として整理できます。
+\item 自然性の四角形を、adapter と \texttt{map} の順序交換として読めます。
+\item \texttt{OldResponse A} と \texttt{NewResponse A} の小さな Lean モデルを書けます。
+\item adapter を通す位置を変えても結果が同じであることを、Lean の定理として表せます。
+\item 実務で自然性を使うべき範囲と、使ってはいけない範囲を区別できます。
 \end{learninggoals}
 
 \section{APIレスポンス形式の変更}
 
-APIのバージョンアップでは、レスポンスの中身そのものは同じでも、包み方が変わることがある。
-たとえば、旧APIでは次のような形で返していたとする。
+API のバージョンアップでは、レスポンスの中身そのものは同じでも、包み方が変わることがあります。
+たとえば、旧 API では次のような形で返していたとします。
 
 \begin{itemize}
-\item ステータスコードを \texttt{status} に入れる。
-\item 実データを \texttt{body} に入れる。
-\item トレース用のIDを \texttt{requestId} に入れる。
+\item ステータスコードを \texttt{status} に入れます。
+\item 実データを \texttt{body} に入れます。
+\item トレース用の ID を \texttt{requestId} に入れます。
 \end{itemize}
 
-新APIでは、名前や追加メタデータを変えて、次のような形にしたい。
+新 API では、名前や追加メタデータを変えて、次のような形にします。
 
 \begin{itemize}
-\item ステータスコードを \texttt{code} に入れる。
-\item 実データを \texttt{data} に入れる。
-\item \texttt{requestId} は引き継ぐ。
-\item キャッシュ由来かどうかを \texttt{cached} として追加する。
+\item ステータスコードを \texttt{code} に入れます。
+\item 実データを \texttt{data} に入れます。
+\item \texttt{requestId} は引き継ぎます。
+\item キャッシュ由来かどうかを \texttt{cached} として追加します。
 \end{itemize}
 
-このとき、旧レスポンスを新レスポンスへ変換する adapter を書くこと自体は難しくない。
-しかし、本章で確認したいのは「変換関数が存在するか」ではない。
-本当に確認したいのは、adapter がレスポンスの中の業務データに余計な影響を与えないかである。
+このとき、旧レスポンスを新レスポンスへ変換する adapter を書くこと自体は難しくありません。
+しかし、本章で確認したいのは「変換関数が存在するか」ではありません。
+本当に確認したいのは、adapter がレスポンスの中の業務データに余計な影響を与えないかという点です。
 
-図\ref{fig:ch31-response-shape-change}は、payload を保ったままフィールド名を変え、定数の metadata を追加する adapter を示す。
+図\ref{fig:ch31-response-shape-change}は、payload を保ったままフィールド名を変え、定数の metadata を追加する adapter を示します。
 
 \FigurePlaceholder{fig-ch31-response-shape-change.png}{0.92}{レスポンス形式の変更}{fig:ch31-response-shape-change}
 
 \section{\texttt{OldResponse A} と \texttt{NewResponse A}}
 
-まず、payload の型を \texttt{A} として抽象化する。
-\texttt{A} は、ユーザーでも注文でも商品でもよい。
-重要なのは、レスポンスwrapperが payload の型に対して一様に振る舞うことである。
+まず、payload の型を \texttt{A} として抽象化します。
+\texttt{A} は、ユーザーでも注文でも商品でも構いません。
+重要なのは、レスポンス wrapper が payload の型に対して一様に振る舞うことです。
 
 \begin{definitionbox}
-\texttt{OldResponse A} は、型 \texttt{A} の値を旧形式で包むレスポンス型である。
-\texttt{NewResponse A} は、同じ型 \texttt{A} の値を新形式で包むレスポンス型である。
-ここで \texttt{A} を固定しないのは、adapter が特定のpayload型だけでなく、任意のpayload型に対して同じ規則で動くかを見たいからである。
+\texttt{OldResponse A} は、型 \texttt{A} の値を旧形式で包むレスポンス型です。
+\texttt{NewResponse A} は、同じ型 \texttt{A} の値を新形式で包むレスポンス型です。
+ここで \texttt{A} を固定しないのは、adapter が特定の payload 型だけでなく、任意の payload 型に対して同じ規則で動くかを確認するためです。
 \end{definitionbox}
 
-Leanでは、次のように最小モデルを作る。
-ここではHTTPの詳細、JSONエンコード、エラー詳細、認証情報などは扱わない。
-自然性を確認するために必要な情報だけを残す。
+Lean では、次のように最小モデルを作ります。
+ここでは HTTP の詳細、JSON エンコード、エラー詳細、認証情報などは扱いません。
+自然性を確認するために必要な情報だけを残します。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -78,14 +78,14 @@ structure NewResponse (A : Type) where
 \label{lst:ch31-response-types}
 \end{listing}
 
-\texttt{OldResponse} と \texttt{NewResponse} は、どちらも \texttt{Type -> Type} という形を持つ。
-つまり、payload の型 \texttt{A} を受け取ると、レスポンス型を返す型レベルの関数として読める。
-このような形は、圏論では関手を考える入口になる。
+\texttt{OldResponse} と \texttt{NewResponse} は、どちらも \texttt{Type -> Type} という形を持ちます。
+つまり、payload の型 \texttt{A} を受け取ると、レスポンス型を返す型レベルの関数として読めます。
+このような形は、圏論では関手を考える入口になります。
 
 \subsection{payloadだけを変換する \texttt{map}}
 
-業務ロジックは、多くの場合、レスポンス全体ではなく payload に対して働く。
-たとえば、内部ユーザー型を公開用ユーザー型へ変換する関数は、レスポンスmetadataではなく \texttt{body} や \texttt{data} の中身に作用する。
+業務ロジックは、多くの場合、レスポンス全体ではなく payload に対して働きます。
+たとえば、内部ユーザー型を公開用ユーザー型へ変換する関数は、レスポンス metadata ではなく \texttt{body} や \texttt{data} の中身に作用します。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -114,19 +114,19 @@ end NewResponse
 \label{lst:ch31-response-map}
 \end{listing}
 
-この \texttt{map} は、metadata をそのまま保ち、payload だけに \texttt{f : A -> B} を適用する。
-旧レスポンスでも新レスポンスでも、payload が存在しない \texttt{none} の場合は、存在しないままにする。
+この \texttt{map} は、metadata をそのまま保ち、payload だけに \texttt{f : A -> B} を適用します。
+旧レスポンスでも新レスポンスでも、payload が存在しない \texttt{none} の場合は、存在しないままにします。
 
-\texttt{Option.map f r.body} は、値があれば \texttt{f} を適用し、\texttt{none} ならそのままにする。
+\texttt{Option.map f r.body} は、値があれば \texttt{f} を適用し、\texttt{none} ならそのままにします。
 
-標準的な圏論の自然変換と呼ぶには、\texttt{OldResponse} と \texttt{NewResponse} の各 \texttt{map} が恒等関数と合成を保存し、関手を成すことも必要である。
-本章のレコード定義ではそれらも証明できるが、コードでは自然性等式だけを取り出しており、関手構造までは一つの型にまとめていない。
+標準的な圏論の自然変換と呼ぶには、\texttt{OldResponse} と \texttt{NewResponse} の各 \texttt{map} が恒等関数と合成を保存し、関手を成すことも必要です。
+本章のレコード定義ではそれらも証明できますが、コードでは自然性等式だけを取り出しており、関手構造までは一つの型にまとめていません。
 
 \section{adapter が業務ロジックと可換であること}
 
-次に、旧レスポンスから新レスポンスへの adapter を定義する。
-この adapter は、\texttt{status} を \texttt{code} へ、\texttt{body} を \texttt{data} へ写し、\texttt{requestId} を保存する。
-新しく追加された \texttt{cached} には、ここでは既定値 \texttt{false} を入れる。
+次に、旧レスポンスから新レスポンスへの adapter を定義します。
+この adapter は、\texttt{status} を \texttt{code} へ、\texttt{body} を \texttt{data} へ写し、\texttt{requestId} を保存します。
+新しく追加された \texttt{cached} には、ここでは既定値 \texttt{false} を入れます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -140,20 +140,20 @@ def adapt {A : Type} (r : OldResponse A) : NewResponse A :=
 \label{lst:ch31-adapter}
 \end{listing}
 
-この \texttt{adapt} は \texttt{A} の中身を見ていない。
-ユーザーIDが偶数かどうか、注文金額が高いかどうか、文字列が空かどうか、といったpayload固有の判断はしない。
-これは自然性を期待する理由にはなるが、正式な判定は次の等式をすべての型・関数・レスポンスについて証明することである。
+この \texttt{adapt} は、\texttt{A} の中身を見ていません。
+ユーザー ID が偶数かどうか、注文金額が高いかどうか、文字列が空かどうかといった payload 固有の判断はしません。
+これは自然性を期待する理由にはなりますが、正式な判定は、次の等式をすべての型、関数、レスポンスについて証明することです。
 
 \begin{definitionbox}
-本章でいう「可換」とは、二つの処理の順序を入れ替えても最終結果が同じである、という意味である。
-ここでは、次の二つの経路が同じであることを示す。
+本章でいう「可換」とは、二つの処理の順序を入れ替えても最終結果が同じであるという意味です。
+ここでは、次の二つの経路が同じであることを示します。
 \begin{align*}
-&\text{経路1: 旧レスポンス内でpayloadを変換してから、新レスポンスへadaptする。}\\
-&\text{経路2: 先に新レスポンスへadaptしてから、新レスポンス内でpayloadを変換する。}
+&\text{経路1：旧レスポンス内で payload を変換してから、新レスポンスへ adapt します。}\\
+&\text{経路2：先に新レスポンスへ adapt してから、新レスポンス内で payload を変換します。}
 \end{align*}
 \end{definitionbox}
 
-payload変換を \(f : A \to B\)、旧レスポンスを \(r : \texttt{OldResponse}\ A\) とすると、証明したい等式は次である。
+payload 変換を \(f : A \to B\)、旧レスポンスを \(r : \texttt{OldResponse}\ A\) とすると、証明したい等式は次のとおりです。
 
 \[
 \mathsf{adapt}\,(\mathsf{OldResponse.map}\ f\ r)
@@ -161,41 +161,41 @@ payload変換を \(f : A \to B\)、旧レスポンスを \(r : \texttt{OldRespon
 \mathsf{NewResponse.map}\ f\,(\mathsf{adapt}\ r).
 \]
 
-左辺は「先に旧形式の中で業務ロジックを適用し、その後adapterを通す」経路である。
-右辺は「先にadapterを通し、その後新形式の中で業務ロジックを適用する」経路である。
+左辺は「先に旧形式の中で業務ロジックを適用し、その後 adapter を通す」経路です。
+右辺は「先に adapter を通し、その後新形式の中で業務ロジックを適用する」経路です。
 
 \section{自然性の四角形をコードで読む}
 
-自然変換の自然性は、よく四角形の図で表される。
-本章では、この四角形をAPI adapterの検証図として読む。
+自然変換の自然性は、よく四角形の図で表されます。
+本章では、この四角形を API adapter の検証図として読みます。
 
-図\ref{fig:ch31-naturality-square}の上辺と下辺はそれぞれ旧・新 wrapper の \texttt{map}、
-左右の辺は payload 型 \texttt{A} と \texttt{B} における adapter である。
+図\ref{fig:ch31-naturality-square}の上辺と下辺は、それぞれ旧 wrapper と新 wrapper の \texttt{map} です。
+左右の辺は、payload 型 \texttt{A} と \texttt{B} における adapter です。
 
 \FigurePlaceholder{fig-ch31-naturality-square.png}{0.88}{自然性の四角形}{fig:ch31-naturality-square}
 
 \subsection{自然性が言っていること}
 
-自然性は、単に「あるサンプル入力で同じ結果になる」という主張ではない。
-任意のpayload型 \texttt{A}、任意の変換先型 \texttt{B}、任意の業務ロジック \(f : A \to B\)、任意の旧レスポンス \(r\) について、同じ等式が成り立つという主張である。
+自然性は、単に「あるサンプル入力で同じ結果になる」という主張ではありません。
+任意の payload 型 \texttt{A}、任意の変換先型 \texttt{B}、任意の業務ロジック \(f : A \to B\)、任意の旧レスポンス \(r\) について、同じ等式が成り立つという主張です。
 
 \subsection{自然性が言っていないこと}
 
-自然性は、adapter が現実のHTTP通信やJSONパーサのすべての振る舞いを保証するわけではない。
-本章の証明が扱うのは、型で表したレスポンスwrapperとpayload変換の関係である。
+自然性は、adapter が現実の HTTP 通信や JSON パーサのすべての振る舞いを保証するわけではありません。
+本章の証明が扱うのは、型で表したレスポンス wrapper と payload 変換の関係です。
 
 \begin{warningbox}
-自然性を証明しても、外部APIのステータスコード仕様、JSONフィールド名の実際の綴り、ネットワーク障害、認証、タイムアウト、ログ出力、副作用の順序までは保証されない。
-Leanのモデルが保証するのは、モデルに含めた関数とデータ構造についての性質である。
-実装コードとの対応は、別途レビューやテストで確認する必要がある。
+自然性を証明しても、外部 API のステータスコード仕様、JSON フィールド名の実際の綴り、ネットワーク障害、認証、タイムアウト、ログ出力、副作用の順序までは保証されません。
+Lean のモデルが保証するのは、モデルに含めた関数とデータ構造についての性質です。
+実装コードとの対応は、別途レビューやテストで確認する必要があります。
 \end{warningbox}
 
 \section{Lean で自然性を証明する}
 
-証明方針は単純である。
-旧レスポンス \texttt{r} を構造体の各フィールドに分解する。
-すると、左辺と右辺はどちらも同じ \texttt{NewResponse} の値になる。
-したがって、Leanでは \texttt{rfl} で証明できる。
+証明方針は単純です。
+旧レスポンス \texttt{r} を構造体の各フィールドに分解します。
+すると、左辺と右辺はどちらも同じ \texttt{NewResponse} の値になります。
+したがって、Lean では \texttt{rfl} で証明できます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -210,15 +210,15 @@ theorem adapt_natural {A B : Type} (f : A -> B)
 \label{lst:ch31-adapt-natural}
 \end{listing}
 
-この証明は短いが、主張は強い。
-\texttt{cases r} によって、\texttt{r} は \texttt{status}、\texttt{body}、\texttt{requestId} というフィールドへ分解される。
-分解後、左辺と右辺は同じ構造体リテラルに計算される。
-そのため、\texttt{rfl} が使える。
+この証明は短いですが、主張は強力です。
+\texttt{cases r} によって、\texttt{r} は \texttt{status}、\texttt{body}、\texttt{requestId} というフィールドへ分解されます。
+分解後、左辺と右辺は同じ構造体リテラルに計算されます。
+そのため、\texttt{rfl} が使えます。
 
 \subsection{二つの経路に名前を付ける}
 
-実務の説明では、自然性の等式をそのまま見るより、二つの経路に名前を付けたほうが読みやすい。
-ここでは、先に業務ロジックを適用する経路を \texttt{routeBefore}、先に adapter を通す経路を \texttt{routeAfter} と呼ぶ。
+実務の説明では、自然性の等式をそのまま見るより、二つの経路に名前を付けたほうが読みやすくなります。
+ここでは、先に業務ロジックを適用する経路を \texttt{routeBefore}、先に adapter を通す経路を \texttt{routeAfter} と呼びます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -239,14 +239,14 @@ theorem route_position_independent {A B : Type}
 \label{lst:ch31-routes}
 \end{listing}
 
-\texttt{route\_position\_independent} は、実務向けには「adapterの位置独立性」と読める。
-この定理があると、リファクタリングで adapter の位置を変更しても、payloadだけを見る業務ロジックについては結果が変わらないと説明できる。
+\texttt{route\_position\_independent} は、実務向けには「adapter の位置独立性」と読めます。
+この定理があると、リファクタリングで adapter の位置を変更しても、payload だけを見る業務ロジックについては結果が変わらないと説明できます。
 
 \subsection{自然な adapter を構造として持つ}
 
-adapter と自然性証明を一緒に持つ小さな構造を作ることもできる。
-この構造は、Mathlib の \texttt{NatTrans} を直接使うものではない。
-本章の目的に合わせて、\texttt{OldResponse} と \texttt{NewResponse} の間だけに絞った簡易版である。
+adapter と自然性証明を一緒に持つ小さな構造を作ることもできます。
+この構造は、Mathlib の \texttt{NatTrans} を直接使うものではありません。
+本章の目的に合わせて、\texttt{OldResponse} と \texttt{NewResponse} の間だけに絞った簡易版です。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -266,22 +266,22 @@ def oldToNewAdapter : ResponseAdapter where
 \label{lst:ch31-response-adapter}
 \end{listing}
 
-このようにまとめると、adapter を単なる関数ではなく「可換性の証明を持った互換層」として扱える。
-仕様レビューでは、adapter の本体だけでなく、何と可換でなければならないかを明確にできる。
+このようにまとめると、adapter を単なる関数ではなく「可換性の証明を持った互換層」として扱えます。
+仕様レビューでは、adapter の本体だけでなく、何と可換でなければならないかを明確にできます。
 
 \section{実務での意味：adapter の位置を変えても結果が同じ}
 
-ここまでの定理は、実務では次のように使える。
+ここまでの定理は、実務では次のように使えます。
 
 \begin{itemize}
-\item 旧APIレスポンスに対して既存の業務ロジックを適用してから、新APIレスポンスへ変換する。
-\item 先に新APIレスポンスへ変換し、新形式の上で同じ業務ロジックを適用する。
-\item この二つの経路が一致することを、Leanで確認する。
+\item 旧 API レスポンスに対して既存の業務ロジックを適用してから、新 API レスポンスへ変換します。
+\item 先に新 API レスポンスへ変換し、新形式の上で同じ業務ロジックを適用します。
+\item この二つの経路が一致することを、Lean で確認します。
 \end{itemize}
 
-たとえば、内部ユーザー型 \texttt{UserV1} を公開用の \texttt{UserView} へ変換する処理を考える。
-この処理はpayloadの中身だけを見て、レスポンスmetadataには触れない。
-そのような処理に対して、adapter は前後どちらに置いても同じ結果になる。
+たとえば、内部ユーザー型 \texttt{UserV1} を公開用の \texttt{UserView} へ変換する処理を考えます。
+この処理は payload の中身だけを見て、レスポンス metadata には触れません。
+そのような処理に対して、adapter は前後どちらに置いても同じ結果になります。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -304,65 +304,64 @@ theorem user_view_adapter_position_independent
 \label{lst:ch31-user-view}
 \end{listing}
 
-この証明では、\texttt{UserV1} や \texttt{UserView} に固有の難しい議論はしていない。
-すでに任意の \texttt{A} と \texttt{B} について証明した自然性を、ユーザー変換に適用しているだけである。
-これが抽象化の利点である。
+この証明では、\texttt{UserV1} や \texttt{UserView} に固有の難しい議論はしていません。
+すでに任意の \texttt{A} と \texttt{B} について証明した自然性を、ユーザー変換に適用しているだけです。
+これが、抽象化の利点です。
 
 \subsection{設計レビューで確認すべきこと}
 
-自然性を実務に持ち込むときは、次の問いが有効である。
+自然性を実務に持ち込むときは、次の問いが有効です。
 
 \begin{center}
 \begin{tabular}{p{0.31\linewidth}p{0.58\linewidth}}
 \toprule
 確認する問い & 意味 \\
 \midrule
-payload型を任意にしてよいか & adapter が特定の型だけを特別扱いしていないかを確認する。 \\
-metadataだけを変えているか & 業務データの意味に手を入れていないかを確認する。 \\
-\texttt{map} はpayloadだけに作用するか & 業務ロジックの範囲をレスポンスwrapperから分離できているかを確認する。 \\
-adapterの追加値は定数か & \texttt{cached := false} のように、payloadに依存しない初期値かを確認する。 \\
-外部仕様との差分は明示したか & Leanモデルと実装JSON、HTTP仕様、SDK仕様のズレを文書化する。 \\
+payload 型を任意にしてよいか & adapter が特定の型だけを特別扱いしていないかを確認します。 \\
+metadata だけを変えているか & 業務データの意味に手を入れていないかを確認します。 \\
+\texttt{map} は payload だけに作用するか & 業務ロジックの範囲をレスポンス wrapper から分離できているかを確認します。 \\
+adapter の追加値は定数か & \texttt{cached := false} のように、payload に依存しない初期値かを確認します。 \\
+外部仕様との差分は明示したか & Lean モデルと実装 JSON、HTTP 仕様、SDK 仕様のずれを文書化します。 \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-図\ref{fig:ch31-adapter-review-boundary}では、Lean が扱う wrapper・map・adapter の等式と、
-HTTP、JSON、認証、副作用など実装側で確認する境界を分ける。
+図\ref{fig:ch31-adapter-review-boundary}では、Lean が扱う wrapper、map、adapter の等式と、HTTP、JSON、認証、副作用など実装側で確認する境界を分けます。
 
 \FigurePlaceholder{fig-ch31-adapter-review-boundary.png}{0.90}{adapter 検証の境界}{fig:ch31-adapter-review-boundary}
 
 \subsection{自然性が壊れる典型例}
 
-次のような adapter は、自然性を期待しにくい。
+次のような adapter には、自然性を期待しにくくなります。
 
 \begin{itemize}
-\item payload の値に応じて \texttt{code} を変更する。
-\item payload の型ごとに別のフィールド変換を行う。
-\item \texttt{String} payload だけを特別扱いして整形する。
-\item adapter の中でDB参照や外部API呼び出しを行う。
-\item 変換前後でpayloadの欠損を補完するため、型 \texttt{A} の既定値を注入する。
+\item payload の値に応じて \texttt{code} を変更します。
+\item payload の型ごとに別のフィールド変換を行います。
+\item \texttt{String} payload だけを特別扱いして整形します。
+\item adapter の中で DB 参照や外部 API 呼び出しを行います。
+\item 変換前後で payload の欠損を補完するため、型 \texttt{A} の既定値を注入します。
 \end{itemize}
 
-これらが必ず悪いわけではない。
-ただし、その場合は「自然な adapter」としてではなく、payloadに依存する業務変換として扱うべきである。
-証明すべき性質も、自然性ではなく、事前条件、事後条件、仕様弱化、あるいは片方向互換性になる。
+これらが、必ず悪いわけではありません。
+ただし、その場合は「自然な adapter」としてではなく、payload に依存する業務変換として扱うべきです。
+証明すべき性質も、自然性ではなく、事前条件、事後条件、仕様弱化、または片方向互換性になります。
 
 \begin{warningbox}
-実務では、adapter と business logic が混ざりやすい。
-自然性を証明したいなら、adapter はできるだけ「包みの変換」に限定する。
-payload の意味を変更する処理は、別の関数として切り出し、\texttt{map} で扱うほうが設計が明確になる。
+実務では、adapter と business logic が混ざりやすくなります。
+自然性を証明したいなら、adapter はできるだけ「包みの変換」に限定します。
+payload の意味を変更する処理は、別の関数として切り出し、\texttt{map} で扱うほうが設計を明確にできます。
 \end{warningbox}
 
 \section{本章のまとめ}
 
-API adapter は、旧レスポンスwrapperから新レスポンスwrapperへの変換としてモデル化できる。
+API adapter は、旧レスポンス wrapper から新レスポンス wrapper への変換としてモデル化できます。
 
-\texttt{OldResponse.map} と \texttt{NewResponse.map} は、metadataを保ち、payloadだけに業務ロジックを適用する。
+\texttt{OldResponse.map} と \texttt{NewResponse.map} は、metadata を保ち、payload だけに業務ロジックを適用します。
 
-自然性は、\texttt{adapt (OldResponse.map f r) = NewResponse.map f (adapt r)} という等式で表せる。
+自然性は、\texttt{adapt (OldResponse.map f r) = NewResponse.map f (adapt r)} という等式で表せます。
 
-Leanでは、構造体を分解し、定義を展開することで、adapter と \texttt{map} の可換性を証明できる。
+Lean では、構造体を分解し、定義を展開することで、adapter と \texttt{map} の可換性を証明できます。
 
-この証明は、モデル化した \texttt{map} で持ち上げる payload 変換について、adapter の位置を変えても結果が同じであることを示す。
+この証明は、モデル化した \texttt{map} で持ち上げる payload 変換について、adapter の位置を変えても結果が同じであることを示します。
 
-ただし、外部API仕様、JSONエンコード、ネットワーク、副作用、実装との同期は、Leanモデルの外側で確認する必要がある。
+ただし、外部 API 仕様、JSON エンコード、ネットワーク、副作用、実装との同期は、Lean モデルの外側で確認する必要があります。

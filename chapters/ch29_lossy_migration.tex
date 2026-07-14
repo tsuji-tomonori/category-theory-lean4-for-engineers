@@ -3,53 +3,80 @@
 \label{chap:ch29_lossy_migration}
 
 \begin{chapterabstract}
-本章では、情報を失うマイグレーションを扱う。前章の lossless migration では、旧形式と新形式の間に両方向の round-trip law を置くことができた。しかし実務では、すべての変更が同型になるわけではない。代表例は、旧スキーマの \texttt{fullName} を、新スキーマの \texttt{firstName} と \texttt{lastName} に分ける変更である。空白、ミドルネーム、敬称、文化圏ごとの姓名順、表記ゆれがあるため、完全復元は一般には成立しない。
+本章では、情報を失うマイグレーションを扱います。
+前章の lossless migration では、旧形式と新形式の間に両方向の round-trip law を置くことができました。
+しかし実務では、すべての変更が同型になるわけではありません。
+代表例は、旧スキーマの \texttt{fullName} を、新スキーマの \texttt{firstName} と \texttt{lastName} に分ける変更です。
+空白、ミドルネーム、敬称、文化圏ごとの姓名順、表記ゆれがあるため、完全復元は一般には成立しません。
 
-このような変更で重要なのは、「戻せないから検証できない」と諦めることではない。完全復元という強い仕様を捨て、証明できる弱い仕様へ落とす。たとえば、正規化後の表示が一致する、well-formed な入力に限れば戻せる、新システムで必要な公開表示だけは保存される、といった主張である。本章では、この仕様弱化を Lean 4 の小さなモデルで表す。
+このような変更で重要なのは、「戻せないから検証できない」と諦めることではありません。
+完全復元という強い仕様を捨て、証明できる弱い仕様へ落とします。
+たとえば、正規化後の表示が一致する、well-formed な入力に限れば戻せる、新システムで必要な公開表示だけは保存される、といった主張です。
+本章では、この仕様弱化を Lean 4 の小さなモデルで表します。
 \end{chapterabstract}
 
 \begin{learninggoals}
-\item 情報損失を伴う移行が完全同型ではない理由を説明できる。
-\item 完全な round-trip、条件付き round-trip、正規化後一致、表示互換を区別できる。
-\item well-formed 条件を Lean の述語として導入できる。
-\item 証明できない仕様を、証明できる弱い仕様へ落とす手順を理解する。
-\item lossy migration の保証範囲を設計文書に明示できる。
+\item 情報損失を伴う移行が完全同型ではない理由を説明できます。
+\item 完全な round-trip、条件付き round-trip、正規化後一致、表示互換を区別できます。
+\item well-formed 条件を Lean の述語として導入できます。
+\item 証明できない仕様を、証明できる弱い仕様へ落とす手順を理解します。
+\item lossy migration の保証範囲を設計文書に明示できます。
 \end{learninggoals}
 
 \section{この章を読む理由}
 
-マイグレーションのレビューでは、「互換性があります」という言葉がよく使われる。しかし、その意味は曖昧である。旧データを新形式で読めるという意味なのか。新形式から旧形式へ戻せるという意味なのか。画面表示だけが同じという意味なのか。検索キーや集計結果だけが同じという意味なのか。これらは同じではない。
+マイグレーションのレビューでは、「互換性があります」という言葉がよく使われます。
+しかし、その意味は曖昧です。
+旧データを新形式で読めるという意味なのでしょうか。
+新形式から旧形式へ戻せるという意味なのでしょうか。
+画面表示だけが同じという意味なのでしょうか。
+検索キーや集計結果だけが同じという意味なのでしょうか。
+これらは同じではありません。
 
-本章の例では、旧形式が \texttt{fullName} を持ち、新形式が \texttt{firstName} と \texttt{lastName} だけを持つと考える。実務では \texttt{fullName} は単なる文字列であることが多い。しかし文字列パーサの詳細に入ると本章の主題がぼやけるため、Lean では「トークン化済みの \texttt{fullName}」として、\texttt{first}、任意の \texttt{middle}、\texttt{last} を持つ小さなモデルを使う。これは、生の文字列に含まれていた情報の一部が新形式に収まらない状況を表すためのモデルである。
+本章の例では、旧形式が \texttt{fullName} を持ち、新形式が \texttt{firstName} と \texttt{lastName} だけを持つと考えます。
+実務では、\texttt{fullName} は単なる文字列であることがよくあります。
+しかし、文字列パーサの詳細に入ると本章の主題がぼやけます。
+そこで Lean では「トークン化済みの \texttt{fullName}」として、\texttt{first}、任意の \texttt{middle}、\texttt{last} を持つ小さなモデルを使います。
+これは、生の文字列に含まれていた情報の一部が新形式に収まらない状況を表すためのモデルです。
 
-図\ref{fig:ch29-lossy-overview}では、完全復元が反例で壊れたあと、入力条件を狭める経路と保存する観測を弱める経路へ分かれる。
+図\ref{fig:ch29-lossy-overview}では、完全復元が反例で壊れたあと、入力条件を狭める経路と保存する観測を弱める経路へ分かれます。
 
 \FigurePlaceholder{fig-ch29-lossy-overview.png}{0.92}{lossy migration の保証}{fig:ch29-lossy-overview}
 
 \section{情報が欠ける移行は同型ではない}
 
-第28章では、旧形式と新形式が同じ情報を持つ場合を扱った。そのときは、\texttt{migrate : Old \textrightarrow New} と \texttt{rollback : New \textrightarrow Old} を定義し、次の二つを証明できた。
+第28章では、旧形式と新形式が同じ情報を持つ場合を扱いました。
+そのときは、\texttt{migrate : Old \textrightarrow New} と \texttt{rollback : New \textrightarrow Old} を定義し、次の二つを証明できました。
 
 \begin{itemize}
 \item \texttt{rollback (migrate old) = old}
 \item \texttt{migrate (rollback new) = new}
 \end{itemize}
 
-これは、旧形式と新形式が同型であることを表していた。一方、lossy migration では少なくとも片方の等式が壊れる。
+これは、旧形式と新形式が同型であることを表していました。
+一方、lossy migration では少なくとも片方の等式が壊れます。
 
 \begin{definitionbox}
-本章では、\textbf{lossy migration} を「旧形式から新形式へ移すとき、旧形式の情報の一部が新形式に保存されない移行」と呼ぶ。lossy migration は完全な同型ではない。したがって、完全な round-trip law を無条件に要求してはいけない。
+本章では、\textbf{lossy migration} を「旧形式から新形式へ移すとき、旧形式の情報の一部が新形式に保存されない移行」と呼びます。
+lossy migration は、完全な同型ではありません。
+したがって、完全な round-trip law を無条件に要求してはいけません。
 \end{definitionbox}
 
-たとえば、旧形式がミドルネームを含み、新形式が \texttt{firstName} と \texttt{lastName} しか持たない場合、\texttt{middle} は保存先を持たない。新形式から旧形式へ戻すとき、\texttt{middle = none} と埋めることはできる。しかし、もともと \texttt{some "Byron"} だったか、\texttt{some "Augusta"} だったか、\texttt{none} だったかは復元できない。
+たとえば、旧形式がミドルネームを含み、新形式が \texttt{firstName} と \texttt{lastName} しか持たない場合、\texttt{middle} は保存先を持ちません。
+新形式から旧形式へ戻すとき、\texttt{middle = none} と埋めることはできます。
+しかし、もともと \texttt{some "Byron"} だったか、\texttt{some "Augusta"} だったか、\texttt{none} だったかは復元できません。
 
 \begin{warningbox}
-\texttt{migrate} と \texttt{rollback} の二つの関数を書けたとしても、それだけでは安全な相互変換ではない。安全な相互変換だと言うには、戻した結果が本当に元と等しいことを証明する必要がある。
+\texttt{migrate} と \texttt{rollback} の二つの関数を書けたとしても、それだけでは安全な相互変換ではありません。
+安全な相互変換だと述べるには、戻した結果が本当に元と等しいことを証明する必要があります。
 \end{warningbox}
 
 \section{例：\texttt{fullName} を \texttt{firstName} / \texttt{lastName} に分ける}
 
-まず、Lean で小さなモデルを作る。旧スキーマ \texttt{UserV1} は \texttt{fullName} を持つ。新スキーマ \texttt{UserV2} は \texttt{firstName} と \texttt{lastName} だけを持つ。\texttt{FullName} の \texttt{middle : Option String} は、旧形式には存在したが新形式には入りきらない情報を表している。
+まず、Lean で小さなモデルを作ります。
+旧スキーマ \texttt{UserV1} は \texttt{fullName} を持ちます。
+新スキーマ \texttt{UserV2} は \texttt{firstName} と \texttt{lastName} だけを持ちます。
+\texttt{FullName} の \texttt{middle : Option String} は、旧形式には存在しても新形式には入りきらない情報を表しています。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -87,9 +114,11 @@ def rollback (v : UserV2) : UserV1 :=
 \label{lst:ch29-model}
 \end{listing}
 
-この \texttt{migrate} は、旧形式の \texttt{middle} を新形式へ保存しない。したがって、旧データから新データへ移し、再び旧データへ戻す方向は一般には元に戻らない。
+この \texttt{migrate} は、旧形式の \texttt{middle} を新形式へ保存しません。
+したがって、旧データから新データへ移し、再び旧データへ戻す方向は一般には元に戻りません。
 
-ただし、逆方向は戻る。新形式には最初から \texttt{middle} がないので、\texttt{rollback} で \texttt{middle = none} を補い、もう一度 \texttt{migrate} すると、元の新形式に戻る。
+ただし、逆方向は元に戻ります。
+新形式には最初から \texttt{middle} がないので、\texttt{rollback} で \texttt{middle = none} を補い、もう一度 \texttt{migrate} すると、元の新形式に戻ります。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -103,11 +132,13 @@ theorem new_round_trip (v : UserV2) :
 \label{lst:ch29-new-roundtrip}
 \end{listing}
 
-ここで得られた性質は「新形式に入る情報だけを見れば安定している」という主張である。これは有用だが、旧形式の情報をすべて保存しているという意味ではない。
+ここで得られた性質は、「新形式に入る情報だけを見れば安定している」という主張です。
+これは有用ですが、旧形式の情報をすべて保存しているという意味ではありません。
 
 \section{完全な round-trip が壊れることを明示する}
 
-lossy migration では、壊れる仕様を曖昧にしたままにしないことが重要である。Lean では、具体例を使って「強い仕様は成立しない」ことも明示できる。
+lossy migration では、壊れる仕様を曖昧にしたままにしないことが重要です。
+Lean では、具体例を使って「強い仕様は成立しない」ことも明示できます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -136,14 +167,23 @@ theorem strong_spec_fails : ¬ StrongRoundTrip := by
 \label{lst:ch29-strong-fails}
 \end{listing}
 
-\texttt{StrongRoundTrip} は、前章の lossless migration なら目標にできた仕様である。しかし本章の移行では、\texttt{oldWithMiddle} が反例になる。証明の意味は単純である。もし全旧データについて完全復元できるなら、\texttt{oldWithMiddle} も復元できるはずである。しかし Lean は、この具体例が復元されないことを計算で確認できる。したがって、強い仕様は成り立たない。
+\texttt{StrongRoundTrip} は、前章の lossless migration なら目標にできた仕様です。
+しかし、本章の移行では、\texttt{oldWithMiddle} が反例になります。
+証明の意味は単純です。
+もし全旧データについて完全復元できるなら、\texttt{oldWithMiddle} も復元できるはずです。
+しかし Lean は、この具体例が復元されないことを計算で確認できます。
+したがって、強い仕様は成り立ちません。
 
 \section{仕様弱化：証明可能な性質に落とす}
 
-完全復元が成り立たないなら、次に行うべきことは、業務上本当に必要な性質を選ぶことである。たとえば、管理画面ではミドルネームを表示しない方針かもしれない。検索や通知では、\texttt{firstName} と \texttt{lastName} だけが使われるかもしれない。その場合、保存すべき性質は「旧データ全体が復元できること」ではなく、「公開表示が一致すること」である。
+完全復元が成り立たないなら、次に行うべきことは、業務で本当に必要な性質を選ぶことです。
+たとえば、管理画面ではミドルネームを表示しない方針かもしれません。
+検索や通知では、\texttt{firstName} と \texttt{lastName} だけが使われるかもしれません。
+その場合、保存すべき性質は「旧データ全体が復元できること」ではなく、「公開表示が一致すること」です。
 
 \begin{definitionbox}
-\textbf{仕様弱化}とは、証明できない強い仕様を、業務上必要で証明可能な弱い仕様へ置き換えることである。本章の例では、\texttt{rollback (migrate u) = u} を諦め、\texttt{displayV2 (migrate u) = canonicalDisplayV1 u} を証明する。
+\textbf{仕様弱化}とは、証明できない強い仕様を、業務で必要かつ証明可能な弱い仕様へ置き換えることです。
+本章の例では、\texttt{rollback (migrate u) = u} を諦め、\texttt{displayV2 (migrate u) = canonicalDisplayV1 u} を証明します。
 \end{definitionbox}
 
 \begin{listing}[htbp]
@@ -165,13 +205,18 @@ theorem weak_display_spec_holds : WeakDisplaySpec := by
 \label{lst:ch29-weak-display}
 \end{listing}
 
-この定理は、すべての旧データについて、新形式に移した後の表示が、旧形式を公開表示用に正規化した結果と一致することを述べている。ミドルネームを含む旧データでも成立する。ただし、それはミドルネームが保存されるという意味ではない。ミドルネームを表示仕様の外に置く、という仕様判断をしたから成立する。
+この定理は、すべての旧データについて、新形式に移した後の表示が、旧形式を公開表示用に正規化した結果と一致することを述べています。
+ミドルネームを含む旧データでも成立します。
+ただし、それはミドルネームが保存されるという意味ではありません。
+ミドルネームを表示仕様の外に置くという仕様判断をしたため、成立します。
 
-図\ref{fig:ch29-spec-weakening}は、値全体の等式から、公開表示という観測結果の等式へ証明対象を変える流れを示す。
+図\ref{fig:ch29-spec-weakening}は、値全体の等式から、公開表示という観測結果の等式へ証明対象を変える流れを示します。
 
 \FigurePlaceholder{fig-ch29-spec-weakening.png}{0.92}{仕様弱化}{fig:ch29-spec-weakening}
 
-仕様弱化は、単なる妥協ではない。保証範囲を明確にする作業である。強い仕様が成り立たないときに、どの観測なら保存できるのかを明示することで、レビューは具体的になる。
+仕様弱化は、単なる妥協ではありません。
+保証範囲を明確にする作業です。
+強い仕様が成り立たないときに、どの観測なら保存できるのかを明示することで、レビューは具体的になります。
 
 \begin{center}
 \begin{tabular}{p{0.25\linewidth}p{0.34\linewidth}p{0.31\linewidth}}
@@ -188,10 +233,15 @@ theorem weak_display_spec_holds : WeakDisplaySpec := by
 
 \section{well-formed 条件を導入する}
 
-仕様弱化には二つの方向がある。一つは、保存する観測を弱めることである。前節の表示互換がこれにあたる。もう一つは、入力範囲を狭めることである。旧データのうち、ミドルネームを持たないものだけを対象にすれば、完全復元は成立する。
+仕様弱化には、二つの方向があります。
+一つは、保存する観測を弱めることです。
+前節の表示互換がこれにあたります。
+もう一つは、入力範囲を狭めることです。
+旧データのうち、ミドルネームを持たないものだけを対象にすれば、完全復元は成立します。
 
 \begin{definitionbox}
-\textbf{well-formed 条件}とは、証明したい性質が成立する入力の範囲を明示する述語である。本章のモデルでは、\texttt{NoMiddle u} を「旧データ \texttt{u} はミドルネームを持たない」という条件として使う。
+\textbf{well-formed 条件}とは、証明したい性質が成立する入力の範囲を明示する述語です。
+本章のモデルでは、\texttt{NoMiddle u} を「旧データ \texttt{u} はミドルネームを持たない」という条件として使います。
 \end{definitionbox}
 
 \begin{listing}[htbp]
@@ -214,13 +264,17 @@ theorem rollback_after_migrate_if_no_middle
 \label{lst:ch29-wellformed}
 \end{listing}
 
-この証明では、\texttt{NoMiddle u} という前提を使う。前提があるため、旧データの \texttt{middle} は \texttt{none} だとわかる。すると、\texttt{rollback} が補う \texttt{middle = none} と一致し、構造体全体が元に戻る。
+この証明では、\texttt{NoMiddle u} という前提を使います。
+前提があるため、旧データの \texttt{middle} は \texttt{none} だと分かります。
+すると、\texttt{rollback} が補う \texttt{middle = none} と一致し、構造体全体が元に戻ります。
 
-Lean の定理に現れる well-formed 条件は、移行前のデータ検査や対象抽出でも確認すべき運用上の前提になる。
+Lean の定理に現れる well-formed 条件は、移行前のデータ検査や対象抽出でも確認すべき運用上の前提になります。
 
 \section{正規化として見る}
 
-lossy migration は、旧データを新形式で表せる範囲へ丸める操作として見ることもできる。本章の例では、\texttt{rollback (migrate u)} が「ミドルネームを落とした旧データ」を作る。これを正規化と呼ぶ。
+lossy migration は、旧データを新形式で表せる範囲へ丸める操作として見ることもできます。
+本章の例では、\texttt{rollback (migrate u)} が「ミドルネームを落とした旧データ」を作ります。
+これを正規化と呼びます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -247,58 +301,73 @@ theorem normalize_idempotent (u : UserV1) :
 \label{lst:ch29-normalize}
 \end{listing}
 
-\texttt{migrate\_after\_normalize} は、正規化してから移行しても、最初に移行した結果と変わらないことを述べる。\texttt{normalize\_idempotent} は、正規化を二度かけても一度かけた結果と同じであることを述べる。これは lossy migration を扱うときの典型的な保証である。
+\texttt{migrate\_after\_normalize} は、正規化してから移行しても、最初に移行した結果と変わらないことを述べます。
+\texttt{normalize\_idempotent} は、正規化を二度かけても一度かけた結果と同じであることを述べます。
+これは、lossy migration を扱うときの典型的な保証です。
 
-圏論的には、ここには商や抽象化の発想がある。
-移行結果が等しい旧データどうしを同値とみなす関係は作れるが、本章では商対象の普遍性までは証明していない。
-\texttt{middle} だけが違う旧データを新形式で区別しない、という粗い観測を扱っている。
+圏論の観点では、ここに商や抽象化の発想があります。
 
-図\ref{fig:ch29-normalization-quotient}では、\texttt{middle} の異なる複数の旧データが同じ新データへ写る。
+移行結果が等しい旧データどうしを同値とみなす関係は作れますが、本章では商対象の普遍性までは証明していません。
+
+\texttt{middle} だけが違う旧データを新形式で区別しないという粗い観測を扱っています。
+
+図\ref{fig:ch29-normalization-quotient}では、\texttt{middle} の異なる複数の旧データが同じ新データへ写ります。
 
 \FigurePlaceholder{fig-ch29-normalization-quotient.png}{0.92}{移行が同一視する旧データ}{fig:ch29-normalization-quotient}
 
 \section{仕様レビューでの使い方}
 
-lossy migration のレビューでは、コードだけでなく仕様の強さを確認する。次の問いを順に書き出すとよい。
+lossy migration のレビューでは、コードだけでなく仕様の強さを確認します。
+次の問いを順に書き出すとよいでしょう。
 
 \begin{itemize}
-\item 旧形式と新形式の型は何か。
-\item 新形式に保存されない情報は何か。
-\item 完全な round-trip は成り立つか。成り立たないなら反例は何か。
-\item well-formed 条件を置けば完全復元できるか。
-\item 入力範囲を狭めない場合、どの観測なら保存されるか。
-\item 正規化後の値は安定しているか。
-\item 証明した性質と、証明していない性質を設計文書に分けて書いているか。
+\item 旧形式と新形式の型は何でしょうか。
+\item 新形式に保存されない情報は何でしょうか。
+\item 完全な round-trip は成り立つでしょうか。
+成り立たないなら、反例は何でしょうか。
+\item well-formed 条件を置けば、完全復元できるでしょうか。
+\item 入力範囲を狭めない場合、どの観測なら保存されるでしょうか。
+\item 正規化後の値は安定しているでしょうか。
+\item 証明した性質と証明していない性質を、設計文書に分けて書いているでしょうか。
 \end{itemize}
 
-この章の例でいえば、設計文書には次のように書ける。
+この章の例であれば、設計文書には次のように書けます。
 
 \begin{quote}
 本移行は、\texttt{middle} に相当する情報を新スキーマに保存しないため、旧データ全体に対する完全復元は保証しない。ただし、\texttt{middle = none} の旧データについては \texttt{rollback (migrate u) = u} が成立する。また、全旧データについて、\texttt{first + last} による公開表示は移行後も保存される。移行後に旧形式へ戻す場合、値は \texttt{middle = none} の正規化済み旧形式になる。
 \end{quote}
 
-このように書くと、「互換性あり」という曖昧な言葉ではなく、何が保存され、何が保存されないかをレビューできる。
+このように書くと、「互換性あり」という曖昧な言葉ではなく、何が保存され、何が保存されないかをレビューできます。
 
 \section{本章ではここまで}
 
-本章では、\texttt{fullName} から \texttt{firstName} / \texttt{lastName} への移行を題材に、lossy migration と仕様弱化を扱った。実務の文字列処理そのものは、もっと多くの例外を持つ。姓名順、敬称、法人名、ニックネーム、複数空白、Unicode 正規化なども考える必要がある。本章の Lean モデルは、それらを直接検証しているわけではない。
+本章では、\texttt{fullName} から \texttt{firstName} / \texttt{lastName} への移行を題材に、lossy migration と仕様弱化を扱いました。
+実務の文字列処理そのものは、さらに多くの例外を持ちます。
+姓名順、敬称、法人名、ニックネーム、複数空白、Unicode 正規化なども考える必要があります。
+本章の Lean モデルは、それらを直接検証しているわけではありません。
 
-それでも、この小さなモデルには価値がある。どの仕様が強すぎるのか、どの条件なら復元できるのか、どの観測なら保存できるのかを分けて書けるからである。
+それでも、この小さなモデルには価値があります。
+どの仕様が強すぎるのか、どの条件なら復元できるのか、どの観測なら保存できるのかを分けて書けるためです。
 
 \begin{warningbox}
-本章の証明は、実装の文字列パーサが正しいことを保証しない。保証しているのは、モデル化した範囲での情報損失、条件付き復元、表示互換、正規化安定性である。実システムに適用する場合は、パーサ、Unicode 正規化、入力データ品質、運用上の対象範囲を別途確認する必要がある。
+本章の証明は、実装の文字列パーサが正しいことを保証しません。
+保証しているのは、モデル化した範囲での情報損失、条件付き復元、表示互換、正規化安定性です。
+実システムに適用する場合は、パーサ、Unicode 正規化、入力データ品質、運用上の対象範囲を別途確認する必要があります。
 \end{warningbox}
 
 \section{本章のまとめ}
 
-lossy migration は完全同型ではない。二つの変換関数があっても、round-trip law がなければ安全な相互変換とは言えない。
+lossy migration は、完全同型ではありません。
+二つの変換関数があっても、round-trip law がなければ安全な相互変換とはいえません。
 
-強い仕様が成り立たないときは、反例を明示する。これにより、保証できないことを設計レビューで隠さず扱える。
+強い仕様が成り立たないときは、反例を明示します。
+これにより、保証できないことを設計レビューで隠さず扱えます。
 
-仕様弱化では、完全復元ではなく、表示互換、検索キー保存、集計結果保存など、業務上必要な観測を選んで証明する。
+仕様弱化では、完全復元ではなく、表示互換、検索キー保存、集計結果保存など、業務で必要な観測を選んで証明します。
 
-well-formed 条件を置けば、入力範囲を狭めた条件付き round-trip を証明できる場合がある。
+well-formed 条件を置けば、入力範囲を狭めた条件付き round-trip を証明できる場合があります。
 
-lossy migration は正規化として見ることもできる。一度正規化した値が安定することは、実務上有用な保証になる。
+lossy migration は、正規化として見ることもできます。
+一度正規化した値が安定することは、実務で有用な保証になります。
 
 % The namespace is closed in the extracted Lean file.

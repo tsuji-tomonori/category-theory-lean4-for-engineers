@@ -3,31 +3,31 @@
 \label{chap:ch05_prop_and_specs}
 
 \begin{chapterabstract}
-本章では、これまで具体例で読んできた \texttt{hasDiscount member = true} という形の主張に名前を付ける。
-そのために、命題の型 \texttt{Prop} を導入し、\texttt{member} の値ごとに命題を作る \texttt{DiscountSpec} を定義する。
+本章では、これまで具体例で読んできた \texttt{hasDiscount member = true} という形の主張に名前を付けます。
+そのために、命題の型 \texttt{Prop} を導入し、\texttt{member} の値ごとに命題を作る \texttt{DiscountSpec} を定義します。
 \end{chapterabstract}
 
 \begin{learninggoals}
-\item \texttt{Bool} と \texttt{Prop} の違いを、計算される値と証明したい主張の違いとして説明できる。
-\item \texttt{Prop} を返す定義を書き、仕様に名前を付けられる。
-\item \texttt{DiscountSpec true} と \texttt{DiscountSpec false} が、それぞれどんな命題になるかを展開できる。
+\item \texttt{Bool} と \texttt{Prop} の違いを、計算される値と証明したい主張の違いとして説明できます。
+\item \texttt{Prop} を返す定義を書き、仕様に名前を付けられます。
+\item \texttt{DiscountSpec true} と \texttt{DiscountSpec false} が、それぞれどのような命題になるかを展開できます。
 \end{learninggoals}
 
 \section{この章を読む理由}
 
-ここまで、\texttt{hasDiscount true = true} のような主張を何度も読んできた。
-同じ形の主張を毎回そのまま書くのは冗長で、設計文書とも対応させにくい。
-そこで、主張に名前を付ける。
-名前を付けると、その主張を「仕様」として扱い、後から参照できるようになる。
+ここまで、\texttt{hasDiscount true = true} のような主張を何度も読んできました。
+同じ形の主張を毎回そのまま書くと冗長になり、設計文書とも対応させにくくなります。
+そこで、主張に名前を付けます。
+名前を付けると、その主張を「仕様」として扱い、後から参照できます。
 
 \section{\texttt{Bool} と \texttt{Prop} の違い}
 
-\texttt{hasDiscount member} は \texttt{Bool} を返す。
-これは実行時に \texttt{true} か \texttt{false} に\emph{計算される値}である。
-一方、\texttt{hasDiscount member = true} は、計算する値ではなく、成り立つかどうかを問う\emph{主張}である。
-このような主張の型を、Lean では \texttt{Prop} と書く。
+\texttt{hasDiscount member} は \texttt{Bool} を返します。
+これは、実行時に \texttt{true} または \texttt{false} に\emph{計算される値}です。
+一方、\texttt{hasDiscount member = true} は計算する値ではなく、成り立つかどうかを問う\emph{主張}です。
+Lean では、このような主張の型を \texttt{Prop} と書きます。
 
-図\ref{fig:ch05-bool-vs-prop}では、実行時に計算する判定と、その判定について証明する仕様を別の層として示す。
+図\ref{fig:ch05-bool-vs-prop}は、実行時に計算する判定と、その判定について証明する仕様を別の層として示します。
 
 \FigurePlaceholder{fig-ch05-bool-vs-prop.png}{0.88}{\texttt{Bool} と \texttt{Prop}}{fig:ch05-bool-vs-prop}
 
@@ -46,12 +46,13 @@
 \end{tabular}
 \end{table}
 
-表\ref{tab:ch05-bool-prop}のように、\texttt{Bool} は判定結果、\texttt{Prop} は保証したい主張、と読み分ける。
-両者は競合せず、実務では実装の判定を \texttt{Bool} で書き、その判定が満たすべき性質を \texttt{Prop} で書く。
+表\ref{tab:ch05-bool-prop}のように、\texttt{Bool} は判定結果、\texttt{Prop} は保証したい主張として読み分けます。
+両者は競合するものではありません。
+実務では、実装の判定を \texttt{Bool} で書き、その判定が満たすべき性質を \texttt{Prop} で書きます。
 
 \section{仕様に名前を付ける}
 
-\texttt{member} の値ごとに「割引があると言えるか」という命題を作る定義を書く。
+\texttt{member} の値ごとに「割引があると言えるか」という命題を作る定義を書きます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -65,13 +66,13 @@ def DiscountSpec (member : Bool) : Prop :=
 \label{lst:ch05_discountspec}
 \end{listing}
 
-コード\ref{lst:ch05_discountspec}の \texttt{DiscountSpec} は、\texttt{Bool} を受け取って \texttt{Prop} を返す定義である。
-つまり、\texttt{member} の値ごとに「\texttt{hasDiscount member = true} が成り立つ」という命題を作る。
-返り値の型が \texttt{Prop} であることが、これが値ではなく主張の定義であることを示している。
+コード\ref{lst:ch05_discountspec}の \texttt{DiscountSpec} は、\texttt{Bool} を受け取って \texttt{Prop} を返す定義です。
+つまり、\texttt{member} の値ごとに「\texttt{hasDiscount member = true} が成り立つ」という命題を作ります。
+返り値の型が \texttt{Prop} であることは、これが値ではなく主張の定義であることを示します。
 
 \section{名前に値を入れて展開する}
 
-仕様名に具体的な値を入れると、どんな命題になるかが決まる。
+仕様名に具体的な値を入れると、どのような命題になるかが決まります。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -88,8 +89,8 @@ def DiscountSpec (member : Bool) : Prop :=
 \label{lst:ch05_apply}
 \end{listing}
 
-コード\ref{lst:ch05_apply}では、\texttt{DiscountSpec true} と \texttt{DiscountSpec false} がそれぞれ命題になっている。
-何の命題になるかは、定義に値を入れて展開すると分かる。
+コード\ref{lst:ch05_apply}では、\texttt{DiscountSpec true} と \texttt{DiscountSpec false} がそれぞれ命題になっています。
+命題の内容は、定義に値を入れて展開すると分かります。
 
 \begin{table}[htbp]
 \centering
@@ -105,23 +106,24 @@ def DiscountSpec (member : Bool) : Prop :=
 \end{tabular}
 \end{table}
 
-表\ref{tab:ch05-expand}のように、\texttt{DiscountSpec true} は最終的に \texttt{true = true} になり証明できる。
-\texttt{DiscountSpec false} は \texttt{false = true} になり証明できない。
-仕様名を見たときに、この展開を頭の中でたどれることが大切である。
+表\ref{tab:ch05-expand}のように、\texttt{DiscountSpec true} は最終的に \texttt{true = true} になり、証明できます。
+\texttt{DiscountSpec false} は \texttt{false = true} になり、証明できません。
+仕様名を見たときに、この展開を頭の中でたどれることが大切です。
 
 \section{本章のまとめ}
 
 \begin{summarybox}
 要点と記法
 \begin{itemize}
-\item \texttt{Bool} は計算される真偽値、\texttt{Prop} は証明の対象となる命題の型。
-\item \texttt{def 名前 (引数) : Prop := 主張} \quad 仕様への命名。
+\item \texttt{Bool}：計算される真偽値
+\item \texttt{Prop}：証明の対象となる命題の型
+\item \texttt{def 名前 (引数) : Prop := 主張}：仕様への命名
 \end{itemize}
 \end{summarybox}
 
 \section{次章への接続}
+\enlargethispage{2\baselineskip}
 
-本章では、主張に \texttt{DiscountSpec} という名前を付けた。
-次章では、その仕様が成り立つことを名前付きで証明する \texttt{theorem} を導入し、
-\texttt{theorem member\_hasDiscount : DiscountSpec true := by rfl} に到達する。
-ここまで来ると、定理を見ただけで展開の流れを追えるようになる。
+本章では、主張に \texttt{DiscountSpec} という名前を付けました。
+次章では、その仕様が成り立つことを名前付きで証明する \texttt{theorem} を導入し、\texttt{theorem member\_hasDiscount : DiscountSpec true := by rfl} に到達します。
+ここまで進むと、定理を見ただけで展開の流れを追えるようになります。

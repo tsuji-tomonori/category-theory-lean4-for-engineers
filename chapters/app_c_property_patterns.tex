@@ -3,45 +3,59 @@
 \label{app:proof-property-patterns}
 
 \begin{chapterabstract}
-この付録では、本書の各章で繰り返し現れる「証明したい性質」を、実務で再利用しやすいパターンとして整理する。対象は、マイグレーション、API adapter、リファクタリング、集計、バッチ処理、不変条件付きのドメイン操作である。
+この付録では、本書の各章で繰り返し現れる「証明したい性質」を、実務で再利用しやすいパターンとして整理します。
+対象は、マイグレーション、API adapter、リファクタリング、集計、バッチ処理、不変条件付きのドメイン操作です。
 
-ここでの目的は、Lean 4 の証明テクニックを網羅することではない。目的は、設計レビューや仕様レビューで出てくる自然言語の確認項目を、Lean で検査できる命題の形へ落とし込むことである。各パターンでは、まずソフトウェア上の困りごとを述べ、次に命題の形、Lean での最小モデル、証明方針、実務での注意点を示す。
+ここでの目的は、Lean 4 の証明テクニックを網羅することではありません。
+設計レビューや仕様レビューに現れる自然言語の確認項目を、Lean で検査できる命題の形へ落とし込むことが目的です。
+各パターンでは、まずソフトウェア上の問題を述べ、次に命題の形、Lean での最小モデル、証明方針、実務での注意点を示します。
 \end{chapterabstract}
 
 \begin{learninggoals}
-\item 「この変更で何を保証したいのか」を、性質パターンとして分類できる。
-\item round-trip、冪等性、単調性、長さ保存、キー保存、総量保存、map との可換性、自然性、不変条件保存、事前条件・事後条件を Lean の命題として読める。
-\item テストケースではなく証明で確認すべき核を、仕様から小さく切り出せる。
-\item 証明できる性質と、モデル外として明示すべき性質を区別できる。
+\item 「この変更で何を保証したいのか」を、性質パターンとして分類できるようになります。
+\item round-trip、冪等性、単調性、長さ保存、キー保存、総量保存、map との可換性、自然性、不変条件保存、事前条件、事後条件を Lean の命題として読めるようになります。
+\item テストケースではなく証明で確認すべき核を、仕様から小さく切り出せるようになります。
+\item 証明できる性質と、モデル外として明示すべき性質を区別できるようになります。
 \end{learninggoals}
 
 \section{この付録の使い方}
 
 \begin{intuitionbox}
-性質のパターンとは、実務で何度も出てくる「確認したいこと」の型である。たとえば「移行して戻したら元に戻るか」は round-trip、「二度正規化しても結果が変わらないか」は冪等性、「変換しても件数が変わらないか」は長さ保存である。
+性質のパターンとは、実務で繰り返し現れる「確認したいこと」の型です。
+たとえば、「移行して戻したら元に戻るか」は round-trip、「二度正規化しても結果が変わらないか」は冪等性、「変換しても件数が変わらないか」は長さ保存です。
 \end{intuitionbox}
 
-自然言語の仕様には、「安全に移行する」「一貫性を保つ」「正しく変換する」のような表現がよく現れる。しかし、そのままでは Lean に書けない。Lean に書くには、次の三つを明確にする必要がある。
+自然言語の仕様には、「安全に移行する」「一貫性を保つ」「正しく変換する」のような表現がよく現れます。
+しかし、そのままでは Lean に書けません。
+Lean に書くには、次の三つを明確にする必要があります。
 
 \begin{itemize}
-\item どの型の値について述べているか。
-\item どの関数や操作について述べているか。
-\item 操作の前後で、どの関係や等式が成り立つべきか。
+\item どの型の値について述べているのでしょうか。
+\item どの関数や操作について述べているのでしょうか。
+\item 操作の前後で、どの関係や等式が成り立つべきでしょうか。
 \end{itemize}
 
-この付録は、その三つ目を選ぶためのカタログである。各パターンは独立して読めるが、実務では複数を組み合わせることが多い。たとえば、スキーマ移行では round-trip とキー保存を同時に証明することがある。バッチ移行では、単体の round-trip に加えて、長さ保存や `map` との可換性が必要になる。
+この付録は、その三つ目を選ぶためのカタログです。
+各パターンは独立して読めますが、実務では複数を組み合わせることが多くあります。
+たとえば、スキーマ移行では、round-trip とキー保存を同時に証明する場合があります。
+バッチ移行では、単体の round-trip に加えて、長さ保存や \texttt{map} との可換性が必要になります。
 
 \begin{softwarebox}
-設計レビューでは、まず「今回の変更は何を保存すべきか」を聞くとよい。情報を保存するのか、件数を保存するのか、キーを保存するのか、合計値を保存するのか、業務ロジックとの順序を入れ替えてもよいのか。この問いに答えると、証明したい性質の候補が自然に決まる。
+設計レビューでは、まず「今回の変更は何を保存すべきか」を確認するとよいでしょう。
+情報を保存するのか、件数を保存するのか、キーを保存するのか、合計値を保存するのか、業務ロジックとの順序を入れ替えてもよいのかを確認します。
+この問いに答えると、証明したい性質の候補が自然に決まります。
 \end{softwarebox}
 
 \FigurePlaceholder{fig-appc-property-pattern-map.png}{0.92}{性質パターン}{fig:appc-property-pattern-map}
 
-図\ref{fig:appc-property-pattern-map}は、各性質を、移行・変換・集約・不変条件・adapterという利用場面へ対応づけている。一つの変更が複数の性質を必要とする場合もある。
+図\ref{fig:appc-property-pattern-map}は、各性質を、移行、変換、集約、不変条件、adapter という利用場面へ対応付けています。
+一つの変更に複数の性質が必要となる場合もあります。
 
 \section{まず分類する}
 
-証明したい性質は、いきなり Lean のコードにしない。まず、何を比較しているのかを分類する。次の表は、実務上の問いと Lean での命題の形を対応させたものである。
+証明したい性質を、すぐに Lean のコードへ変換するわけではありません。
+まず、何を比較しているのかを分類します。
+次の表は、実務上の問いと Lean における命題の形を対応させたものです。
 
 \begin{longtable}{@{}p{0.15\linewidth}p{0.25\linewidth}p{0.28\linewidth}p{0.12\linewidth}@{}}
 \toprule
@@ -66,23 +80,28 @@ pre/post condition & 成功時の結果が仕様を満たすか & \texttt{op x =
 \end{longtable}
 
 \begin{warningbox}
-表の命題形はあくまで最小形である。実システムでは、事前条件、well-formed 条件、エラーケース、外部システムの仮定が必要になる。Lean で証明した性質は、Lean に書いたモデルの範囲についてだけ有効である。
+表の命題形は、あくまで最小の形です。
+実システムでは、事前条件、well-formed 条件、エラーケース、外部システムの仮定が必要になります。
+Lean で証明した性質は、Lean に記述したモデルの範囲についてだけ有効です。
 \end{warningbox}
 
 \section{パターン1：round-trip}
 
 \subsection{何を保証するか}
 
-round-trip は、変換して戻したら元に戻る、という性質である。スキーマ移行、encoder/decoder、DTO 変換、旧 API と新 API の互換性確認で使う。
+round-trip は、変換して戻したら元に戻るという性質です。
+スキーマ移行、encoder/decoder、DTO 変換、旧 API と新 API の互換性確認で使います。
 
 \begin{definitionbox}
-型 \texttt{A} から型 \texttt{B} への変換 \texttt{to : A -> B} と、戻す変換 \texttt{from : B -> A} があるとする。少なくとも \texttt{from (to a) = a} がすべての \texttt{a : A} で成り立つなら、\texttt{A} 側の情報は \texttt{B} へ移して戻せる。
+型 \texttt{A} から型 \texttt{B} への変換 \texttt{to : A -> B} と、戻す変換 \texttt{from : B -> A} があるとします。
+少なくとも \texttt{from (to a) = a} がすべての \texttt{a : A} について成り立つなら、\texttt{A} 側の情報は \texttt{B} へ移して戻せます。
 
-両方向、つまり \texttt{from (to a) = a} と \texttt{to (from b) = b} の両方が成り立つなら、モデル上は情報を失わない相互変換として扱える。
+両方向、すなわち \texttt{from (to a) = a} と \texttt{to (from b) = b} の両方が成り立つなら、モデル上では情報を失わない相互変換として扱えます。
 \end{definitionbox}
 
 \begin{leanbox}
-Lean では、移行関数と戻し関数を普通の関数として定義し、round-trip を定理として書く。構造体のフィールドを並べ替えるだけなら、\texttt{cases} と \texttt{rfl} で証明できることが多い。
+Lean では、移行関数と戻し関数を通常の関数として定義し、round-trip を定理として書きます。
+構造体のフィールドを並べ替えるだけであれば、\texttt{cases} と \texttt{rfl} で証明できる場合が多くあります。
 \end{leanbox}
 
 \begin{listing}[htbp]
@@ -114,23 +133,26 @@ theorem rollback_migrate (u : UserV1) :
 \label{lst:appc_roundtrip}
 \end{listing}
 
-このコードでは、旧形式から新形式へ移す\texttt{migrate}と、新形式から旧形式へ戻す\texttt{rollback}を定義している。
-\texttt{rollback\_migrate}は、旧形式の値については移して戻すと元に戻ることを示している。
+このコードでは、旧形式から新形式へ移す\texttt{migrate}と、新形式から旧形式へ戻す\texttt{rollback}を定義しています。
+\texttt{rollback\_migrate}は、旧形式の値について、移して戻すと元に戻ることを示しています。
 
 \subsection{実務での注意}
 
 \begin{warningbox}
-一方向の round-trip だけでは、完全な同型とは言えない。\texttt{rollback (migrate u) = u} は「旧形式のデータは新形式へ移して戻せる」ことを示す。一方で、\texttt{migrate (rollback v) = v} がなければ、すべての新形式データが旧形式と同じ情報だけでできているとは言えない。
+一方向の round-trip だけでは、完全な同型とはいえません。
+\texttt{rollback (migrate u) = u} は、「旧形式のデータは新形式へ移して戻せる」ことを示します。
+一方、\texttt{migrate (rollback v) = v} がなければ、すべての新形式データが旧形式と同じ情報だけで構成されているとはいえません。
 \end{warningbox}
 
 \section{パターン2：idempotent}
 
 \subsection{何を保証するか}
 
-idempotent、すなわち冪等性は、同じ処理を二度実行しても、一度実行した結果と変わらないという性質である。入力正規化、ステータス正規化、重複削除、キャッシュの再構築、設定の標準化などで使う。
+idempotent、すなわち冪等性とは、同じ処理を二度実行しても、一度実行した結果と変わらないという性質です。
+入力正規化、ステータス正規化、重複削除、キャッシュの再構築、設定の標準化などで使います。
 
 \begin{definitionbox}
-関数 \texttt{normalize : A -> A} が冪等であるとは、すべての \texttt{x : A} について次が成り立つことである。
+関数 \texttt{normalize : A -> A} が冪等であるとは、すべての \texttt{x : A} について次が成り立つことです。
 
 \[
 \texttt{normalize (normalize x) = normalize x}
@@ -157,27 +179,29 @@ theorem normalizeStatus_idempotent (s : Status) :
 \label{lst:appc_idempotent}
 \end{listing}
 
-このコードでは、\texttt{deleted}を\texttt{archived}へ寄せ、それ以外の状態はそのままにする正規化を定義している。
-\texttt{normalizeStatus\_idempotent}は、一度正規化した値をもう一度正規化しても結果が変わらないことを示している。
+このコードでは、\texttt{deleted}を\texttt{archived}へ寄せ、それ以外の状態はそのままにする正規化を定義しています。
+\texttt{normalizeStatus\_idempotent}は、一度正規化した値をもう一度正規化しても、結果が変わらないことを示しています。
 
 \subsection{実務での注意}
 
 \begin{softwarebox}
-冪等性がある処理は、再実行しやすい。バッチ処理が途中で落ちたあとに再実行する、Webhook を重複受信する、設定正規化を何度も通す、といった場面で設計上の安心材料になる。
+冪等性がある処理は、再実行しやすくなります。
+バッチ処理が途中で停止した後に再実行する場合、Webhook を重複受信する場合、設定正規化を繰り返し適用する場合などに、設計上の安心材料になります。
 \end{softwarebox}
 
-ただし、「二度実行しても最終状態が同じ」という主張と、「副作用が一度しか起きない」という主張は別である。メール送信や課金のような外部副作用は、別のモデルが必要になる。
+ただし、「二度実行しても最終状態が同じ」という主張と、「副作用が一度しか起きない」という主張は別です。
+メール送信や課金のような外部副作用には、別のモデルが必要になります。
 
 \section{パターン3：monotone}
 
 \subsection{何を保証するか}
 
-monotone、すなわち単調性は、入力を大きくする、詳しくする、強くする、安全側に寄せると、出力もそれに対応して大きくなる、詳しくなる、強くなる、という性質である。
+monotone、すなわち単調性とは、入力を大きくする、詳しくする、強くする、安全側に寄せると、出力もそれに対応して大きくなる、詳しくなる、強くなるという性質です。
 
-仕様の強弱、権限、公開範囲、ログの詳細度、静的解析の近似、フィルタ条件の追加などで使う。
+仕様の強弱、権限、公開範囲、ログの詳細度、静的解析の近似、フィルタ条件の追加などで使います。
 
 \begin{definitionbox}
-順序 \texttt{<=} がある型で、関数 \texttt{f : A -> B} が単調であるとは、\texttt{x <= y} なら \texttt{f x <= f y} が成り立つことである。
+順序 \texttt{<=} がある型で、関数 \texttt{f : A -> B} が単調であるとは、\texttt{x <= y} なら \texttt{f x <= f y} が成り立つことです。
 
 \[
 \texttt{x <= y -> f x <= f y}
@@ -211,24 +235,29 @@ theorem addQuota_monotone (extra x y : Nat) (h : x <= y) :
 \label{lst:appc_monotone}
 \end{listing}
 
-このコードでは、二つの仕様\texttt{p}と\texttt{q}の強弱関係を\texttt{SpecLe p q}として表し、その関係が反射律と推移律を満たすことを確認している。本章の向きでは \texttt{p} が \texttt{q} を含意するとき \texttt{p} を強い側に置く。\texttt{addQuota\_monotone} は、通常の自然数順序について、両入力に同じ値を足す関数が実際に単調であることを示す。
+このコードでは、二つの仕様\texttt{p}と\texttt{q}の強弱関係を\texttt{SpecLe p q}として表し、その関係が反射律と推移律を満たすことを確認しています。
+本章の向きでは、\texttt{p} が \texttt{q} を含意するとき、\texttt{p} を強い側に置きます。
+\texttt{addQuota\_monotone} は、通常の自然数順序について、両入力に同じ値を足す関数が実際に単調であることを示しています。
 
 \subsection{実務での注意}
 
 \begin{softwarebox}
-\texttt{SpecLe p q} は「\texttt{p} が成り立つなら \texttt{q} も成り立つ」という形で、仕様の強弱を表している。強い仕様から弱い仕様へ落とす、詳細ログから公開ログへ落とす、内部権限から外部権限へ写す、といったときの安全性確認に使える。
+\texttt{SpecLe p q} は、「\texttt{p} が成り立つなら \texttt{q} も成り立つ」という形で、仕様の強弱を表しています。
+強い仕様から弱い仕様へ落とす場合、詳細ログから公開ログへ落とす場合、内部権限から外部権限へ写す場合などの安全性確認に使えます。
 \end{softwarebox}
 
-等式で表せない変更を、無理に「同じ」と言ってはいけない。情報を落とす変換は、同型ではなく、単調性や仕様弱化として表す方が正確である。
+等式で表せない変更を、無理に「同じ」と述べてはいけません。
+情報を落とす変換は、同型ではなく、単調性や仕様弱化として表すほうが正確です。
 
 \section{パターン4：preserves length}
 
 \subsection{何を保証するか}
 
-preserves length は、リストや配列のようなコレクションを変換しても、要素数が変わらないという性質である。バッチ移行、ETL、一覧変換、CSV 行変換などで使う。
+preserves length は、リストや配列のようなコレクションを変換しても、要素数が変わらないという性質です。
+バッチ移行、ETL、一覧変換、CSV 行変換などで使います。
 
 \begin{definitionbox}
-関数 \texttt{f : A -> B} を各要素に適用するだけなら、リストの長さは変わらない。
+関数 \texttt{f : A -> B} を各要素に適用するだけなら、リストの長さは変わりません。
 
 \[
 \texttt{(xs.map f).length = xs.length}
@@ -259,30 +288,33 @@ theorem migrateItems_preserves_length (xs : List ItemV1) :
 \label{lst:appc_preserves_length}
 \end{listing}
 
-このコードでは、1件の移行関数 \texttt{migrateItem} を使う。
-\texttt{List.map} は、その関数をリストの全要素へ適用する。
-\texttt{migrateItems\_}\allowbreak\texttt{preserves\_length} は、要素を変換してもリストの件数は変わらないことを帰納法で示している。
+このコードでは、1件の移行関数 \texttt{migrateItem} を使います。
+\texttt{List.map} は、その関数をリストのすべての要素へ適用します。
+\texttt{migrateItems\_}\allowbreak\texttt{preserves\_length} は、要素を変換してもリストの件数が変わらないことを帰納法で示しています。
 
 \subsection{実務での注意}
 
 \begin{warningbox}
-長さ保存は「件数が同じ」ことしか言わない。要素の対応、順序、キー、値の意味、重複の扱いは別に証明する必要がある。件数だけ合っていても、安全な移行とは限らない。
+長さ保存は、「件数が同じ」であることしか示しません。
+要素の対応、順序、キー、値の意味、重複の扱いは、別に証明する必要があります。
+件数だけが一致していても、安全な移行とは限りません。
 \end{warningbox}
 
 \section{パターン5：preserves keys}
 
 \subsection{何を保証するか}
 
-preserves keys は、変換後も ID やキーが変わらないという性質である。DB スキーマ変更、イベント変換、キャッシュ再構築、検索インデックス更新などで重要になる。
+preserves keys は、変換後も ID やキーが変わらないという性質です。
+DB スキーマ変更、イベント変換、キャッシュ再構築、検索インデックス更新などで重要になります。
 
 \begin{definitionbox}
-レコード \texttt{r} のキーが \texttt{r.id} であり、移行関数が \texttt{migrateRow} なら、キー保存は次の形で表せる。
+レコード \texttt{r} のキーが \texttt{r.id} であり、移行関数が \texttt{migrateRow} なら、キー保存は次の形で表せます。
 
 \[
 \texttt{(migrateRow r).id = r.id}
 \]
 
-リスト全体については、キーの列が保存されるという形にできる。
+リスト全体については、キーの列が保存されるという形にできます。
 \end{definitionbox}
 
 \begin{listing}[htbp]
@@ -310,21 +342,25 @@ theorem migrateRows_preserves_ids (rs : List Row) :
 \label{lst:appc_preserves_keys}
 \end{listing}
 
-このコードでは、1行の移行でIDが保存されることと、行リスト全体でもID列が保存されることを分けて示している。
-リスト全体の定理では、各要素のID保存を\texttt{List.map}越しに持ち上げて読める。
+このコードでは、1行の移行で ID が保存されることと、行リスト全体でも ID 列が保存されることを分けて示しています。
+リスト全体の定理では、各要素の ID 保存を\texttt{List.map}越しに持ち上げたものとして読めます。
 
 \subsection{実務での注意}
 
-キー保存は、参照整合性や join 結果保存の前提になる。ただし、キーが保存されても値が正しく移行されたとは限らない。必要なら、キー保存と値保存を別々の定理として分ける。
+キー保存は、参照整合性や join 結果の保存に対する前提になります。
+ただし、キーが保存されても、値が正しく移行されたとは限りません。
+必要であれば、キー保存と値保存を別々の定理に分けます。
 
 \section{パターン6：preserves total}
 
 \subsection{何を保証するか}
 
-preserves total は、操作前後で合計や総量が変わらないという性質である。送金、在庫移動、ポイント移行、ログ集計、請求明細の分割・統合などで使う。
+preserves total は、操作前後で合計や総量が変わらないという性質です。
+送金、在庫移動、ポイント移行、ログ集計、請求明細の分割や統合などで使います。
 
 \begin{definitionbox}
-集計関数 \texttt{total : A -> Nat} と更新関数 \texttt{update : A -> A} があるとする。総量保存は、すべての \texttt{x} について次が成り立つことである。
+集計関数 \texttt{total : A -> Nat} と更新関数 \texttt{update : A -> A} があるとします。
+総量保存とは、すべての \texttt{x} について次が成り立つことです。
 
 \[
 \texttt{total (update x) = total x}
@@ -352,22 +388,25 @@ theorem swapAccounts_preserves_total (p : AccountPair) :
 \label{lst:appc_preserves_total}
 \end{listing}
 
-このコードでは、左右二つの口座を入れ替える操作\texttt{swapAccounts}と、合計を取る関数\texttt{total}を分けて定義している。
-\texttt{swapAccounts\_preserves\_total}は、順序を入れ替えても合計額は変わらないことを加法の交換法則で示している。
+このコードでは、左右二つの口座を入れ替える操作\texttt{swapAccounts}と、合計を取る関数\texttt{total}を分けて定義しています。
+\texttt{swapAccounts\_preserves\_total}は、順序を入れ替えても合計額が変わらないことを、加法の交換法則で示しています。
 
 \subsection{実務での注意}
 
 \begin{warningbox}
-金額や在庫を扱う実務モデルでは、自然数だけでは不十分なことが多い。通貨、丸め、手数料、監査ログ、トランザクション境界などは別の前提として明示する必要がある。このパターンは、まず「保存されるべき量」を関数として切り出すための入口である。
+金額や在庫を扱う実務モデルでは、自然数だけでは不十分な場合が多くあります。
+通貨、丸め、手数料、監査ログ、トランザクション境界などは、別の前提として明示する必要があります。
+このパターンは、まず「保存されるべき量」を関数として切り出すための入口です。
 \end{warningbox}
 
 \section{パターン7：commutes with map}
 
 \subsection{何を保証するか}
 
-commutes with map は、単体変換をリスト全体へ持ち上げたときに、変換の順序が期待通りに振る舞うことを表す。これは関手則の実務版である。
+commutes with map は、単体変換をリスト全体へ持ち上げたときに、変換の順序が期待どおりに振る舞うことを表します。
+これは、関手則の実務版です。
 
-たとえば、単体で \texttt{migrate} してから \texttt{rollback} することが恒等変換なら、リスト全体でも \texttt{map migrate} してから \texttt{map rollback} すれば元のリストに戻るはずである。
+たとえば、単体で \texttt{migrate} してから \texttt{rollback} することが恒等変換であれば、リスト全体でも \texttt{map migrate} してから \texttt{map rollback} すれば元のリストに戻るはずです。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -399,28 +438,32 @@ theorem map_roundtrip (xs : List SmallV1) :
 \label{lst:appc_commutes_with_map}
 \end{listing}
 
-\texttt{small\_roundtrip} は1件の値についてround-tripを示し、\texttt{map\_roundtrip} は同じ二変換をリスト全体の\texttt{map}へ持ち上げている。後者の証明はリストの形に沿った帰納法で進む。これは \texttt{List.map} の合成保存から得られる具体的な帰結であり、次節の自然変換の自然性とは別の性質である。
+\texttt{small\_roundtrip} は1件の値について round-trip を示し、\texttt{map\_roundtrip} は同じ二つの変換をリスト全体の\texttt{map}へ持ち上げています。
+後者の証明は、リストの形に沿った帰納法で進みます。
+これは \texttt{List.map} の合成保存から得られる具体的な帰結であり、次節で扱う自然変換の自然性とは別の性質です。
 
 \subsection{実務での注意}
 
 \begin{softwarebox}
-このパターンは、1件の移行仕様をバッチ移行仕様へ広げるときに使う。単体変換が安全でも、バッチ処理でフィルタ、ソート、重複排除、失敗時スキップなどを行うなら、長さ保存や順序保存は自動ではない。
+このパターンは、1件の移行仕様をバッチ移行仕様へ広げるときに使います。
+単体変換が安全でも、バッチ処理でフィルタ、ソート、重複排除、失敗時のスキップなどを行うなら、長さ保存や順序保存は自動的には得られません。
 \end{softwarebox}
 
 \section{パターン8：naturality}
 
 \subsection{何を保証するか}
 
-naturality、すなわち自然性は、adapter が中身の業務ロジックと干渉しないことを表す。API レスポンス wrapper、SDK の互換層、\texttt{Option A} から \texttt{List A} への変換などで使う。
+naturality、すなわち自然性は、adapter が中身の業務ロジックと干渉しないことを表します。
+API レスポンス wrapper、SDK の互換層、\texttt{Option A} から \texttt{List A} への変換などで使います。
 
 \begin{definitionbox}
-\texttt{adapter : F A -> G A} が自然であるとは、任意の関数 \texttt{f : A -> B} について、次の二つの経路が同じ結果になることである。
+\texttt{adapter : F A -> G A} が自然であるとは、任意の関数 \texttt{f : A -> B} について、次の二つの経路が同じ結果になることです。
 
 \[
 \texttt{adapter (map f x) = map f (adapter x)}
 \]
 
-先に中身を変えてから adapter を通しても、先に adapter を通してから中身を変えても同じ、という意味である。
+先に中身を変えてから adapter を通した場合と、先に adapter を通してから中身を変えた場合とで、結果が同じであるという意味です。
 \end{definitionbox}
 
 \begin{listing}[htbp]
@@ -439,21 +482,26 @@ theorem optionToList_natural {A B : Type}
 \label{lst:appc_naturality}
 \end{listing}
 
-このコードでは、\texttt{Option}の値を0件または1件の\texttt{List}へ変換するadapterを定義している。
-\texttt{optionToList\_natural}は、先に\texttt{Option.map}で中身を変換してからListへ移す経路と、先にListへ移してから\texttt{List.map}する経路が一致することを示している。
+このコードでは、\texttt{Option}の値を0件または1件の\texttt{List}へ変換する adapter を定義しています。
+\texttt{optionToList\_natural}は、先に\texttt{Option.map}で中身を変換してから List へ移す経路と、先に List へ移してから\texttt{List.map}する経路が一致することを示しています。
 
 \subsection{実務での注意}
 
-自然性は、各型に対する成分がすべての関数と可換であることを要求する。一般の自然変換と呼ぶには、両側の \texttt{Option} と \texttt{List} が関手則を満たすことも前提になる。この例の定理は、その具体的な自然性の等式を示している。adapter の中に型固有の特殊処理や業務ロジックを混ぜると、この等式は壊れやすい。
+自然性は、各型に対する成分がすべての関数と可換であることを要求します。
+一般の自然変換と呼ぶには、両側の \texttt{Option} と \texttt{List} が関手則を満たすことも前提になります。
+この例の定理は、その具体的な自然性の等式を示しています。
+adapter の中に型固有の特殊処理や業務ロジックを混ぜると、この等式は壊れやすくなります。
 
 \section{パターン9：invariant preservation}
 
 \subsection{何を保証するか}
 
-invariant preservation は、操作前に不変条件を満たしているなら、操作後も不変条件を満たすという性質である。口座残高、注文明細、権限状態、在庫数、設定ファイルの妥当性などで使う。
+invariant preservation は、操作前に不変条件を満たしているなら、操作後も不変条件を満たすという性質です。
+口座残高、注文明細、権限状態、在庫数、設定ファイルの妥当性などで使います。
 
 \begin{definitionbox}
-不変条件を \texttt{Inv : A -> Prop}、操作を \texttt{update : A -> A} とする。操作が不変条件を保存するとは、次の命題が成り立つことである。
+不変条件を \texttt{Inv : A -> Prop}、操作を \texttt{update : A -> A} とします。
+操作が不変条件を保存するとは、次の命題が成り立つことです。
 
 \[
 \texttt{Inv x -> Inv (update x)}
@@ -483,24 +531,29 @@ theorem withdraw_preserves_limit
 \label{lst:appc_invariant_preservation}
 \end{listing}
 
-このコードでは、口座残高が上限以下であるという不変条件を\texttt{WithinLimit}として切り出している。\texttt{withdraw\_preserves\_limit}は、減算で残高が増えることはないため、操作前に上限以下なら操作後も上限以下であることを示している。
+このコードでは、口座残高が上限以下であるという不変条件を\texttt{WithinLimit}として切り出しています。
+\texttt{withdraw\_preserves\_limit}は、減算によって残高が増えることはないため、操作前に上限以下であれば操作後も上限以下であることを示しています。
 
 \subsection{実務での注意}
 
 \begin{warningbox}
-この \texttt{withdraw} は \texttt{Nat} の切り捨て減算を使う全域関数であり、残高不足を失敗として表していない。ここで証明したのは上限制約の保存だけである。実務の出金可能条件、負の残高、通貨単位、ロック、同時更新には、より正確な型と別の定理が必要になる。
+この \texttt{withdraw} は \texttt{Nat} の切り捨て減算を使う全域関数であり、残高不足を失敗として表していません。
+ここで証明したのは、上限制約の保存だけです。
+実務の出金可能条件、負の残高、通貨単位、ロック、同時更新には、より正確な型と別の定理が必要になります。
 \end{warningbox}
 
 \section{パターン10：pre/post condition}
 
 \subsection{何を保証するか}
 
-pre/post condition は、操作の前提条件と、成功後に満たすべき結果条件を分けて書くパターンである。入力バリデーション、出金、認可、API 呼び出しの成功時レスポンス、パース処理などで使う。
+pre/post condition は、操作の前提条件と、成功後に満たすべき結果条件とを分けて書くパターンです。
+入力バリデーション、出金、認可、API 呼び出しの成功時レスポンス、パース処理などで使います。
 
 \begin{definitionbox}
-事前条件は、操作前に必要な条件である。事後条件は、操作が成功したあとに結果が満たす条件である。
+事前条件は、操作前に必要な条件です。
+事後条件は、操作が成功した後に結果が満たす条件です。
 
-失敗しうる操作なら、次のような形にできる。
+失敗し得る操作であれば、次のような形にできます。
 
 \[
 \texttt{op x = some y -> Post x y}
@@ -535,15 +588,20 @@ theorem ensureEven_post (n out : Nat) :
 \label{lst:appc_pre_post_condition}
 \end{listing}
 
-このコードでは、\texttt{ensureEven\_success} が入力が偶数という事前条件から成功を導き、\texttt{ensureEven\_post} が \texttt{some out} という成功結果から出力が偶数という事後条件を導く。後者は \texttt{out = n} も証明できるモデルだが、ここでは必要な事後条件だけを主張している。
+このコードでは、\texttt{ensureEven\_success} が、入力が偶数であるという事前条件から成功を導きます。
+\texttt{ensureEven\_post} は、\texttt{some out} という成功結果から、出力が偶数であるという事後条件を導きます。
+後者は \texttt{out = n} も証明できるモデルですが、ここでは必要な事後条件だけを主張しています。
 
 \subsection{実務での注意}
 
-事後条件は、成功時と失敗時を分けて書くと読みやすい。成功時は結果の性質を証明し、失敗時は状態が変わらない、またはエラー理由が仕様に合っていることを証明する。ひとつの巨大な定理にまとめるより、レビューしやすい小さな定理へ分ける方がよい。
+事後条件は、成功時と失敗時に分けて書くと読みやすくなります。
+成功時には結果の性質を証明し、失敗時には状態が変わらないこと、またはエラー理由が仕様に合っていることを証明します。
+一つの巨大な定理にまとめるよりも、レビューしやすい小さな定理へ分けるほうがよいでしょう。
 
 \section{複数パターンの組み合わせ}
 
-実務では、ひとつの変更に対して複数の性質を証明することが多い。次の表は、代表的な組み合わせである。
+実務では、一つの変更に対して複数の性質を証明する場合が多くあります。
+次の表は、代表的な組み合わせです。
 
 \begin{longtable}{@{}p{0.22\linewidth}p{0.32\linewidth}p{0.30\linewidth}@{}}
 \toprule
@@ -565,21 +623,24 @@ API adapter & naturality & pre/post, エラー変換の保存 \\
 \end{longtable}
 
 \begin{leanbox}
-Lean ファイルでは、性質ごとに定理名を分けるとよい。たとえば \texttt{migrate\_roundtrip}、\texttt{migrate\_preserves\_id}、\texttt{migrateAll\_preserves\_length} のように命名する。定理名が仕様レビューの見出しとして使えるからである。
+Lean ファイルでは、性質ごとに定理名を分けるとよいでしょう。
+たとえば、\texttt{migrate\_roundtrip}、\texttt{migrate\_preserves\_id}、\texttt{migrateAll\_preserves\_length} のように命名します。
+定理名を、仕様レビューの見出しとして使えるためです。
 \end{leanbox}
 
 \section{証明する前のチェックリスト}
 
-証明を始める前に、次の問いに答えておくとよい。
+証明を始める前に、次の問いに答えておくとよいでしょう。
 
 \begin{itemize}
-\item 変更前後の型は何か。
-\item 操作や変換はどの関数で表すか。
-\item 保存したいものは、値そのものか、キーか、件数か、合計か、不変条件か。
-\item 完全な等式で表せるか。それとも片方向の含意や仕様弱化で表すべきか。
-\item well-formed 条件が必要か。
-\item エラーケースや失敗ケースを別に扱う必要があるか。
-\item Lean で証明するモデルと、実装コードとの差分はどこか。
+\item 変更前後の型は何でしょうか。
+\item 操作や変換は、どの関数で表すのでしょうか。
+\item 保存したいものは、値そのもの、キー、件数、合計、不変条件のいずれでしょうか。
+\item 完全な等式で表せるでしょうか。
+それとも、片方向の含意や仕様弱化で表すべきでしょうか。
+\item well-formed 条件が必要でしょうか。
+\item エラーケースや失敗ケースを、別に扱う必要があるでしょうか。
+\item Lean で証明するモデルと、実装コードとの差分はどこでしょうか。
 \end{itemize}
 
-一つの「安全」という言葉に複数の性質を押し込まず、必要な性質ごとに定理を分け、モデル外の条件も併記する。
+一つの「安全」という言葉に複数の性質を押し込まず、必要な性質ごとに定理を分け、モデル外の条件も併記します。

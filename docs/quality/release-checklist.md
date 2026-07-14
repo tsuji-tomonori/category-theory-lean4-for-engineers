@@ -25,4 +25,5 @@
 
 ## リリース記録
 
-対象SHA、Lean版、Mathlib rev、PDF SHA256、CI run、専門review、初学者review、既知の制限、未解決事項をrelease notesへ記録する。未解決P0/P1がある場合は公開しない。
+対象 SHA、Lean 版、Mathlib rev、PDF SHA-256、CI run、専門 review、初学者 review、既知の制限、未解決事項を release notes へ記録します。
+未解決の P0 または P1 がある場合は、公開しません。

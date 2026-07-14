@@ -3,35 +3,45 @@
 \label{chap:account-spec-proof}
 
 \begin{chapterabstract}
-本章では、入金、出金、送金という小さな口座操作を題材に、自然言語の仕様を Lean 4 で検査できる形へ落とし込む。中心になるのは、残高が負にならないこと、出金成功時に指定額だけ残高が減ること、出金失敗時には更新後状態を返さないこと、送金成功時に二つの口座の総残高が保存されることである。現実の金融システム全体を検証するのではなく、仕様の核を小さく切り出し、型、関数、述語、定理として表す方法を学ぶ。
+本章では、入金、出金、送金という小さな口座操作を題材に、自然言語の仕様を Lean 4 で検査できる形へ落とし込みます。
+中心になるのは、残高が負にならないこと、出金成功時に指定額だけ残高が減ること、出金失敗時には更新後状態を返さないこと、送金成功時に二つの口座の総残高が保存されることです。
+現実の金融システム全体を検証するのではなく、仕様の核を小さく切り出し、型、関数、述語、定理として表す方法を学びます。
 \end{chapterabstract}
 
 \begin{learninggoals}
-\item 口座操作の自然言語仕様を、状態、操作、事前条件、事後条件、不変条件へ分解できる。
-\item \texttt{Account}、\texttt{Balance}、\texttt{Amount} を Lean 4 の小さなモデルとして定義できる。
-\item \texttt{deposit}、\texttt{withdraw?}、\texttt{transfer?} の仕様を等式と場合分けで証明できる。
-\item Lean で証明した性質と、実システム側で別途確認すべき性質を区別できる。
+\item 口座操作の自然言語仕様を、状態、操作、事前条件、事後条件、不変条件へ分解できます。
+\item \texttt{Account}、\texttt{Balance}、\texttt{Amount} を Lean 4 の小さなモデルとして定義できます。
+\item \texttt{deposit}、\texttt{withdraw?}、\texttt{transfer?} の仕様を等式と場合分けで証明できます。
+\item Lean で証明した性質と、実システム側で別途確認すべき性質を区別できます。
 \end{learninggoals}
 
 \section{この章を読む理由}
 
-口座操作は、仕様証明の入門例として扱いやすい。入金、出金、送金という操作は直感的でありながら、状態更新、不変条件、事前条件、成功ケース、失敗ケースをすべて含んでいるからである。
+口座操作は、仕様証明の入門例として扱いやすい題材です。
+入金、出金、送金という操作は直感的でありながら、状態更新、不変条件、事前条件、成功ケース、失敗ケースをすべて含んでいるためです。
 
-たとえば、次のような仕様はよく見かける。
+たとえば、次のような仕様をよく見かけます。
 
 \begin{quote}
 出金額が残高以下なら出金は成功し、残高は出金額だけ減る。出金額が残高を超えるなら出金は失敗し、残高は変わらない。送金は、送金元から出金し、送金先へ入金する。送金に成功した場合、二つの口座の総残高は変わらない。
 \end{quote}
 
-この文章は人間には自然に読める。しかし、機械に検査させるには、いくつかの部品へ分ける必要がある。どの型が状態なのか。どの関数が操作なのか。どの条件が成功条件なのか。どの等式を証明すれば、仕様の重要部分を押さえたと言えるのか。
+この文章は、人間には自然に読めます。
+しかし、機械に検査させるには、いくつかの部品へ分ける必要があります。
+どの型が状態なのでしょうか。
+どの関数が操作なのでしょうか。
+どの条件が成功条件なのでしょうか。
+どの等式を証明すれば、仕様の重要部分を押さえたといえるのでしょうか。
 
 \FigurePlaceholder{fig-ch25-account-flow.png}{0.92}{口座操作の状態遷移}{fig:ch25-account-flow}
 
-図\ref{fig:ch25-account-flow}では、口座を状態、入金・出金・送金を状態遷移として見る。出金には成功と失敗の分岐があり、送金は出金と入金を組み合わせた操作として読む。
+図\ref{fig:ch25-account-flow}では、口座を状態、入金、出金、送金を状態遷移として見ます。
+出金には成功と失敗の分岐があり、送金は出金と入金を組み合わせた操作として読みます。
 
 \section{自然言語仕様を分解する}
 
-最初に、仕様を Lean に移しやすい粒度へ分解する。本章では、次のように整理する。
+最初に、仕様を Lean に移しやすい粒度へ分解します。
+本章では、次のように整理します。
 
 \begin{longtable}{p{0.22\linewidth}p{0.36\linewidth}p{0.32\linewidth}}
 \toprule
@@ -48,31 +58,38 @@
 
 \subsection{証明する性質を選ぶ}
 
-本章で証明する性質は、次の四つに絞る。
+本章で証明する性質は、次の四つに絞ります。
 
 \begin{enumerate}
-\item 入金後の残高は、元の残高に入金額を足した値である。
-\item 出金可能な場合、出金結果は成功し、残高は指定額だけ減る。
-\item 出金不可能な場合、出金結果は失敗する。
-\item 送金に成功した場合、送金元と送金先の総残高は保存される。
+\item 入金後の残高は、元の残高に入金額を足した値です。
+\item 出金可能な場合、出金結果は成功し、残高は指定額だけ減ります。
+\item 出金不可能な場合、出金結果は失敗します。
+\item 送金に成功した場合、送金元と送金先の総残高は保存されます。
 \end{enumerate}
 
-これだけでも、仕様の重要な核はかなり明確になる。特に四つ目の「総残高が保存される」は、送金という複合操作が単なる二つの更新ではなく、全体として保存すべき量を持つことを表している。
+これだけでも、仕様の重要な核はかなり明確になります。
+特に四つ目の「総残高が保存される」は、送金という複合操作が単なる二つの更新ではなく、全体として保存すべき量を持つことを表しています。
 
 \begin{warningbox}
-本章では、通貨単位、小数、丸め、手数料、監査ログ、同時実行、永続化、認可、外部API呼び出しは扱わない。これらは実務上は重要だが、最初の Lean モデルにすべて入れると、証明したい核が見えにくくなる。
+本章では、通貨単位、小数、丸め、手数料、監査ログ、同時実行、永続化、認可、外部 API 呼び出しは扱いません。
+これらは実務では重要ですが、最初の Lean モデルにすべて入れると、証明したい核が見えにくくなります。
 \end{warningbox}
 
 \section{ドメインモデルを作る}
 
-本章では、残高と金額を自然数 \texttt{Nat} で表す。自然数は負にならない数である。そのため、「残高は負にならない」という不変条件の一部を型の選択によって表している。
+本章では、残高と金額を自然数 \texttt{Nat} で表します。
+自然数は負にならない数です。
+そのため、「残高は負にならない」という不変条件の一部を型の選択によって表しています。
 
 \begin{definitionbox}
-\textbf{不変条件}とは、操作の前後で常に保たれるべき条件である。本章では、残高が自然数であることにより、残高非負条件を型のレベルで表す。さらに、送金では二つの口座の総残高が保存されることを定理として表す。
+\textbf{不変条件}とは、操作の前後で常に保たれるべき条件です。
+本章では、残高が自然数であることにより、残高非負条件を型のレベルで表します。
+さらに、送金では二つの口座の総残高が保存されることを定理として表します。
 \end{definitionbox}
 
-\texttt{abbrev} は既存型の略称であり、\texttt{Balance} と \texttt{Amount} は型検査上はどちらも \texttt{Nat} である。
-両者を取り違えられない型にしたい場合は、別々の \texttt{structure} を使う必要がある。
+\texttt{abbrev} は既存型の略称であり、\texttt{Balance} と \texttt{Amount} は型検査上はどちらも \texttt{Nat} です。
+
+両者を取り違えられない型にしたい場合は、別々の \texttt{structure} を使う必要があります。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -97,17 +114,24 @@ theorem account_nonnegative (a : Account) : NonNegative a := by
 \label{lst:ch25-domain-model}
 \end{listing}
 
-このモデルでは、\texttt{Account} は口座IDと残高だけを持つ。現実には、凍結状態、通貨、所有者、更新時刻なども必要になるかもしれない。しかし本章では、残高操作の仕様を見たいので、余計なフィールドは入れない。
+このモデルでは、\texttt{Account} は口座 ID と残高だけを持ちます。
+現実には、凍結状態、通貨、所有者、更新時刻なども必要になるかもしれません。
+しかし本章では、残高操作の仕様に焦点を当てるため、余計なフィールドは入れません。
 
 \subsection{型に入れた仕様と、定理で証明する仕様}
 
-\texttt{Balance := Nat} とした時点で、残高が負にならないことはほとんど型によって保証される。一方で、「出金成功時は指定額だけ減る」や「送金では総残高が保存される」は、型だけでは表せない。これらは関数の振る舞いに関する主張なので、定理として証明する。
+\texttt{Balance := Nat} とした時点で、残高が負にならないことはほとんど型によって保証されます。
+一方、「出金成功時は指定額だけ減る」ことや「送金では総残高が保存される」ことは、型だけでは表せません。
+これらは関数の振る舞いに関する主張なので、定理として証明します。
 
 \section{操作を関数として定義する}
 
-次に、入金、出金、送金を関数として定義する。
+次に、入金、出金、送金を関数として定義します。
 
-入金は常に成功する操作として扱う。出金は、金額が残高以下なら成功し、そうでなければ失敗する。失敗を表すために、ここでは \texttt{Option Account} を使う。\texttt{some a} は成功して新しい口座 \texttt{a} が得られたことを表し、\texttt{none} は失敗を表す。
+入金は、常に成功する操作として扱います。
+出金は、金額が残高以下なら成功し、そうでなければ失敗します。
+失敗を表すために、ここでは \texttt{Option Account} を使います。
+\texttt{some a} は、成功して新しい口座 \texttt{a} が得られたことを表し、\texttt{none} は失敗を表します。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -133,15 +157,18 @@ def transfer? (src to : Account) (amount : Amount) :
 \label{lst:ch25-operations}
 \end{listing}
 
-\texttt{transfer?} は、まず送金元から出金しようとする。出金に失敗した場合、送金全体も失敗する。出金に成功した場合、送金先へ同じ金額を入金し、更新後の二つの口座を返す。
+\texttt{transfer?} は、まず送金元から出金しようとします。
+出金に失敗した場合、送金全体も失敗します。
+出金に成功した場合、送金先へ同じ金額を入金し、更新後の二つの口座を返します。
 
-図\ref{fig:ch25-withdraw-transfer}では、出金が成功した枝だけが送金先への入金へ進み、失敗した枝は \texttt{none} で終わる。
+図\ref{fig:ch25-withdraw-transfer}では、出金が成功した枝だけが送金先への入金へ進み、失敗した枝は \texttt{none} で終わります。
 
 \FigurePlaceholder{fig-ch25-withdraw-transfer.png}{0.92}{出金と送金の分岐}{fig:ch25-withdraw-transfer}
 
 \section{入金の事後条件を証明する}
 
-まず、最も簡単な仕様から証明する。入金後の残高は、元の残高に入金額を足した値である。
+まず、最も簡単な仕様から証明します。
+入金後の残高は、元の残高に入金額を足した値です。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -158,13 +185,17 @@ theorem deposit_preserves_nonnegative
 \label{lst:ch25-deposit-proof}
 \end{listing}
 
-\texttt{deposit\_balance} は \texttt{rfl} で証明できる。\texttt{rfl} は、定義を展開すれば左右が同じであるときに使える。
+\texttt{deposit\_balance} は \texttt{rfl} で証明できます。
+\texttt{rfl} は、定義を展開すれば左右が同じであるときに使えます。
 
-ここで大事なのは、証明が短いことではない。仕様が \texttt{deposit\_balance} という名前で残ることである。この名前は設計文書やレビューコメントから参照できる。
+ここで大切なのは、証明が短いことではありません。
+仕様が \texttt{deposit\_balance} という名前で残ることです。
+この名前は、設計文書やレビューコメントから参照できます。
 
 \section{出金の事前条件と事後条件を証明する}
 
-出金には成功と失敗の分岐がある。そのため、まず成功条件を名前付きの述語として定義する。
+出金には、成功と失敗の分岐があります。
+そのため、まず成功条件を名前付きの述語として定義します。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -190,25 +221,30 @@ theorem withdraw_failure (a : Account) (amount : Amount)
 \label{lst:ch25-withdraw-proof}
 \end{listing}
 
-\texttt{withdraw\_success} は、「出金額が残高以下」という証拠 \texttt{h} があるなら、\texttt{withdraw?} は \texttt{some} を返し、その残高は \texttt{a.balance - amount} になる、という主張である。
+\texttt{withdraw\_success} は、「出金額が残高以下」という証拠 \texttt{h} があるなら、\texttt{withdraw?} は \texttt{some} を返し、その残高は \texttt{a.balance - amount} になるという主張です。
 
-\texttt{withdraw\_failure} はその逆である。出金可能条件が成り立たないなら、結果は \texttt{none} になる。
+\texttt{withdraw\_failure} は、その逆です。
+出金可能条件が成り立たないなら、結果は \texttt{none} になります。
 
-\texttt{simp} は \texttt{h'} を使って \texttt{if} の真偽を決め、成功時は then 側、失敗時は else 側へ簡約する。
+\texttt{simp} は \texttt{h'} を使って \texttt{if} の真偽を決め、成功時は then 側、失敗時は else 側へ簡約します。
 
 \subsection{失敗時に状態を変えない設計}
 
-本章の \texttt{withdraw?} は、失敗した場合に新しい口座を返さない。これは「失敗時には状態を更新しない」という設計を \texttt{Option} で表している。
+本章の \texttt{withdraw?} は、失敗した場合に新しい口座を返しません。
+これは「失敗時には状態を更新しない」という設計を \texttt{Option} で表しています。
 
-実装言語では、例外、戻り値、トランザクション、イベントログなどで同じ意図を表すことがある。Lean モデルでは、まず \texttt{none} によって「更新後状態が存在しない」と表すことで、仕様を小さく保つ。
+実装言語では、例外、戻り値、トランザクション、イベントログなどで同じ意図を表すことがあります。
+Lean モデルでは、まず \texttt{none} によって「更新後状態が存在しない」と表すことで、仕様を小さく保ちます。
 
 \begin{warningbox}
-\texttt{withdraw?} が \texttt{none} を返すことは、「本番DBが絶対に更新されない」ことを直接証明しているわけではない。本章で証明しているのは、Lean 上のモデル化された関数について、失敗時に新しい口座状態を返さないという性質である。
+\texttt{withdraw?} が \texttt{none} を返すことは、「本番 DB が絶対に更新されない」ことを直接証明しているわけではありません。
+本章で証明しているのは、Lean 上のモデル化された関数について、失敗時に新しい口座状態を返さないという性質です。
 \end{warningbox}
 
 \section{送金の仕様を証明する}
 
-送金は、出金と入金を組み合わせた操作である。そのため、出金可能なら送金は成功し、出金不可能なら送金は失敗する。
+送金は、出金と入金を組み合わせた操作です。
+そのため、出金可能なら送金は成功し、出金不可能なら送金は失敗します。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -232,24 +268,28 @@ theorem transfer_failure (src to : Account) (amount : Amount)
 \label{lst:ch25-transfer-cases}
 \end{listing}
 
-ここまでで、送金の成功条件と失敗条件は明確になった。次に、成功した送金が総残高を保存することを証明する。
+ここまでで、送金の成功条件と失敗条件は明確になりました。
+次に、成功した送金が総残高を保存することを証明します。
 
-このモデルは \texttt{src} と \texttt{to} を二つの独立した口座値として返す。
-口座 ID の相違、同一口座への送金、DB 上の別行性、更新の原子性はモデル化していないため、
-総残高保存の定理だけから実システムの送金整合性は導けない。
+このモデルは、\texttt{src} と \texttt{to} を二つの独立した口座値として返します。
+
+口座 ID の相違、同一口座への送金、DB 上の別行性、更新の原子性はモデル化していません。
+したがって、総残高保存の定理だけから実システムの送金整合性は導けません。
 
 \subsection{総残高保存の証明方針}
 
-証明したい等式は、次の形である。
+証明したい等式は、次の形です。
 
 \[
-  (\mathrm{from.balance} - \mathrm{amount})
+  (\mathrm{src.balance} - \mathrm{amount})
   + (\mathrm{to.balance} + \mathrm{amount})
   =
-  \mathrm{from.balance} + \mathrm{to.balance}
+  \mathrm{src.balance} + \mathrm{to.balance}
 \]
 
-この等式は、「送金元から減った金額」と「送金先へ増えた金額」が打ち消し合うことを表している。ただし、自然数の引き算は、出金額が残高以下であるという条件があって初めて期待通りに振る舞う。その条件が \texttt{CanWithdraw from amount} である。
+この等式は、「送金元から減った金額」と「送金先へ増えた金額」が打ち消し合うことを表しています。
+ただし、自然数の引き算は、出金額が残高以下であるという条件があって初めて期待どおりに振る舞います。
+その条件が \texttt{CanWithdraw src amount} です。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -274,16 +314,19 @@ theorem transfer_success_preserves_total
 \label{lst:ch25-transfer-total-proof}
 \end{listing}
 
-この証明では、\texttt{calc} を使って式変形の道筋を明示している。まず送金先側の \texttt{to.balance + amount} の順序を入れ替える。次に括弧を付け替える。最後に、\texttt{amount <= from.balance} という条件を使って、\texttt{from.balance - amount + amount = from.balance} を適用する。
+この証明では、\texttt{calc} を使って式変形の道筋を明示しています。
+まず、送金先側の \texttt{to.balance + amount} の順序を入れ替えます。
+次に、括弧を付け替えます。
+最後に、\texttt{amount <= src.balance} という条件を使って、\texttt{src.balance - amount + amount = src.balance} を適用します。
 
-図\ref{fig:ch25-total-preservation}は、送金元から引いた \texttt{amount} を送金先へ足し、
-\texttt{amount <= src.balance} のもとで \texttt{Nat.sub\_add\_cancel} を適用する式変形を示す。
+図\ref{fig:ch25-total-preservation}は、送金元から引いた \texttt{amount} を送金先へ足し、\texttt{amount <= src.balance} のもとで \texttt{Nat.sub\_add\_cancel} を適用する式変形を示します。
 
 \FigurePlaceholder{fig-ch25-total-preservation.png}{0.92}{総残高保存}{fig:ch25-total-preservation}
 
 \subsection{結果から総残高保存を読む}
 
-実務上は、\texttt{transfer?} の結果として得られた二つの口座について、総残高が保存されていることを直接使いたい場合がある。その場合は、「\texttt{transfer?} が \texttt{some (from', to')} を返したなら、総残高が保存される」という形の定理にしておくと使いやすい。
+実務では、\texttt{transfer?} の結果として得られた二つの口座について、総残高が保存されていることを直接使いたい場合があります。
+その場合は、「\texttt{transfer?} が \texttt{some (from', to')} を返したなら、総残高が保存される」という形の定理にしておくと使いやすくなります。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -302,17 +345,22 @@ theorem transfer_result_preserves_total
 \label{lst:ch25-transfer-result-total}
 \end{listing}
 
-\texttt{by\_cases h : P} は、\texttt{h : P} を使える枝と \texttt{h : ¬ P} を使える枝にゴールを分ける。
-ここでは \texttt{amount <= src.balance} の真偽で、送金の成功可能な枝と不可能な枝を分ける。
+\texttt{by\_cases h : P} は、\texttt{h : P} を使える枝と \texttt{h : ¬ P} を使える枝にゴールを分けます。
 
-この定理では、\texttt{by\_cases} によって、出金可能な場合と不可能な場合に分けている。出金可能な場合は、成功結果の形から総残高保存を使う。出金不可能な場合は、\texttt{transfer?} が \texttt{some} を返したという仮定と矛盾するため、そのケースは消える。
+ここでは \texttt{amount <= src.balance} の真偽で、送金が成功しうる枝と成功しえない枝を分けます。
 
-成功枝では \texttt{simp ... at hTransfer} が \texttt{some} の等式から二つの成分の等式を取り出す。
-失敗枝では \texttt{none = some (...)} という矛盾になるため、そのゴールが閉じる。
+この定理では、\texttt{by\_cases} によって、出金可能な場合と不可能な場合に分けています。
+出金可能な場合は、成功結果の形から総残高保存を使います。
+出金不可能な場合は、\texttt{transfer?} が \texttt{some} を返したという仮定と矛盾するため、そのケースは消えます。
+
+成功枝では、\texttt{simp ... at hTransfer} が \texttt{some} の等式から二つの成分の等式を取り出します。
+
+失敗枝では、\texttt{none = some (...)} という矛盾になるため、そのゴールが閉じます。
 
 \section{この章の証明を実行例で読む}
 
-Lean の証明は、実行例と組み合わせると読みやすくなる。次の例では、残高100の口座から30を出金し、残高40の口座へ30を送金する。
+Lean の証明は、実行例と組み合わせると読みやすくなります。
+次の例では、残高 100 の口座から 30 を出金し、残高 40 の口座へ 30 を送金します。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -328,11 +376,14 @@ def bob : Account := { id := 2, balance := 40 }
 \label{lst:ch25-eval-examples}
 \end{listing}
 
-\texttt{\#eval} は具体例を確認するためには便利である。しかし、\texttt{\#eval} はあくまで特定の入力に対する実行結果である。\texttt{theorem} は、任意の入力について成り立つ性質を確認する。
+\texttt{\#eval} は、具体例を確認するためには便利です。
+しかし、\texttt{\#eval} はあくまで特定の入力に対する実行結果です。
+\texttt{theorem} は、任意の入力について成り立つ性質を確認します。
 
 \section{仕様レビューでの使い方}
 
-本章の Lean コードは、そのまま本番コードへ貼り付けるためのものではない。仕様レビューで重要なのは、次の対応を確認することである。
+本章の Lean コードは、そのまま本番コードへ貼り付けるためのものではありません。
+仕様レビューで重要なのは、次の対応を確認することです。
 
 \begin{longtable}{p{0.30\linewidth}p{0.30\linewidth}p{0.30\linewidth}}
 \toprule
@@ -347,43 +398,46 @@ def bob : Account := { id := 2, balance := 40 }
 \bottomrule
 \end{longtable}
 
-この表は、設計文書にそのまま近い形で載せられる。Lean の定理名を仕様項目に対応させると、どの性質が証明済みで、どの性質が未証明かを追跡しやすくなる。
+この表は、ほぼそのまま設計文書に載せられます。
+Lean の定理名を仕様項目に対応させると、どの性質が証明済みで、どの性質が未証明かを追跡しやすくなります。
 
 \section{テストケースとの棲み分け}
 
-Lean で総残高保存を証明したからといって、送金機能のテストが不要になるわけではない。Lean モデルは、本番システムの一部の性質を抽象化して表したものである。
+Lean で総残高保存を証明したからといって、送金機能のテストが不要になるわけではありません。
+Lean モデルは、本番システムの一部の性質を抽象化して表したものです。
 
 \subsection{Lean で証明するとよいこと}
 
 \begin{itemize}
-\item 金額更新のような小さく純粋なロジック。
-\item 出金可能条件と成功・失敗結果の対応。
-\item 操作後に保存される数量。
-\item リファクタリングしても変わってはいけない等式。
+\item 金額更新のような、小さく純粋なロジックです。
+\item 出金可能条件と成功結果、失敗結果の対応です。
+\item 操作後に保存される数量です。
+\item リファクタリングしても変わってはいけない等式です。
 \end{itemize}
 
 \subsection{通常のテストや監視で確認すべきこと}
 
 \begin{itemize}
-\item DB トランザクションが正しく張られていること。
-\item 並行実行時に二重出金が起きないこと。
-\item 外部決済APIとの通信失敗時のリトライ挙動。
-\item 監査ログ、認可、通知、UI 表示が仕様通りであること。
-\item 本番実装と Lean モデルが乖離していないこと。
+\item DB トランザクションが正しく張られていることです。
+\item 並行実行時に二重出金が起きないことです。
+\item 外部決済 API との通信失敗時のリトライ挙動です。
+\item 監査ログ、認可、通知、UI 表示が仕様どおりであることです。
+\item 本番実装と Lean モデルが乖離していないことです。
 \end{itemize}
 
 \begin{warningbox}
-「Lean で証明済み」と言うときは、必ず「どのモデルについて、どの前提で、どの定理を証明したのか」を併記する。本章で証明したのは、自然数残高を持つ単純な口座モデルにおける、入金・出金・送金の一部の性質である。
+「Lean で証明済み」と述べるときは、必ず「どのモデルについて、どの前提で、どの定理を証明したのか」を併記します。
+本章で証明したのは、自然数残高を持つ単純な口座モデルにおける、入金、出金、送金の一部の性質です。
 \end{warningbox}
 
 \section{本章のまとめ}
 
-口座操作は、状態、操作、事前条件、事後条件、不変条件を学ぶための小さく有用な題材である。
+口座操作は、状態、操作、事前条件、事後条件、不変条件を学ぶための小さく有用な題材です。
 
-\texttt{Balance} と \texttt{Amount} を \texttt{Nat} で表すことで、残高非負条件の一部を型に入れた。
+\texttt{Balance} と \texttt{Amount} を \texttt{Nat} で表すことで、残高非負条件の一部を型に入れました。
 
-\texttt{deposit}、\texttt{withdraw?}、\texttt{transfer?} を関数として定義し、成功・失敗の仕様を等式として証明した。
+\texttt{deposit}、\texttt{withdraw?}、\texttt{transfer?} を関数として定義し、成功と失敗の仕様を等式として証明しました。
 
-送金成功時の総残高保存は、\texttt{calc} による式変形としてレビュー可能な形で証明できる。
+送金成功時の総残高保存は、\texttt{calc} による式変形としてレビュー可能な形で証明できます。
 
-Lean の証明はテストを置き換えるものではなく、テストでは網羅しにくい仕様の核を補強するものである。
+Lean の証明はテストを置き換えるものではなく、テストでは網羅しにくい仕様の核を補強するものです。

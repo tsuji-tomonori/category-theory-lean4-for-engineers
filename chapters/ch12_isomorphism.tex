@@ -3,42 +3,51 @@
 \label{chap:ch12-isomorphism}
 
 \begin{chapterabstract}
-本章では、同型を「情報を失わない相互変換」として導入する。ソフトウェアでは、スキーマ移行、DTO変換、encoder / decoder、旧APIと新APIの対応などで、形は変わるが意味は変えたくない場面が多い。ただし、$A \to B$ と $B \to A$ という二つの関数があるだけでは十分ではない。変換して戻すと元に戻ること、逆向きにも戻ること、つまり二つの round-trip law が必要である。本章では、この法則を小さなLean構造として定義し、\texttt{UserV1} から \texttt{UserV2} への lossless migration を題材に確認する。
+本章では、同型を「情報を失わない相互変換」として導入します。
+ソフトウェアでは、スキーマ移行、DTO変換、encoder / decoder、旧APIと新APIの対応など、形を変えても意味は変えたくない場面が多くあります。
+ただし、$A \to B$ と $B \to A$ という二つの関数があるだけでは十分ではありません。
+変換して戻すと元に戻ることと、逆向きに往復しても元に戻ること、すなわち二つの round-trip law が必要です。
+本章では、この法則を小さなLean構造として定義し、\texttt{UserV1} から \texttt{UserV2} への lossless migration を題材に確認します。
 \end{chapterabstract}
 
 \begin{learninggoals}
-\item 同型を、単なる「似ている」ではなく「情報を失わない相互変換」として説明できる。
-\item $A \to B$ と $B \to A$ の存在だけでは同型にならない理由を説明できる。
-\item $\mathit{from} \circ \mathit{to} = \mathit{id}$ と $\mathit{to} \circ \mathit{from} = \mathit{id}$ の意味を読める。
-\item Lean 4で、\texttt{toFun}、\texttt{invFun}、二つの証明を持つ小さな同型構造を定義できる。
-\item スキーマ移行を完全同型、片方向互換、情報損失ありに分けて考えられる。
+\item 同型を、単なる「似ている」ではなく「情報を失わない相互変換」として説明できます。
+\item $A \to B$ と $B \to A$ の存在だけでは同型にならない理由を説明できます。
+\item $\mathit{from} \circ \mathit{to} = \mathit{id}$ と $\mathit{to} \circ \mathit{from} = \mathit{id}$ の意味を読めます。
+\item Lean 4で、\texttt{toFun}、\texttt{invFun}、二つの証明を持つ小さな同型構造を定義できます。
+\item スキーマ移行を完全同型、片方向互換、情報損失ありに分けて考えられます。
 \end{learninggoals}
 
 \section{この章を読む理由}
 \label{sec:ch12-why}
 
-ソフトウェア開発では、形を変えたいが意味は変えたくない場面が多い。たとえば、次のような変更である。
+ソフトウェア開発では、形を変えても意味は変えたくない場面が多くあります。
+たとえば、次のような変更です。
 
 \begin{itemize}
-\item \texttt{UserV1} の平坦なフィールドを、\texttt{UserV2} では \texttt{contact} と \texttt{profile} に分ける。
-\item 外部APIから届くJSONを内部DTOに変換し、必要なら再びJSONへ戻す。
-\item DBスキーマのカラム名を変えるが、保持している情報は変えない。
-\item 古いレスポンス形式を新しいレスポンス形式へadapterで変換する。
+\item \texttt{UserV1} の平坦なフィールドを、\texttt{UserV2} では \texttt{contact} と \texttt{profile} に分けます。
+\item 外部APIから届くJSONを内部DTOに変換し、必要なら再びJSONへ戻します。
+\item DBスキーマのカラム名を変えても、保持している情報は変えません。
+\item 古いレスポンス形式をadapterで新しいレスポンス形式へ変換します。
 \end{itemize}
 
-このようなとき、私たちはよく「互換性がある」「戻せる」「意味は同じ」と言う。しかし、その言葉だけでは曖昧である。何をどの向きに戻せるのか。どの範囲のデータなら戻せるのか。情報を落としていないのか。そこを明確にするための言葉が、同型である。
+このようなとき、私たちはよく「互換性がある」「戻せる」「意味は同じ」と表現します。
+しかし、その言葉だけでは、何をどの向きに戻せるのか、どの範囲のデータなら戻せるのか、情報を落としていないのかが曖昧です。
+これらを明確にするための言葉が、同型です。
 
-図\ref{fig:ch12-overview}では、正方向と逆方向の変換に加え、両方の合成がそれぞれの恒等変換になるという二つの証明を分けて示す。
+図\ref{fig:ch12-overview}では、正方向と逆方向の変換に加え、両方の合成がそれぞれの恒等変換になるという二つの証明を分けて示します。
 
 \FigurePlaceholder{fig-ch12-overview.png}{0.92}{同型のデータと法則}{fig:ch12-overview}
 
 \section{同型は「情報を失わない変換」}
 \label{sec:ch12-information-preserving}
 
-第11章では、型を対象、関数を射として見た。そこでは、関数は一方向の変換だった。本章では、二つの型の間に、互いに戻し合う二つの関数がある場合を考える。
+第11章では、型を対象、関数を射として見ました。
+そこでは、関数は一方向の変換でした。
+本章では、二つの型の間に、互いに戻し合う二つの関数がある場合を考えます。
 
 \begin{definitionbox}
-型 $A$ と型 $B$ が同型であるとは、次のものがあるということである。
+型 $A$ と型 $B$ が同型であるとは、次の構成要素があるということです。
 
 \begin{itemize}
 \item $A$ から $B$ への変換 $\mathit{to} : A \to B$
@@ -47,28 +56,37 @@
 \item $B$ から $A$ へ行って $B$ に戻ると元に戻るという証明
 \end{itemize}
 
-ここで重要なのは、最後の二つが「実装上の期待」ではなく、法則として要求されることである。
+最後の二つは「実装上の期待」ではなく、法則として要求されます。
 \end{definitionbox}
 
-同型は、「同じ型である」という意味ではない。\texttt{UserV1} と \texttt{UserV2} は別の型でよい。フィールド名やネスト構造が違っても、片方の情報をもう片方で完全に表せればよい。なお「同じ情報」という言い方は型と関数の圏での直感であり、一般の圏での正式な条件は、二つの射の合成が両側の恒等射になることである。
+同型は、「同じ型である」という意味ではありません。
+\texttt{UserV1} と \texttt{UserV2} は別の型で構いません。
+フィールド名やネスト構造が違っても、片方の情報をもう片方で完全に表せればよいのです。
+なお、「同じ情報」という表現は、型と関数の圏における直感です。
+一般の圏における正式な条件は、二つの射の合成が両側の恒等射になることです。
 
-たとえば、次の二つは見た目が違う。
+たとえば、次の二つは見た目が異なります。
 
 \begin{itemize}
-\item \texttt{UserV1}: \texttt{id}, \texttt{email}, \texttt{displayName} を直接持つ。
-\item \texttt{UserV2}: \texttt{userId}, \texttt{contact.email}, \texttt{profile.displayName} に分けて持つ。
+\item \texttt{UserV1}: \texttt{id}, \texttt{email}, \texttt{displayName} を直接持ちます。
+\item \texttt{UserV2}: \texttt{userId}, \texttt{contact.email}, \texttt{profile.displayName} に分けて持ちます。
 \end{itemize}
 
-この変更は、単にフィールドを移動しているだけなら情報を失わない。旧形式から新形式へ変換し、新形式から旧形式へ戻すことができる。逆向きも同じである。このとき、二つの型は同型として扱える。
+この変更が単なるフィールドの移動であれば、情報は失われません。
+旧形式から新形式へ変換した後に旧形式へ戻せて、逆向きに往復しても元へ戻せます。
+このとき、二つの型を同型として扱えます。
 
 \section{encoder / decoder と round-trip}
 \label{sec:ch12-round-trip}
 
-同型の感覚は、encoder / decoder の例でつかみやすい。たとえば、アプリ内の値をJSON文字列へ変換する関数を \texttt{encode}、JSON文字列から値へ戻す関数を \texttt{decode} とする。
+同型の感覚は、encoder / decoder の例で捉えやすくなります。
+たとえば、アプリ内の値をJSON文字列へ変換する関数を \texttt{encode}、JSON文字列から値へ戻す関数を \texttt{decode} とします。
 
-以下の二式は、\texttt{decode : B -> A} が全域関数である理想化、または (B) を復号可能な表現だけに制限した型として読む。実際の parser が \texttt{Option A} や \texttt{Except E A} を返すなら、そのままでは型の同型ではなく、成功する入力の範囲と失敗時仕様を別に定める必要がある。
+以下の二式は、\texttt{decode : B -> A} が全域関数であるという理想化の下で読むか、(B) を復号可能な表現だけに制限した型として読みます。
+実際の parser が \texttt{Option A} や \texttt{Except E A} を返す場合、そのままでは型の同型になりません。
+成功する入力の範囲と失敗時の仕様を、別に定める必要があります。
 
-数式として書くと、次の二つが必要になる。
+数式では、次の二つの法則が必要です。
 
 \[
   \mathit{decode}(\mathit{encode}(a)) = a
@@ -78,22 +96,32 @@
   \mathit{encode}(\mathit{decode}(b)) = b
 \]
 
-一つ目は、値側の復元である。二つ目は、表現側の復元である。実務では、一つ目だけをテストして「round-tripできている」と言ってしまうことがある。しかし、完全な同型として見るなら、二つ目も必要になる。
+一つ目は値側の復元であり、二つ目は表現側の復元です。
+実務では、一つ目だけをテストして「round-tripできている」と表現することがあります。
+しかし、完全な同型として扱うには、二つ目も必要です。
 
-図\ref{fig:ch12-round-trip}では、値側と表現側のどちらから出発しても、往復後に出発点へ戻る二つの経路を区別する。
+図\ref{fig:ch12-round-trip}では、値側と表現側のどちらから出発しても、往復後に出発点へ戻る二つの経路を区別します。
 
 \FigurePlaceholder{fig-ch12-round-trip.png}{0.90}{二方向の round-trip}{fig:ch12-round-trip}
 
 \begin{warningbox}
-JSONやCSVのような外部表現では、表現側に「余分な形」が存在することがある。たとえば、同じ値を表すJSON文字列が空白やキー順序の違いで複数存在する場合、文字列として完全に同じものへ戻るとは限らない。この場合は、完全同型ではなく、正規化後の一致や well-formed な表現に限定した同型として扱う。
+JSONやCSVのような外部表現では、表現側に「余分な形」が存在することがあります。
+たとえば、空白やキー順序が異なる複数のJSON文字列で同じ値を表せる場合、文字列として完全に同じものへ戻るとは限りません。
+この場合は完全同型とせず、正規化後の一致を仕様にするか、well-formed な表現に限定した同型として扱います。
 \end{warningbox}
 
 \section{\texorpdfstring{$A \to B$ と $B \to A$}{A to B と B to A} だけでは同型ではない}
 \label{sec:ch12-bidirectional-is-not-enough}
 
-双方向の関数があることと、同型であることは違う。これは実務で非常に重要である。
+双方向の関数があることと、同型であることは異なります。
+この区別は、実務で特に重要です。
 
-極端な例を考える。任意のユーザーを \texttt{Unit} に変換する関数は作れる。\texttt{Unit} からデフォルトユーザーを作る関数も作れる。つまり、\texttt{UserV1} から \texttt{Unit} への関数と、\texttt{Unit} から \texttt{UserV1} への関数は存在する。しかし、これは明らかに安全な相互変換ではない。\texttt{Unit} には、元のメールアドレスや表示名を保持する場所がないからである。
+極端な例を考えます。
+任意のユーザーを \texttt{Unit} に変換する関数を作れます。
+\texttt{Unit} からデフォルトユーザーを作る関数も作れます。
+したがって、\texttt{UserV1} から \texttt{Unit} への関数と、\texttt{Unit} から \texttt{UserV1} への関数は存在します。
+しかし、これは安全な相互変換ではありません。
+\texttt{Unit} には、元のメールアドレスや表示名を保持する場所がないためです。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -118,19 +146,22 @@ example : defaultUser (eraseToUnit sampleUser) ≠ sampleUser := by
 \label{lst:ch12_bidirectional_not_iso}
 \end{listing}
 
-このコードでは、\texttt{eraseToUnit} と \texttt{defaultUser} という二つの向きの関数がある。しかし、\texttt{sampleUser} を \texttt{Unit} に変換して戻すとデフォルトユーザーになり、元のメールアドレスも表示名も戻らない。\texttt{a ≠ b} は二値が等しくないという命題で、\texttt{decide} はこの具体的な不等式を計算で判定する。
+このコードには、\texttt{eraseToUnit} と \texttt{defaultUser} という二方向の関数があります。
+しかし、\texttt{sampleUser} を \texttt{Unit} に変換して戻すとデフォルトユーザーになり、元のメールアドレスも表示名も戻りません。
+\texttt{a ≠ b} は二つの値が等しくないという命題であり、\texttt{decide} はこの具体的な不等式を計算で判定します。
 
-図\ref{fig:ch12-bidirectional-not-iso}では、複数のユーザーが同じ \texttt{Unit} に潰れるため、逆向きの関数を一つ選んでも全ユーザーを復元できないことを示す。
+図\ref{fig:ch12-bidirectional-not-iso}では、複数のユーザーが同じ \texttt{Unit} に潰れるため、逆向きの関数を一つ選んでも全ユーザーを復元できないことを示します。
 
 \FigurePlaceholder{fig-ch12-bidirectional-not-iso.png}{0.90}{情報を失う双方向変換}{fig:ch12-bidirectional-not-iso}
 
 \section{必要な法則}
 \label{sec:ch12-laws}
 
-同型に必要な法則は二つである。型 $A$ から型 $B$ への変換を $\mathit{to}$、型 $B$ から型 $A$ への変換を $\mathit{from}$ とする。
+同型には二つの法則が必要です。
+型 $A$ から型 $B$ への変換を $\mathit{to}$、型 $B$ から型 $A$ への変換を $\mathit{from}$ とします。
 
 \begin{definitionbox}
-同型の二つの法則は次の通りである。
+同型の二つの法則は次のとおりです。
 
 \[
   \mathit{from} \circ \mathit{to} = \mathit{id}_A
@@ -140,12 +171,15 @@ example : defaultUser (eraseToUnit sampleUser) ≠ sampleUser := by
   \mathit{to} \circ \mathit{from} = \mathit{id}_B
 \]
 
-一つ目は、$A$ の値を $B$ へ変換してから $A$ へ戻すと、元の $A$ の値になるという意味である。二つ目は、$B$ の値を $A$ へ変換してから $B$ へ戻すと、元の $B$ の値になるという意味である。
+一つ目は、$A$ の値を $B$ へ変換してから $A$ へ戻すと、元の $A$ の値になるという意味です。
+二つ目は、$B$ の値を $A$ へ変換してから $B$ へ戻すと、元の $B$ の値になるという意味です。
 \end{definitionbox}
 
-ここで、\texttt{id} は恒等関数である。何もしない関数だと考えればよい。つまり、\texttt{from} と \texttt{to} を続けた結果が「何もしない」のと同じである、という主張になる。
+ここで、\texttt{id} は恒等関数です。
+何もしない関数だと考えてください。
+つまり、\texttt{from} と \texttt{to} を続けた結果が「何もしない」のと同じだという主張です。
 
-実務上は、二つの法則を次のように読む。
+実務上は、二つの法則を次のように読みます。
 
 \begin{table}[htbp]
 \centering
@@ -153,8 +187,8 @@ example : defaultUser (eraseToUnit sampleUser) ≠ sampleUser := by
 \toprule
 法則 & 実務での意味 \\
 \midrule
-\texttt{rollback (migrate u) = u} & 旧データを新形式へ移行し、戻したときに旧データが完全に復元される。 \\
-\texttt{migrate (rollback v) = v} & 新形式のデータを旧形式へ戻し、再び新形式へ移行しても新データが完全に復元される。 \\
+\texttt{rollback (migrate u) = u} & 旧データを新形式へ移行して戻すと、旧データが完全に復元されます。 \\
+\texttt{migrate (rollback v) = v} & 新形式のデータを旧形式へ戻して再び新形式へ移行すると、新データが完全に復元されます。 \\
 \bottomrule
 \end{tabular}
 \caption{二つの round-trip law}
@@ -163,10 +197,12 @@ example : defaultUser (eraseToUnit sampleUser) ≠ sampleUser := by
 
 \section{Lean 4 で小さな同型構造を定義する}
 
-圏論における同型は、互いに逆となる二つの射を持つこととして定義する~\cite{leinster-basic-category-theory,riehl-category-theory-in-context}。本章の\texttt{Iso}は型と関数の圏に限定した小さなモデルである。
+圏論における同型は、互いに逆となる二つの射を持つこととして定義します~\cite{leinster-basic-category-theory,riehl-category-theory-in-context}。
+本章の\texttt{Iso}は、型と関数の圏に限定した小さなモデルです。
 \label{sec:ch12-lean-iso}
 
-本書では、初期章ではMathlibの高度な圏論APIを使わず、自作の小さな構造で概念をつかむ。Leanでは、同型を「二つの関数」と「二つの証明」を持つ構造体として定義できる。
+本書の初期章では、Mathlibの高度な圏論APIを使わず、自作の小さな構造で概念を捉えます。
+Leanでは、同型を「二つの関数」と「二つの証明」を持つ構造体として定義できます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -182,9 +218,12 @@ structure Iso (A : Type u) (B : Type v) where
 \label{lst:ch12_iso_structure}
 \end{listing}
 
-\texttt{universe u v} は、\texttt{A} と \texttt{B} が属する型 universe の段階名を宣言する。これにより、同じ universe に限らず二つの型の間で使える構造になる。この定義は一般の圏の同型を実装したものではないが、「変換関数のペア」に両側の逆法則が必要であることを型と関数の例で明示している。
+\texttt{universe u v} は、\texttt{A} と \texttt{B} が属する型 universe の段階名を宣言します。
+これにより、同じ universe に限らず、二つの型の間で使える構造になります。
+この定義は一般の圏の同型を実装したものではありません。
+一方で、「変換関数のペア」には両側の逆法則が必要であることを、型と関数の例で明示しています。
 
-この構造を使うと、恒等変換は常に同型であると言える。
+この構造を使うと、恒等変換は常に同型だと言えます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -206,18 +245,21 @@ end Iso
 \label{lst:ch12_iso_refl}
 \end{listing}
 
-\texttt{rfl} は、両辺が定義を展開すると同じ形になるときに使える。ここでは、値をそのまま返しているだけなので、往復しても同じ値になる。
+\texttt{rfl} は、両辺が定義を展開すると同じ形になるときに使えます。
+ここでは値をそのまま返しているため、往復しても同じ値になります。
 
 \section{サンプル：\texttt{UserV1} と \texttt{UserV2} の lossless migration}
 \label{sec:ch12-user-migration}
 
-次に、実務に近いミニケースを考える。旧形式 \texttt{UserV1} では、ユーザー情報を平坦なレコードとして持つ。新形式 \texttt{UserV2} では、連絡先情報とプロフィール情報をネストした構造として持つ。
+次に、実務に近いミニケースを考えます。
+旧形式 \texttt{UserV1} は、ユーザー情報を平坦なレコードとして持ちます。
+新形式 \texttt{UserV2} は、連絡先情報とプロフィール情報をネストした構造として持ちます。
 
-図\ref{fig:ch12-user-migration}では、\texttt{id}、\texttt{email}、\texttt{displayName} が新形式のどのフィールドへ一対一に移るかを示す。
+図\ref{fig:ch12-user-migration}では、\texttt{id}、\texttt{email}、\texttt{displayName} が新形式のどのフィールドへ一対一に移るかを示します。
 
 \FigurePlaceholder{fig-ch12-user-migration.png}{0.94}{ユーザーフィールドの対応}{fig:ch12-user-migration}
 
-まず、二つの型を定義する。
+まず、二つの型を定義します。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -245,7 +287,7 @@ deriving Repr, DecidableEq
 \label{lst:ch12_user_types}
 \end{listing}
 
-次に、移行関数とロールバック関数を定義する。
+次に、移行関数とロールバック関数を定義します。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -263,9 +305,11 @@ def rollback (v : UserV2) : UserV1 :=
 \label{lst:ch12_user_functions}
 \end{listing}
 
-ここまでは、普通のプログラムと変わらない。重要なのは、この二つが本当に情報を失わないことを証明する部分である。
+ここまでは、通常のプログラムと変わりません。
+次に、この二つが本当に情報を失わないことを証明します。
 
-証明方針は単純である。構造体の値を \texttt{cases} で分解し、定義を展開したときに左右が同じ形になることを \texttt{rfl} で示す。
+証明方針は単純です。
+構造体の値を \texttt{cases} で分解し、定義を展開したときに左右が同じ形になることを \texttt{rfl} で示します。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -288,9 +332,10 @@ theorem migrate_rollback (v : UserV2) :
 \label{lst:ch12_user_roundtrip}
 \end{listing}
 
-一つ目の定理は、旧形式から新形式へ移行して戻すと、旧形式が完全に復元されることを示している。二つ目の定理は、新形式から旧形式へ戻して再び移行しても、新形式が完全に復元されることを示している。
+一つ目の定理は、旧形式から新形式へ移行して戻すと、旧形式が完全に復元されることを示します。
+二つ目の定理は、新形式から旧形式へ戻して再び移行しても、新形式が完全に復元されることを示します。
 
-最後に、この二つの関数と二つの証明を \texttt{Iso} にまとめる。
+最後に、この二つの関数と二つの証明を \texttt{Iso} にまとめます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -304,14 +349,17 @@ def userIso : Iso UserV1 UserV2 where
 \label{lst:ch12_user_iso}
 \end{listing}
 
-\texttt{userIso} は二つの変換だけでなく \texttt{left\_inv} と \texttt{right\_inv} も保持するため、相互変換の法則を後続の証明から再利用できる。
+\texttt{userIso} は、二つの変換だけでなく \texttt{left\_inv} と \texttt{right\_inv} も保持します。
+そのため、相互変換の法則を後続の証明で再利用できます。
 
 \section{実務上の注意：完全同型・片方向互換・情報損失を区別する}
 \label{sec:ch12-practical-classification}
 
-実務では、すべての変換が完全同型になるわけではない。むしろ、多くの変更は、片方向だけ安全だったり、条件付きで戻せたり、情報を落としていたりする。重要なのは、それらを同じ「互換性」という言葉でまとめないことである。
+実務では、すべての変換が完全同型になるわけではありません。
+多くの変更は、片方向だけ安全であったり、条件付きで戻せたり、情報を落としていたりします。
+これらを同じ「互換性」という言葉でまとめず、保証の違いを明確にする必要があります。
 
-図\ref{fig:ch12-migration-classification}では、二つの round-trip が成り立つ範囲と、失われる情報の有無によって移行を分類する。
+図\ref{fig:ch12-migration-classification}では、二つの round-trip が成り立つ範囲と、失われる情報の有無によって移行を分類します。
 
 \FigurePlaceholder{fig-ch12-migration-classification.png}{0.94}{移行の分類}{fig:ch12-migration-classification}
 
@@ -321,10 +369,11 @@ def userIso : Iso UserV1 UserV2 where
 \toprule
 分類 & 成り立つ性質 & 例 \\
 \midrule
-完全同型 & 両方向のround-tripが成り立つ。 & フィールド名変更、ネスト構造の導入、情報を保つDTO再編成。 \\
-片方向互換 & 片方向のround-tripだけが成り立つ。 & 旧データは新形式で読めるが、新形式のすべてを旧形式へ戻せるとは限らない。 \\
-制約付き同型 & well-formed 条件の下でだけ両方向に戻せる。 & 正規化済みJSON、キー順序を固定した表現、制約を満たす入力。 \\
-情報損失あり & 元に戻せない情報がある。 & 氏名分割、ログ匿名化、集計、丸め、不要フィールドの削除。 \\
+完全同型 & 両方向のround-tripが成り立ちます。 & フィールド名変更、ネスト構造の導入、情報を保つDTO再編成 \\
+片方向互換 & 片方向の round-trip だけが成り立ちます。
+& 旧データは新形式で読めますが、新形式のすべてを旧形式へ戻せるとは限りません。 \\
+制約付き同型 & well-formed 条件の下でだけ両方向に戻せます。 & 正規化済みJSON、キー順序を固定した表現、制約を満たす入力 \\
+情報損失あり & 元に戻せない情報があります。 & 氏名分割、ログ匿名化、集計、丸め、不要フィールドの削除 \\
 \bottomrule
 \end{tabular}
 \caption{移行ごとの保証}
@@ -332,38 +381,43 @@ def userIso : Iso UserV1 UserV2 where
 \end{table}
 
 \begin{warningbox}
-情報を落とす変更を、無理に同型として扱ってはいけない。証明できない性質を「たぶん戻せる」と書くよりも、「この向きだけ保証する」「この条件の下で保証する」「正規化後の一致だけ保証する」と明示したほうが安全である。
+情報を落とす変更を、無理に同型として扱ってはいけません。
+証明できない性質を「たぶん戻せる」と書くのではなく、「この向きだけ保証します」「この条件の下で保証します」「正規化後の一致だけ保証します」と明示するほうが安全です。
 \end{warningbox}
 
-第27章以降では、この分類をより詳しく扱う。第28章では、\texttt{UserV1} と \texttt{UserV2} のような lossless migration をケーススタディとして扱う。第29章では、完全には戻せない lossy migration を扱い、証明可能な仕様へ弱める方法を見る。
+第27章以降では、この分類をさらに詳しく扱います。
+第28章では、\texttt{UserV1} と \texttt{UserV2} のような lossless migration をケーススタディとして扱います。
+第29章では、完全には戻せない lossy migration を扱い、証明可能な仕様へ弱める方法を見ます。
 
 \section{設計レビューでの使い方}
 \label{sec:ch12-review}
 
-同型の考え方は、Leanコードを書く場面だけでなく、設計レビューでも役に立つ。変換仕様をレビューするときは、次の問いを立てるとよい。
+同型の考え方は、Leanコードを書く場面だけでなく、設計レビューでも役立ちます。
+変換仕様をレビューするときは、次の問いを立てます。
 
 \begin{itemize}
-\item 変更前の型と変更後の型は何か。
-\item 旧形式から新形式への変換は何か。
-\item 新形式から旧形式への変換は何か。
-\item \texttt{rollback (migrate x) = x} は成り立つか。
-\item \texttt{migrate (rollback y) = y} は成り立つか。
-\item 片方だけ成り立つなら、その意味を明記しているか。
-\item 条件付きでしか戻せないなら、well-formed 条件を明記しているか。
-\item 情報損失があるなら、失われる情報を明記しているか。
+\item 変更前の型と変更後の型は何ですか。
+\item 旧形式から新形式への変換は何ですか。
+\item 新形式から旧形式への変換は何ですか。
+\item \texttt{rollback (migrate x) = x} は成り立ちますか。
+\item \texttt{migrate (rollback y) = y} は成り立ちますか。
+\item 片方だけ成り立つ場合、その意味を明記していますか。
+\item 条件付きでしか戻せない場合、well-formed 条件を明記していますか。
+\item 情報損失がある場合、失われる情報を明記していますか。
 \end{itemize}
 
-この問いは、レビューでの会話を具体化する。「互換性がありますか」ではなく、「どちらのround-tripが成り立ちますか」と聞けるようになる。
+これらの問いは、レビューでの会話を具体化します。
+「互換性がありますか」という問いを、「どちらのround-tripが成り立ちますか」という問いへ具体化できます。
 
 \section{本章のまとめ}
 \label{sec:ch12-summary}
 
-同型は、二つの型が同じ情報を表していることを示す関係である。
+同型は、二つの型が同じ情報を表していることを示す関係です。
 
-$A \to B$ と $B \to A$ の関数があるだけでは同型ではない。両方向のround-trip lawが必要である。
+$A \to B$ と $B \to A$ の関数があるだけでは同型ではなく、両方向のround-trip lawが必要です。
 
-Leanでは、同型を \texttt{toFun}、\texttt{invFun}、\texttt{left\_inv}、\texttt{right\_inv} を持つ構造体として表せる。
+Leanでは、同型を \texttt{toFun}、\texttt{invFun}、\texttt{left\_inv}、\texttt{right\_inv} を持つ構造体として表せます。
 
-\texttt{UserV1} と \texttt{UserV2} のような情報を保つスキーマ変更は、Lean上で同型として表現できる。
+\texttt{UserV1} と \texttt{UserV2} のように情報を保つスキーマ変更は、Lean上で同型として表現できます。
 
-実務では、完全同型、片方向互換、制約付き同型、情報損失ありを区別することが重要である。
+実務では、完全同型、片方向互換、制約付き同型、情報損失ありを区別することが重要です。

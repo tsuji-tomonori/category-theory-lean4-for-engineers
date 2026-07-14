@@ -3,32 +3,32 @@
 \label{chap:ch06_example_theorem}
 
 \begin{chapterabstract}
-本章では、証明に名前を付けるかどうかの違い、すなわち \texttt{example} と \texttt{theorem} を扱う。
-前章で定義した \texttt{DiscountSpec} を使い、\texttt{theorem member\_hasDiscount : DiscountSpec true := by rfl} に到達する。
-ここまで来ると、定理を見ただけで、仕様名の展開から \texttt{rfl} で閉じるまでの流れを追えるようになる。
+本章では、証明に名前を付けるかどうかの違い、すなわち \texttt{example} と \texttt{theorem} を扱います。
+前章で定義した \texttt{DiscountSpec} を使い、\texttt{theorem member\_hasDiscount : DiscountSpec true := by rfl} に到達します。
+ここまで進むと、定理を見ただけで、仕様名の展開から \texttt{rfl} で閉じるまでの流れを追えるようになります。
 \end{chapterabstract}
 
 \begin{learninggoals}
-\item \texttt{example} と \texttt{theorem} の違いを、名前の有無と再利用可否で説明できる。
-\item 仕様名に対する定理を書き、\texttt{rfl} で証明できる。
-\item 定理のゴールが、仕様名の展開を通じてどう閉じるかを表で追える。
+\item \texttt{example} と \texttt{theorem} の違いを、名前の有無と再利用の可否によって説明できます。
+\item 仕様名に対する定理を書き、\texttt{rfl} で証明できます。
+\item 定理のゴールが、仕様名の展開を通じてどのように閉じるかを表で追えます。
 \end{learninggoals}
 
 \section{この章を読む理由}
 
-前章までで、仕様に名前を付け、その意味を展開できるようになった。
-本章では、その仕様が成り立つことを証明として保存する。
-証明には、名前を付けない \texttt{example} と、名前を付ける \texttt{theorem} の二種類がある。
-使い分けの基準は、後からその証明を参照したいかどうかである。
+前章までで、仕様に名前を付け、その意味を展開できるようになりました。
+本章では、その仕様が成り立つことを証明として保存します。
+証明の書き方には、名前を付けない \texttt{example} と、名前を付ける \texttt{theorem} があります。
+後からその証明を参照するかどうかが、使い分けの基準です。
 
-図\ref{fig:ch06-spec-proof-flow}では、関数の振る舞いを命題として切り出し、その命題に証明を与えるまでを三段階に分ける。
+図\ref{fig:ch06-spec-proof-flow}は、関数の振る舞いを命題として切り出し、その命題に証明を与えるまでを三段階に分けて示します。
 
 \FigurePlaceholder{fig-ch06-spec-proof-flow.png}{0.92}{関数・命題・証明}{fig:ch06-spec-proof-flow}
 
 \section{名前付きの定理を書く}
 
-仕様名に対する証明に名前を付けると、後から別の証明や設計文書で参照できる。
-\texttt{DiscountSpec true} が成り立つことを、名前付きの定理として書く。
+仕様名に対する証明に名前を付けると、後から別の証明や設計文書で参照できます。
+\texttt{DiscountSpec true} が成り立つことを、名前付きの定理として書きます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -50,9 +50,9 @@ theorem member_hasDiscount : DiscountSpec true := by
 \label{lst:ch06_theorem}
 \end{listing}
 
-コード\ref{lst:ch06_theorem}の \texttt{member\_hasDiscount} は、\texttt{DiscountSpec true} が成り立つことを示す定理である。
-なぜ \texttt{rfl} で閉じるのかは、ゴールの展開を順に追うと分かる。
-一方、コメントアウトした \texttt{nonmember\_hasDiscount} は、\texttt{DiscountSpec false} が \texttt{false = true} に展開されるため証明できない。
+コード\ref{lst:ch06_theorem}の \texttt{member\_hasDiscount} は、\texttt{DiscountSpec true} が成り立つことを示す定理です。
+\texttt{rfl} で閉じる理由は、ゴールの展開を順に追うと分かります。
+一方、コメントアウトした \texttt{nonmember\_hasDiscount} は、\texttt{DiscountSpec false} が \texttt{false = true} に展開されるため証明できません。
 
 \begin{table}[htbp]
 \centering
@@ -67,15 +67,15 @@ theorem member_hasDiscount : DiscountSpec true := by
 \texttt{DiscountSpec} を展開 & \texttt{hasDiscount true = true} \\
 \texttt{hasDiscount} を展開 & \texttt{true = true} \\
 使う証明 & \texttt{rfl} \\
-なぜ閉じるか & 左右が同じだから \\
+閉じる理由 & 左右が同じ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \section{名前のない確認は \texttt{example} で書く}
 
-その場限りの確認には、名前を付けない \texttt{example} が向いている。
-ここでは、税込金額の具体例を \texttt{example} で確かめる。
+その場限りの確認には、名前を付けない \texttt{example} が適しています。
+ここでは、税込金額の具体例を \texttt{example} で確かめます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -92,21 +92,21 @@ example : TaxSpec 1000 100 1100 := by
 \label{lst:ch06_example}
 \end{listing}
 
-コード\ref{lst:ch06_example}の \texttt{TaxSpec 1000 100 1100} は、\texttt{1100 = addTax 1000 100}、すなわち \texttt{1100 = 1000 + 100} に展開され、\texttt{1100 = 1100} になる。
-この \texttt{example} には名前がないため、後から別の証明で参照することはできない。
+コード\ref{lst:ch06_example}の \texttt{TaxSpec 1000 100 1100} は、\texttt{1100 = addTax 1000 100}、すなわち \texttt{1100 = 1000 + 100} に展開され、\texttt{1100 = 1100} になります。
+この \texttt{example} には名前がないため、後から別の証明で参照できません。
 
 \section{本章のまとめ}
 
 \begin{summarybox}
 要点と記法
 \begin{itemize}
-\item \texttt{theorem 名前 : P := by ...} \quad 名前付きの証明。
-\item \texttt{example : P := by ...} \quad 名前のない証明（再掲）。
+\item \texttt{theorem 名前 : P := by ...}：名前付きの証明
+\item \texttt{example : P := by ...}：名前のない証明
 \end{itemize}
 \end{summarybox}
 
 \section{次章への接続}
 
-ここまでは、\texttt{true} や \texttt{1000} のような具体的な値についての主張を扱ってきた。
-次章では、「任意の価格について」「すべてのユーザーについて」といった、値を一つに固定しない主張を扱う。
-そのために、引数を取る定理、\texttt{forall}、そして証明を始める \texttt{intro} を導入する。
+ここまでは、\texttt{true} や \texttt{1000} のような具体的な値についての主張を扱ってきました。
+次章では、「任意の価格について」「すべてのユーザーについて」といった、値を一つに固定しない主張を扱います。
+そのために、引数を取る定理、\texttt{forall}、および証明を始める \texttt{intro} を導入します。
