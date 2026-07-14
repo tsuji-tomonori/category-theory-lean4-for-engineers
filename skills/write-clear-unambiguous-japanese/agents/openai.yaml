@@ -1,0 +1,4 @@
+interface:
+  display_name: "明確で一意な日本語"
+  short_description: "技術文書の全体を簡潔で明確かつ一意に読める日本語へ書き直す"
+  default_prompt: "Use $write-clear-unambiguous-japanese to revise this technical document into concise and unambiguous Japanese."
