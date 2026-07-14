@@ -1,6 +1,8 @@
 % !TEX root = ../main.tex
 \chapter{等式推論とリファクタリング}
 \label{chap:ch09_equality_refactoring}
+\BookIndex{りふぁくたりんぐ}{リファクタリング}
+\BookIndex{とうしきすいろん}{等式推論}
 
 \begin{chapterabstract}
 本章では、リファクタリングを「意味を保存する等式」として扱います。
@@ -19,7 +21,7 @@ Lean 4 では、この主張を等式として書き、\texttt{rfl}、\texttt{si
 \item 処理順序を変えてよい場合と、変えてはいけない場合を、証明可能な等式によって区別できます。
 \end{learninggoals}
 
-\section{この章を読む理由}
+\section{問題設定}
 
 リファクタリングは、テストを書くだけで常に安全になるわけではありません。
 テストは、選んだ入力に対して結果が変わらないことを確認します。
@@ -119,13 +121,11 @@ theorem raw_and_refactored_same :
 これは、テストケースを一つ増やすこととは異なります。
 \texttt{intro x} の \texttt{x} は特定の値ではなく任意の入力を表すため、証明はモデル化した範囲の全入力を覆います。
 
-\subsection{この章では関数外延性を深追いしない}
+\subsection{関数外延性との関係}
 
 数学では、二つの関数が同じであることを「すべての入力で同じ出力を返すこと」として扱います。
 この考え方を関数外延性と呼びます。
-Lean で関数そのものの等式を証明する方法は、第21章で改めて扱います。
-
-本章では、まず \texttt{∀ x, old x = new x} という形を使います。
+\texttt{sameOnNat} は、この考え方を \texttt{∀ x, old x = new x} という点ごとの等式で表します。
 この形は、実務でも「すべての入力 \texttt{x} で結果が一致する」とそのまま読めます。
 
 \section{\texttt{calc} による式変形}

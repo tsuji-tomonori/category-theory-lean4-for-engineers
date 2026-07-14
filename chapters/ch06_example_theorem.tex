@@ -1,6 +1,8 @@
 % !TEX root = ../main.tex
 \chapter{\texttt{example} と \texttt{theorem}}
 \label{chap:ch06_example_theorem}
+\BookIndex{theorem}{\texttt{theorem}}
+\BookIndex{example}{\texttt{example}}
 
 \begin{chapterabstract}
 本章では、証明に名前を付けるかどうかの違い、すなわち \texttt{example} と \texttt{theorem} を扱います。
@@ -14,7 +16,7 @@
 \item 定理のゴールが、仕様名の展開を通じてどのように閉じるかを表で追えます。
 \end{learninggoals}
 
-\section{この章を読む理由}
+\section{問題設定}
 
 前章までで、仕様に名前を付け、その意味を展開できるようになりました。
 本章では、その仕様が成り立つことを証明として保存します。
@@ -104,9 +106,3 @@ example : TaxSpec 1000 100 1100 := by
 \item \texttt{example : P := by ...}：名前のない証明
 \end{itemize}
 \end{summarybox}
-
-\section{次章への接続}
-
-ここまでは、\texttt{true} や \texttt{1000} のような具体的な値についての主張を扱ってきました。
-次章では、「任意の価格について」「すべてのユーザーについて」といった、値を一つに固定しない主張を扱います。
-そのために、引数を取る定理、\texttt{forall}、および証明を始める \texttt{intro} を導入します。

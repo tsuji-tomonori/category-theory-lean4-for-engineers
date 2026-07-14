@@ -1,6 +1,9 @@
 % !TEX root = ../main.tex
 \chapter{場合分けと全パターン検査}
 \label{chap:cases-patterns}
+\BookIndex{ばあいわけ}{場合分け}
+\BookIndex{cases}{\texttt{cases}}
+\BookIndex{ぱたーんまっち}{パターンマッチ}
 
 \begin{chapterabstract}
 本章では、\texttt{Bool}、\texttt{Option}、\texttt{Sum}、小さなバリデーション結果型を題材に、Lean 4 の \texttt{cases} による場合分けを学びます。
@@ -16,7 +19,7 @@
 \item バリデーション結果のような業務上の分岐型を、漏れのない仕様確認に使えます。
 \end{learninggoals}
 
-\section{この章を読む理由}
+\section{問題設定}
 
 ソフトウェアのバグは、計算式そのものよりも、分岐の扱いに潜むことがよくあります。
 正常系だけを考えれば正しく見えても、入力が空の場合、認証に失敗した場合、API がエラーを返した場合などを考える必要があります。

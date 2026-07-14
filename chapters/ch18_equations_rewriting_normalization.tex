@@ -1,6 +1,9 @@
 % !TEX root = ../main.tex
 \chapter{等式・書き換え・正規化}
 \label{chap:ch18_equations_rewriting_normalization}
+\BookIndex{かきかえ}{書き換え}
+\BookIndex{せいきか}{正規化}
+\BookIndex{calc}{\texttt{calc}}
 
 \begin{chapterabstract}
 本章では、Lean 4 における等式証明を、仕様変更とリファクタリングの安全性を確認する道具として扱います。
@@ -16,7 +19,7 @@
 \item 正規化を、レビューと自動証明の両方に有効な設計方針として使えます。
 \end{learninggoals}
 
-\section{この章を読む理由}
+\section{問題設定}
 
 実務で頻繁に起きる変更の多くには、外から見た意味を変えないことが求められます。
 たとえば、関数の分割、補助関数の導入、処理の共通化、括弧の位置の変更、不要な初期値処理の削除です。
@@ -403,6 +406,6 @@ Lean の証明モデルと本番実装は同じではありません。
 
 Lean で証明した範囲と、実務コード側に残る前提は必ず分けて書きます。
 
-次章では、\texttt{Bool}、\texttt{Option}、\texttt{Sum} のような分岐を含む型を扱います。
+等式の道具は、\texttt{Bool}、\texttt{Option}、\texttt{Sum} のような分岐を含む型にも適用できます。
 等式だけで済む例では、\texttt{rw}、\texttt{simp}、\texttt{calc} が中心でした。
 分岐がある仕様では、すべてのケースを漏れなく扱うために \texttt{cases} が必要になります。

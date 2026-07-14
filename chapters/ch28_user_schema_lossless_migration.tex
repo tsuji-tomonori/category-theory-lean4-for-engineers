@@ -1,6 +1,9 @@
 % !TEX root = ../main.tex
 \chapter{ケーススタディ：User スキーマの lossless migration}
 \label{chap:ch28_user_schema_lossless_migration}
+\BookIndex{lossless migration}{lossless migration}
+\BookIndex{すきーまいこう}{スキーマ移行}
+\BookIndex{どうけい}{同型}
 
 \begin{chapterabstract}
 本章では、\texttt{UserV1} から \texttt{UserV2} へのスキーマ変更を、情報を失わない移行として扱います。
@@ -18,7 +21,7 @@
 \item Lean の証明を CI や設計レビューに入れるときの境界線を説明できます。
 \end{learninggoals}
 
-\section{この章を読む理由}
+\section{問題設定}
 
 ユーザー情報のスキーマは、長く運用されるサービスほど変わりやすくなります。
 最初は単純なフラットなレコードだったものが、後からプロフィール、連絡先、監査情報、権限情報などに分かれます。
@@ -359,13 +362,6 @@ CI に置くファイル名は、たとえば \texttt{lean/ch28\_user\_schema\_l
 \texttt{rollback\_migrate} は、「旧データを移して戻すと元に戻る」という仕様に対応します。
 \texttt{migrate\_rollback} は、「新データを戻して再移行すると元に戻る」という仕様に対応します。
 レビューでは、この二つの定理が何を保証し、何を保証しないかを明記します。
-
-\section{次章への接続}
-
-本章では、すべての情報が一対一に対応する移行を扱いました。
-次章では、この前提が崩れます。
-たとえば、\texttt{fullName} を \texttt{firstName} と \texttt{lastName} に分割する場合、入力によっては元の形へ完全には戻せません。
-そのときは、無理に同型として扱うのではなく、well-formed 条件や正規化後の一致へ仕様を弱める必要があります。
 
 \section{本章のまとめ}
 \enlargethispage{2\baselineskip}

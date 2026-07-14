@@ -8,6 +8,7 @@ all:
 
 .PHONY: quality
 quality:
+	python3 tools/check_book_structure.py
 	python3 tools/check_tex_lean_sync.py
 	python3 tools/check_listing_explanations.py
 	python3 tools/check_lean_assumptions.py

@@ -1,6 +1,8 @@
 % !TEX root = ../main.tex
 \chapter{同型：安全な相互変換}
 \label{chap:ch12-isomorphism}
+\BookIndex{どうけい}{同型}
+\BookIndex{round-trip law}{round-trip law}
 
 \begin{chapterabstract}
 本章では、同型を「情報を失わない相互変換」として導入します。
@@ -18,7 +20,7 @@
 \item スキーマ移行を完全同型、片方向互換、情報損失ありに分けて考えられます。
 \end{learninggoals}
 
-\section{この章を読む理由}
+\section{問題設定}
 \label{sec:ch12-why}
 
 ソフトウェア開発では、形を変えても意味は変えたくない場面が多くあります。
@@ -384,10 +386,6 @@ def userIso : Iso UserV1 UserV2 where
 情報を落とす変更を、無理に同型として扱ってはいけません。
 証明できない性質を「たぶん戻せる」と書くのではなく、「この向きだけ保証します」「この条件の下で保証します」「正規化後の一致だけ保証します」と明示するほうが安全です。
 \end{warningbox}
-
-第27章以降では、この分類をさらに詳しく扱います。
-第28章では、\texttt{UserV1} と \texttt{UserV2} のような lossless migration をケーススタディとして扱います。
-第29章では、完全には戻せない lossy migration を扱い、証明可能な仕様へ弱める方法を見ます。
 
 \section{設計レビューでの使い方}
 \label{sec:ch12-review}

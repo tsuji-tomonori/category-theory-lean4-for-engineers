@@ -1,6 +1,8 @@
 % !TEX root = ../main.tex
 \chapter{\texttt{simp} と \texttt{rw}}
 \label{chap:ch08_simp_rw}
+\BookIndex{simp}{\texttt{simp}}
+\BookIndex{rw}{\texttt{rw}}
 
 \begin{chapterabstract}
 本章では、\texttt{rfl} の次の証明道具として \texttt{simp} と \texttt{rw} を導入します。
@@ -15,12 +17,12 @@
 \item \texttt{rfl}、\texttt{simp}、\texttt{rw} の役割を読み分けられます。
 \end{learninggoals}
 
-\section{この章を読む理由}
+\section{問題設定}
 
 これまでの証明は、\texttt{rfl} だけで閉じてきました。
 しかし、分岐を整理する場面や、別の場所で証明した等式を使う場面では、\texttt{rfl} だけでは足りません。
 本章では、この二つの場面に対応する \texttt{simp} と \texttt{rw} を導入します。
-これらは、次章の等式推論とリファクタリング証明で中心的に使います。
+これらは、等式推論とリファクタリング証明で中心的に使います。
 
 \section{\texttt{simp} で明らかな整理を任せる}
 
@@ -111,7 +113,7 @@ theorem addTax_after_normalize (price tax : Nat) :
 
 \begin{leanbox}
 \texttt{rfl} は「定義を見れば同じ」、\texttt{simp} は「明らかな整理をまとめて行う」、\texttt{rw} は「既知の等式で置き換える」と読みます。
-この三つが、次章以降の等式推論とリファクタリング証明の基本語彙になります。
+この三つが、等式推論とリファクタリング証明の基本語彙になります。
 \end{leanbox}
 
 \section{本章のまとめ}
@@ -124,9 +126,3 @@ theorem addTax_after_normalize (price tax : Nat) :
 \item \texttt{rw [h]}：等式 \texttt{h} によるゴールの書き換え
 \end{itemize}
 \end{summarybox}
-
-\section{次章への接続}
-
-ここまでで、\texttt{rfl}、\texttt{simp}、\texttt{rw} という等式の道具がそろいました。
-次章では、これらを使って、リファクタリングを「意味を保存する書き換え」として証明します。
-\texttt{calc} を導入し、段階的な式変形をレビュー可能なログとして書く方法を学びます。

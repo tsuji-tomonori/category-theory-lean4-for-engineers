@@ -2,6 +2,7 @@
 
 ## 自動ゲート
 
+- [ ] 章構成（はじめに、到達目標、問題設定、まとめ）と索引マーカー
 - [ ] TeX–Lean strict sync
 - [ ] listing説明構造
 - [ ] Lean全スニペット、未許可warning 0

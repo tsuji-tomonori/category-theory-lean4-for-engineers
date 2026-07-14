@@ -22,7 +22,7 @@ Lean では、その同型性を round-trip law として書けます。
 条件付きでしか証明できないなら、well-formed 条件を明示する必要があります。
 
 この部では、\texttt{UserV1} から \texttt{UserV2} への lossless migration、\texttt{fullName} を \texttt{firstName} と \texttt{lastName} に分割する lossy migration、\texttt{List.map migrate} によるバッチ移行、API response wrapper の変更、DB スキーマ変更後のクエリ結果保存を扱います。
-各ケースでは、どの性質を証明すべきか、どの性質は証明できないのかを明確にします。
+各ケースでは、情報保存、片方向互換、仕様弱化のどの保証を選ぶべきかを明確にします。
 
 この部の目的は、マイグレーションを「作業手順」ではなく「変換と保存性の問題」として捉え直すことです。
 Lean で小さなモデルを作ることで、移行仕様の曖昧さを減らし、レビュー可能な証拠を残せます。
@@ -39,17 +39,3 @@ Lean で小さなモデルを作ることで、移行仕様の曖昧さを減ら
 \item DB schema migration とクエリ保存
 \item マイグレーション証明チェックリスト
 \end{itemize}
-
-\section*{この部で扱わないこと}
-
-\begin{itemize}
-\item 実DBエンジンの完全な意味論
-\item 大規模データ移行の性能保証
-\item 本番データの全件検査
-\item 分散システムの整合性全体の証明
-\end{itemize}
-
-\section*{次の部への接続}
-
-次の部では、マイグレーションに限らず、設計、リファクタリング、アーキテクチャ全体に圏論と Lean の考え方を広げます。
-合成可能な設計をどのように作るか、変更前後の意味保存をどのようにレビューするか、チーム開発の中で証明をどのように運用するかを扱います。

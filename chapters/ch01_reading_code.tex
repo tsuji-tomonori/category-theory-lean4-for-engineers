@@ -1,6 +1,9 @@
 % !TEX root = ../main.tex
 \chapter{Lean コードの読み方}
 \label{chap:ch01_reading_code}
+\BookIndex{Lean 4 syntax}{Lean 4 の構文}
+\BookIndex{かたちゅうしゃく}{型注釈}
+\BookIndex{eval command}{\texttt{\#eval}}
 
 \begin{chapterabstract}
 本章では、Lean 4 のコードを「書く」前に、まず「読む」ことに集中します。
@@ -17,7 +20,7 @@ Lean のコードには、\texttt{:}、\texttt{:=}、引数、関数適用とい
 \item \texttt{\#check} で式の型を、\texttt{\#eval} で式の評価結果を確認できます。
 \end{learninggoals}
 
-\section{この章を読む理由}
+\section{問題設定}
 
 プログラミング言語を新しく学ぶとき、最初の障害は構文そのものです。
 とくに Lean では、見慣れた記号が、ふだんと少し違う意味を持つことがあります。
@@ -114,8 +117,3 @@ def addOne (n : Nat) : Nat :=
 \item \texttt{\#eval}：式の評価結果を表示するコマンド
 \end{itemize}
 \end{summarybox}
-
-\section{次章への接続}
-
-本章では、記号と確認コマンドの読み方を固定しました。
-次章では、これらを使って \texttt{Nat}、\texttt{Bool}、\texttt{String} などの基本型の値と、\texttt{def} による関数定義をまとめて扱います。

@@ -19,6 +19,7 @@ make
 ```
 
 生成物は `main.pdf` と、配布用に名前を付けた `category-theory-lean4-for-engineers.pdf` です。
+索引は各章の `\BookIndex{読み仮名または英字キー}{表示名}` から生成され、`make` 実行時に `latexmk` が `upmendex` を自動実行して本文末尾へ組み込みます。
 `main` へ push すると、品質ゲートを通過した PDF が GitHub Release に自動添付されます。
 リポジトリは公開されているため、GitHub の権限やログインなしで [最新版 PDF](https://github.com/tsuji-tomonori/category-theory-lean4-for-engineers/releases/latest/download/category-theory-lean4-for-engineers.pdf) をダウンロードできます。
 Git タグを push した場合も、同じ名前の PDF が対応する Release に添付されます。
@@ -48,6 +49,7 @@ python3 tools/check_lean_snippets.py lean/ch40_mathlib_category_theory
 ## 補助チェック
 
 ```sh
+python3 tools/check_book_structure.py
 python3 tools/check_tex_lean_sync.py
 python3 tools/check_listing_explanations.py
 ```

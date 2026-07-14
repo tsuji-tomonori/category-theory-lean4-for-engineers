@@ -1,6 +1,9 @@
 % !TEX root = ../main.tex
 \chapter{関手：構造を保ったまま中身を変える}
 \label{chap:ch14_functor}
+\BookIndex{かんしゅ}{関手}
+\BookIndex{map}{\texttt{map}}
+\BookIndex{かんしゅそく}{関手則}
 
 \begin{chapterabstract}
 本章では、関手を「構造を壊さずに中身の変換を持ち上げる仕組み」として導入します。
@@ -17,7 +20,7 @@
 \item 一件のマイグレーションをリスト全体へ持ち上げる意味を説明できます。
 \end{learninggoals}
 
-\section{この章を読む理由}
+\section{問題設定}
 
 実務では、単体の値を変換する関数を書くだけでなく、その変換を「まとまった構造」へ広げることがよくあります。
 ユーザーを一件だけ移行する関数を書いたら、次にはユーザー一覧を移行します。
@@ -28,9 +31,8 @@
 
 \FigurePlaceholder{fig-ch14-overview.png}{0.92}{関数の持ち上げ}{fig:ch14-overview}
 
-この章では、すぐに Mathlib の \texttt{CategoryTheory.Functor} へ進みません。
-まず、型と関数の世界で \texttt{map} を観察し、関手則を Lean で確認します。
-本格的な一般圏論へ進む前に、\texttt{map} が安全な設計語彙になる理由を捉えることが目標です。
+型と関数の世界で \texttt{map} を観察し、関手則を Lean で確認します。
+恒等射と合成の保存から、\texttt{map} が安全な設計語彙になる理由を捉えます。
 「箱の形を保つ」という表現は、ここで扱う \texttt{List}、\texttt{Option}、\texttt{Result} に対する直感です。
 一般の関手に必須なのは、恒等射と合成の保存です。
 要素数、順序、内部表現の保存は、それぞれの具体例について別に証明する性質です。
@@ -382,8 +384,7 @@ theorem migrateUsers_preserves_ids (users : List UserV1) :
 関手の価値は、抽象語を覚えることだけにあるのではありません。
 一件の処理を構造全体の処理へ安全に広げるための設計パターンとして使えます。
 
-この観点は、後の第30章で重要になります。
-第30章では、一件のマイグレーションからリスト全体のマイグレーションへ進み、件数保存や合成保存を、より実務的なバッチ移行として扱います。
+この観点により、一件のマイグレーションをリスト全体へ持ち上げ、件数保存や合成保存をバッチ移行の仕様として扱えます。
 本章は、そのための基礎です。
 
 \section{よくある誤解}
@@ -409,12 +410,6 @@ theorem migrateUsers_preserves_ids (users : List UserV1) :
 \texttt{map id} が何もしないことと、\texttt{map g} と \texttt{map f} の合成が \texttt{map (g after f)} と一致することにより、処理を分割または統合しても意味が保たれます。
 \end{warningbox}
 
-\section{一般の関手との境界}
-
-本章では、関手を型と関数の世界で説明しました。
-一般の圏から一般の圏への関手、反変関手、双関手、Mathlib の \texttt{CategoryTheory.Functor} などは扱っていません。
-ここでは、\texttt{map} を「構造を保った一括変換」として読み、二つの法則を Lean で確認できることを目指しました。
-
 \section{本章のまとめ}
 
 関手は、対象と射を対応させ、恒等関数と合成を保存する構造です。
@@ -426,9 +421,3 @@ theorem migrateUsers_preserves_ids (users : List UserV1) :
 合成の保存は、二段階の変換を \texttt{map} の内側で合成しても、外側で二回 \texttt{map} しても同じであることを意味します。
 
 一件のマイグレーションは、\texttt{List.map} によってバッチ全体のマイグレーションへ持ち上げられます。
-
-\section{次章への接続}
-
-次章では、関手どうしの間の変換である自然変換へ進みます。
-そこで中心になるのは、adapter と業務ロジックの順序を入れ替えても結果が変わらないという自然性です。
-本章の \texttt{map} と関手則は、その自然性を読むための前提になります。

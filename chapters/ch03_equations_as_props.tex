@@ -1,12 +1,14 @@
 % !TEX root = ../main.tex
 \chapter{等式を命題として読む}
 \label{chap:ch03_equations_as_props}
+\BookIndex{とうしき}{等式}
+\BookIndex{めいだい}{命題}
 
 \begin{chapterabstract}
 本章では、\texttt{hasDiscount true = true} のような\emph{等式}を読む練習をします。
 プログラミングの多くの場面で \texttt{=} は代入を意味しますが、Lean で仕様を書くときの \texttt{=} は代入ではありません。
 「左辺と右辺が等しい」という\emph{主張}です。
-本章では、この主張を「命題」と呼ぶことを先に体験し、\texttt{rfl} などの証明道具は次章で扱います。
+本章では、この主張を「命題」と呼び、成立する主張と成立しない主張を式の展開によって区別します。
 \end{chapterabstract}
 
 \begin{learninggoals}
@@ -15,7 +17,7 @@
 \item \texttt{=} が代入ではなく、成り立つかどうかを問える主張であると説明できます。
 \end{learninggoals}
 
-\section{この章を読む理由}
+\section{問題設定}
 
 仕様で確認したい内容は、しばしば「ある入力でこの関数はこの値になる」という形の主張です。
 たとえば、「会員なら割引対象になる」は、\texttt{hasDiscount true} が \texttt{true} になると言い換えられます。
@@ -50,7 +52,7 @@ def hasDiscount (member : Bool) : Bool :=
 \begin{intuitionbox}
 \texttt{\#eval hasDiscount true} は、関数を実際に\emph{計算}して値を確認します。
 これは、テストで特定の入力の結果を確かめる感覚に近い操作です。
-次の節では、この計算結果を「主張」として書き直します。
+この計算結果を「主張」として書き直します。
 \end{intuitionbox}
 
 \section{等式を主張として読む}
@@ -110,7 +112,7 @@ def hasDiscount (member : Bool) : Bool :=
 \end{table}
 
 表\ref{tab:ch03-true-false}のように、\texttt{hasDiscount false = true} は展開すると \texttt{false = true} になり、左右が異なるため成り立ちません。
-主張はまず正しく読める必要があり、実際に成り立つかどうかは、次章で \texttt{rfl} を使って確かめます。
+主張はまず正しく読める必要があり、定義を展開して左右を比較すると成否を判断できます。
 
 \section{本章のまとめ}
 
@@ -122,8 +124,3 @@ def hasDiscount (member : Bool) : Bool :=
 \item 定義を展開した左右の確認：書いた命題が成り立つかを判断する方法
 \end{itemize}
 \end{summarybox}
-
-\section{次章への接続}
-
-本章では、等式を主張として読みました。
-次章では、最初の証明道具 \texttt{rfl} を使い、\texttt{hasDiscount true = true} が閉じ、\texttt{hasDiscount false = true} が閉じない過程を比較します。

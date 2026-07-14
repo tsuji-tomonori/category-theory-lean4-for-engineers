@@ -1,6 +1,10 @@
 % !TEX root = ../main.tex
 \chapter{データ構造と不変条件}
 \label{chap:ch10_invariants}
+\BookIndex{ふへんじょうけん}{不変条件}
+\BookIndex{じぜんじょうけん}{事前条件}
+\BookIndex{じごじょうけん}{事後条件}
+\BookIndex{Subtype}{\texttt{Subtype}}
 
 \begin{chapterabstract}
 本章では、Lean 4 でドメインモデルを作り、そのモデルが守るべきルールを不変条件として表す方法を学びます。
@@ -19,7 +23,7 @@
 \item 口座残高を題材に、失敗しうる \texttt{withdraw} の仕様を Lean で表せます。
 \end{learninggoals}
 
-\section{この章を読む理由}
+\section{問題設定}
 
 ソフトウェアのバグは、計算式の間違いだけから生じるわけではありません。
 データが想定していない形になったときにも発生します。
@@ -345,9 +349,7 @@ theorem withdrawChecked_post
 \subsection{成功と失敗を分けて仕様化する}
 
 \texttt{withdrawOpt} は \texttt{Option Account} を返すため、成功ケースと失敗ケースがあります。
-本章では、場合分けの証明には立ち入りません。
-場合分けは、第19章で扱います。
-ここでは、成功条件があるときに \texttt{some} が返ることと、成功条件がないときに \texttt{none} が返ることを、仕様として読みます。
+成功条件があるときに \texttt{some} が返ることと、成功条件がないときに \texttt{none} が返ることを、二つの仕様として読みます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}

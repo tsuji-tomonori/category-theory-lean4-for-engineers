@@ -1,6 +1,9 @@
 % !TEX root = ../main.tex
 \chapter{自然変換：関手どうしを一貫してつなぐ adapter}
 \label{chap:natural-transformation}
+\BookIndex{しぜんへんかん}{自然変換}
+\BookIndex{しぜんせい}{自然性}
+\BookIndex{adapter}{adapter}
 
 \begin{chapterabstract}
 本章では、自然変換を「関手どうしを一貫してつなぐ adapter」として導入します。
@@ -22,7 +25,7 @@ adapter を業務ロジックの前に置いても後に置いても結果が同
 \item API response wrapper の変更に対して、adapter と \texttt{map} が可換であることを仕様として書けます。
 \end{learninggoals}
 
-\section{この章を読む理由}
+\section{問題設定}
 
 API のレスポンス形式を変える場面を考えます。
 旧 API では、1件あるかもしれない値を \texttt{Option A} のように返していました。
@@ -402,7 +405,6 @@ end Chapter15
 どちらの場合も、定義を展開すると左右は同じ形になります。
 
 二つ目の定理 \texttt{adapt\_naturality\_as\_function\_equality} は、同じ事実を「関数どうしが等しい」という形で書き直しています。
-これは、第21章で扱う関数外延性への橋渡しです。
 二つの関数がすべての入力 \texttt{r} で同じ結果を返すなら、関数として同じだと扱えます。
 
 \section{実務上の読み替え：adapter が業務ロジックと干渉しないこと}
@@ -417,7 +419,7 @@ end Chapter15
 \item 業務ロジックを旧 wrapper 側に残すか、新 wrapper 側へ移すかを選びやすくなります。
 \item adapter の導入によって payload の意味が変わらないと説明しやすくなります。
 \item API バージョニングや SDK 互換層のレビューで、確認すべき性質を明確にできます。
-\item 後続の第31章で扱う API adapter のケーススタディへ自然に接続できます。
+\item API adapter のケーススタディで、自然性を具体的なレビュー条件として使えます。
 \end{itemize}
 
 \subsection{自然性が壊れる典型例}
@@ -446,10 +448,3 @@ Lean では、自然性を通常の等式として書けます。
 \texttt{cases} による場合分けで、\texttt{none} と \texttt{some} の両方を確認できます。
 
 API response wrapper の変更では、adapter と \texttt{map} が可換であることを示すと、モデル化した変換の範囲で両者の適用順を交換できると説明できます。
-
-\section{次章への接続}
-
-本章では、adapter と \texttt{map} の順序交換を扱いました。
-次章では、結合できる値や処理を扱います。
-ログ、設定、文字列、リストのように、空の値と結合操作を持つ構造をモノイドとして読みます。
-自然変換が「構造間の一貫した変換」を扱ったのに対し、モノイドは「同じ構造の値をどう安全にまとめるか」を扱います。

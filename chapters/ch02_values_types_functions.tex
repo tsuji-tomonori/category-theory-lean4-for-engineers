@@ -1,6 +1,9 @@
 % !TEX root = ../main.tex
 \chapter{値・型・関数}
 \label{chap:ch02_values_types_functions}
+\BookIndex{あたい}{値}
+\BookIndex{かた}{型}
+\BookIndex{かんすう}{関数}
 
 \begin{chapterabstract}
 本章では、Lean の基本的な型と値、および \texttt{def} による関数定義を扱います。
@@ -15,7 +18,7 @@
 \item 関数の型 \texttt{A -> B} を「\texttt{A} を受け取り \texttt{B} を返す」と読めます。
 \end{learninggoals}
 
-\section{この章を読む理由}
+\section{問題設定}
 
 ソフトウェアでは、値の種類を取り違えると、プログラムが動いていても意味が崩れます。
 数値、真偽値、文字列は、それぞれ別の型として扱われます。
@@ -120,9 +123,3 @@ def add (m : Nat) (n : Nat) : Nat :=
 \item \texttt{A -> B}：「\texttt{A} を受け取り \texttt{B} を返す」関数の型
 \end{itemize}
 \end{summarybox}
-
-\section{次章への接続}
-
-ここまでで、値、型、関数を読み書きできるようになりました。
-次章では、これらの関数について「\texttt{hasDiscount true} の結果は \texttt{true} と等しい」のような\emph{等式}を扱います。
-そこで初めて、\texttt{=} を「代入」ではなく「主張（命題）」として読む練習を始めます。

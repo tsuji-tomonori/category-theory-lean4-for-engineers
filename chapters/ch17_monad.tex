@@ -1,6 +1,9 @@
 % !TEX root = ../main.tex
 \chapter{モナド：失敗・状態・非同期を合成する形}
 \label{chap:monad}
+\BookIndex{もなど}{モナド}
+\BookIndex{pure}{\texttt{pure}}
+\BookIndex{bind}{\texttt{bind}}
 
 \begin{chapterabstract}
 本章では、モナドを「文脈を持つ処理を合成する形」として導入します。
@@ -17,7 +20,7 @@ Lean 4 では、まず自作の小さな \texttt{Option} 用 \texttt{pure} と \
 \item 失敗しうるマイグレーションを \texttt{bind} で安全に合成する最小モデルを書けます。
 \end{learninggoals}
 
-\section{この章を読む理由}
+\section{問題設定}
 
 実務コードでは、通常の関数だけでは表しにくい処理が頻繁に現れます。
 たとえば、入力が欠けていれば失敗するバリデーション、失敗理由を返すマイグレーション、内部状態を更新する処理、外部 API の応答を待つ非同期処理です。
@@ -244,7 +247,7 @@ def missingAgeDraft : UserDraft :=
 この例では、成功時だけ \texttt{some UserV2} が得られます。
 メールアドレスが欠けている場合も、年齢が欠けている場合も、結果は \texttt{none} になります。
 \texttt{Option} には失敗理由が残りません。
-失敗理由も必要であれば、次節の \texttt{Except} を使います。
+失敗理由も必要であれば、\texttt{Except} を使います。
 
 図\ref{fig:ch17-migration-pipeline}では、\texttt{requireEmail} が成功したときだけ \texttt{requireAge} へ進み、どちらかが失敗すると全体が \texttt{none} になります。
 

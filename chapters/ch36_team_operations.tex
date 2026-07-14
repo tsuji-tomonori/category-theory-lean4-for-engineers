@@ -1,6 +1,9 @@
 % !TEX root = ../main.tex
 \chapter{チーム開発で使うための運用}
 \label{chap:team-operations}
+\BookIndex{ちーむうんよう}{チーム運用}
+\BookIndex{continuous integration}{CI}
+\BookIndex{れびゅー}{レビュー}
 
 \begin{chapterabstract}
 本章では、Lean 4 で書いた仕様モデルと証明を、個人の学習成果ではなく、チーム開発のレビュー、CI、変更管理に組み込む方法を扱います。
@@ -19,7 +22,7 @@ Lean ファイルの置き場所、仕様レビューでの使い方、\texttt{l
 \item 「証明済み」と主張できる範囲と、証明していない範囲を明文化できます。
 \end{learninggoals}
 
-\section{この章を読む理由}
+\section{問題設定}
 
 ここまでの章では、仕様の核を Lean で小さく表す方法を学んできました。
 たとえば、データ移行の round-trip、API adapter の自然性、リスト移行の件数保存、状態更新の不変条件保存などです。

@@ -22,17 +22,21 @@
 
 % Chapter abstract
 \newenvironment{chapterabstract}{%
-  \par\vspace{1.2em}{\Large\bfseries この章の概要}\par\vspace{0.8em}
+  \par\vspace{1.2em}{\Large\bfseries はじめに}\par\vspace{0.8em}
 }{%
 }
 
 % Learning goals
 \newenvironment{learninggoals}{%
-  \par\vspace{1.2em}{\Large\bfseries この章でできるようになること}\par\vspace{0.8em}
+  \par\vspace{1.2em}{\Large\bfseries この章の到達目標}\par\vspace{0.8em}
   \begin{itemize}
 }{%
   \end{itemize}
 }
+
+% Book index entry with a reading/ASCII sort key and a reader-facing label.
+% Usage: \BookIndex{reading-or-ASCII-key}{display label}
+\newcommand{\BookIndex}[2]{\index{#1@#2}}
 
 % Common boxes
 \newtcolorbox{intuitionbox}{

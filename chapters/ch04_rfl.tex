@@ -1,6 +1,8 @@
 % !TEX root = ../main.tex
 \chapter{\texttt{rfl}：定義を展開すれば同じ}
 \label{chap:ch04_rfl}
+\BookIndex{rfl}{\texttt{rfl}}
+\BookIndex{ていぎじょうのひとしさ}{定義上の等しさ}
 
 \begin{chapterabstract}
 本章では、最初の証明道具 \texttt{rfl} だけを扱います。
@@ -15,7 +17,7 @@
 \item 成り立たない等式では \texttt{rfl} を使えないことを、展開の過程から説明できます。
 \end{learninggoals}
 
-\section{この章を読む理由}
+\section{問題設定}
 
 前章では、\texttt{hasDiscount true = true} を「成り立つ主張」と読みました。
 しかし、「成り立ちそう」と判断することと、Lean が成り立つと認めることは異なります。
@@ -125,9 +127,3 @@ example : addTax 100 0 = 100 := by
 \item \texttt{rfl}：定義展開で左右が同じになる等式を閉じるタクティク
 \end{itemize}
 \end{summarybox}
-
-\section{次章への接続}
-
-ここまでは、\texttt{true} や \texttt{100} などの具体的な値についての等式を扱いました。
-次章では、これまで何度も現れた \texttt{hasDiscount member = true} という形の主張に名前を付けます。
-そこで初めて \texttt{Prop} という言葉と、仕様に名前を与える \texttt{DiscountSpec} を導入します。

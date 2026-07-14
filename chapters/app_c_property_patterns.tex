@@ -1,6 +1,8 @@
 % !TEX root = ../main.tex
 \chapter{証明したい性質のパターン集}
 \label{app:proof-property-patterns}
+\BookIndex{しょうめいぱたーん}{証明パターン}
+\BookIndex{せいしつのぱたーん}{性質のパターン}
 
 \begin{chapterabstract}
 この付録では、本書の各章で繰り返し現れる「証明したい性質」を、実務で再利用しやすいパターンとして整理します。
@@ -18,7 +20,7 @@
 \item 証明できる性質と、モデル外として明示すべき性質を区別できるようになります。
 \end{learninggoals}
 
-\section{この付録の使い方}
+\section{使い方}
 
 \begin{intuitionbox}
 性質のパターンとは、実務で繰り返し現れる「確認したいこと」の型です。
@@ -440,7 +442,7 @@ theorem map_roundtrip (xs : List SmallV1) :
 
 \texttt{small\_roundtrip} は1件の値について round-trip を示し、\texttt{map\_roundtrip} は同じ二つの変換をリスト全体の\texttt{map}へ持ち上げています。
 後者の証明は、リストの形に沿った帰納法で進みます。
-これは \texttt{List.map} の合成保存から得られる具体的な帰結であり、次節で扱う自然変換の自然性とは別の性質です。
+これは \texttt{List.map} の合成保存から得られる具体的な帰結であり、自然変換の自然性とは別の性質です。
 
 \subsection{実務での注意}
 
@@ -644,3 +646,11 @@ Lean ファイルでは、性質ごとに定理名を分けるとよいでしょ
 \end{itemize}
 
 一つの「安全」という言葉に複数の性質を押し込まず、必要な性質ごとに定理を分け、モデル外の条件も併記します。
+
+\section{本付録のまとめ}
+
+証明したい性質は、round-trip、idempotent、monotone、件数・キー・合計の保存、map との可換性、naturality、不変条件保存、事前・事後条件に分類できます。
+
+変更の目的に合う性質を選び、性質ごとに小さな定理へ分けると、設計レビューと Lean コードを対応付けやすくなります。
+
+完全な等式が強すぎる場合は、well-formed 条件、片方向の含意、仕様弱化を使って必要な保証を明示します。

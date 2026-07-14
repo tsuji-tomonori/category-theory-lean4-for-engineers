@@ -1,6 +1,9 @@
 % !TEX root = ../main.tex
 \chapter{積と余積：レコード、ペア、Either}
 \label{chap:products-coproducts}
+\BookIndex{せき}{積}
+\BookIndex{よせき}{余積}
+\BookIndex{Option}{\texttt{Option}}
 
 \begin{chapterabstract}
 本章では、圏論の基本構成である\textbf{積}と\textbf{余積}を、ソフトウェアのデータ設計として読みます。
@@ -21,7 +24,7 @@
 \item エラーを値と同時に持つべきか、成功または失敗の分岐として持つべきかを判断できます。
 \end{learninggoals}
 
-\section{この章を読む理由}
+\section{問題設定}
 
 APIのレスポンス型を設計するとき、次のような迷いが生じます。
 
@@ -289,7 +292,7 @@ theorem makePair_unique_pointwise {A B C : Type}
 \end{listing}
 
 ここでは関数そのものの等しさではなく、任意の入力 \texttt{c} に対する点ごとの等しさとして書いています。
-関数外延性は第21章で改めて扱うため、本章ではこの形で十分です。
+この定理は、積の一意性を点ごとの等式として直接表しています。
 
 \subsection{分岐を処理する唯一の方法}
 
@@ -444,10 +447,3 @@ Leanでは、積を \texttt{Prod} または \texttt{A × B}、余積を \texttt{
 余積の普遍性は「左右の処理を与えると、分岐全体の処理が一意に決まる」こととして読めます。
 
 APIレスポンスやエラー処理では、同時に持つ情報か排他的な分岐かを区別することが重要です。
-
-\section{次章への接続}
-
-本章では、積と余積によってデータの形を整理しました。
-次章では、\texttt{List.map} や \texttt{Option.map} のように、データの外側の構造を保ったまま中身を変換する考え方へ進みます。
-この考え方が関手です。
-積や余積で作ったデータ構造に対して、値の変換をどのように安全に持ち上げるかが次の主題です。

@@ -1,11 +1,15 @@
 % !TEX root = ../main.tex
 \chapter{変数・引数・任意の値}
 \label{chap:ch07_variables_and_forall}
+\BookIndex{forall}{\texttt{forall}}
+\BookIndex{むめいかんすう}{無名関数}
+\BookIndex{かんすうごうせい}{関数合成}
+\BookIndex{Option}{\texttt{Option}}
 
 \begin{chapterabstract}
 本章では、値を一つに固定しない主張を扱います。
 「任意の価格について」「すべてのユーザーについて」という形の仕様を書くために、引数を取る定理、\texttt{forall}、および証明を始める \texttt{intro} を導入します。
-さらに、無名関数、型パラメータ、関数合成と、\texttt{Option} と \texttt{match} を使った小さなパイプラインも扱い、後続の圏論の章へつなげます。
+さらに、無名関数、型パラメータ、関数合成と、\texttt{Option} と \texttt{match} を使った小さなパイプラインも扱います。
 \end{chapterabstract}
 
 \begin{learninggoals}
@@ -15,7 +19,7 @@
 \item \texttt{Option} と \texttt{match} を使った小さなパイプラインを読めます。
 \end{learninggoals}
 
-\section{この章を読む理由}
+\section{問題設定}
 
 テストは、選んだ具体例についての確認です。
 一方、仕様で述べたい内容は、しばしば「すべての入力でこの性質が成り立つ」という主張です。
@@ -106,7 +110,7 @@ def compose {A B C : Type} (g : B -> C) (f : A -> B) : A -> C :=
 \begin{leanbox}
 関数を合成するには、型がつながる必要があります。
 \texttt{A -> B} の出力 \texttt{B} が \texttt{B -> C} の入力と一致するため、この二つの関数をつなげられます。
-この見方は、後の章で扱う「射の合成」につながります。
+この見方は、関数を「合成できる変換」として捉える基礎になります。
 \end{leanbox}
 
 \begin{exercisebox}
@@ -153,7 +157,7 @@ def decorateAll (xs : List String) : List (Option String) :=
 
 \begin{exercisebox}
 \texttt{decorateIfNonempty "lean"} を、\texttt{nonempty} の結果、\texttt{match} で選ばれる枝、最終的な \texttt{Option String} の順に追跡してください。
-\texttt{List.map} は各要素へ同じ関数を適用するだけであり、本節では第14章で扱う関手則まで証明していません。
+\texttt{List.map} は、各要素へ同じ関数を一括適用します。
 \end{exercisebox}
 
 \section{本章のまとめ}
@@ -167,9 +171,3 @@ def decorateAll (xs : List String) : List (Option String) :=
 \item \texttt{some} / \texttt{none} / \texttt{match} / \texttt{xs.map}：\texttt{Option} と一括適用
 \end{itemize}
 \end{summarybox}
-
-\section{次章への接続}
-
-ここまでの証明は、\texttt{rfl} だけで閉じてきました。
-次章では、\texttt{rfl} だけでは届かない場面のために、\texttt{simp} と \texttt{rw} という次の道具を導入します。
-\texttt{simp} は明らかな整理を任せ、\texttt{rw} は既知の等式で書き換えます。

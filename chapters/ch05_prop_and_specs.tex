@@ -1,6 +1,9 @@
 % !TEX root = ../main.tex
 \chapter{\texttt{Prop} と仕様名}
 \label{chap:ch05_prop_and_specs}
+\BookIndex{Bool}{\texttt{Bool}}
+\BookIndex{Prop}{\texttt{Prop}}
+\BookIndex{しよう}{仕様}
 
 \begin{chapterabstract}
 本章では、これまで具体例で読んできた \texttt{hasDiscount member = true} という形の主張に名前を付けます。
@@ -13,7 +16,7 @@
 \item \texttt{DiscountSpec true} と \texttt{DiscountSpec false} が、それぞれどのような命題になるかを展開できます。
 \end{learninggoals}
 
-\section{この章を読む理由}
+\section{問題設定}
 
 ここまで、\texttt{hasDiscount true = true} のような主張を何度も読んできました。
 同じ形の主張を毎回そのまま書くと冗長になり、設計文書とも対応させにくくなります。
@@ -120,10 +123,3 @@ def DiscountSpec (member : Bool) : Prop :=
 \item \texttt{def 名前 (引数) : Prop := 主張}：仕様への命名
 \end{itemize}
 \end{summarybox}
-
-\section{次章への接続}
-\enlargethispage{2\baselineskip}
-
-本章では、主張に \texttt{DiscountSpec} という名前を付けました。
-次章では、その仕様が成り立つことを名前付きで証明する \texttt{theorem} を導入し、\texttt{theorem member\_hasDiscount : DiscountSpec true := by rfl} に到達します。
-ここまで進むと、定理を見ただけで展開の流れを追えるようになります。
