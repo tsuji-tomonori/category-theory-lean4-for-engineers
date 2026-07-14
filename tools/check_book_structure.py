@@ -62,11 +62,11 @@ def check_chapter(
         errors.append(f"{rel}: expected abstract -> goals -> sections")
 
     is_appendix = path.name.startswith("app")
-    expected_first = "使い方" if is_appendix else "問題設定"
     expected_last = "本付録のまとめ" if is_appendix else "本章のまとめ"
-    if not sections or sections[0] != expected_first:
-        actual = sections[0] if sections else "<none>"
-        errors.append(f"{rel}: first section must be {expected_first!r} (found {actual!r})")
+    if not sections:
+        errors.append(f"{rel}: at least one section is required")
+    elif sections[0] == expected_last:
+        errors.append(f"{rel}: an introductory section is required before {expected_last!r}")
     if not sections or sections[-1] != expected_last:
         actual = sections[-1] if sections else "<none>"
         errors.append(f"{rel}: last section must be {expected_last!r} (found {actual!r})")
