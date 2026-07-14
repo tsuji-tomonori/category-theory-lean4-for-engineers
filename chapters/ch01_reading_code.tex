@@ -7,9 +7,9 @@
 
 \begin{chapterabstract}
 本章では、Lean 4 のコードを「書く」前に、まず「読む」ことに集中します。
-Lean のコードには、\texttt{:}、\texttt{:=}、引数、関数適用といった、最初に意味を取り違えやすい記号が現れます。
+Lean のコードには、\texttt{:}、\texttt{:=}、引数、関数適用といった、最初に意味を取り違えやすい記号や書き方が現れます。
 本章では、それらを一つずつ取り上げます。
-\texttt{\#check} で型を確かめ、\texttt{\#eval} で結果を確かめながら、「この式は何を表し、何に評価されるのか」を上から下に読めるようにします。
+\texttt{\#check} で型を確かめ、\texttt{\#eval} で結果を確かめながら、コードを上から順に「この式は何を表し、何に評価されるのか」と読めるようにします。
 命題や証明は、まだ扱いません。
 \end{chapterabstract}
 
@@ -24,7 +24,8 @@ Lean のコードには、\texttt{:}、\texttt{:=}、引数、関数適用とい
 
 プログラミング言語を新しく学ぶとき、最初の障害は構文そのものです。
 とくに Lean では、見慣れた記号が、ふだんと少し違う意味を持つことがあります。
-たとえば、\texttt{:} は型注釈、\texttt{:=} は定義を表し、関数呼び出しには括弧を使いません。
+たとえば、\texttt{:} は型注釈を、\texttt{:=} は定義を表します。
+また、関数呼び出しには括弧を使いません。
 これらを最初に正しく読めるようにしておくと、以降の章のコードを読みやすくなります。
 
 \section{\texttt{:} は型注釈である}
@@ -98,7 +99,7 @@ def addOne (n : Nat) : Nat :=
 \label{lst:ch01_def}
 \end{listing}
 
-コード\ref{lst:ch01_def}では、\texttt{greeting} は引数を取らない \texttt{String} 型の定義です。
+コード\ref{lst:ch01_def}では、\texttt{greeting} は引数を取らない \texttt{String} 型の値の定義です。
 \texttt{addOne} は \texttt{Nat} を一つ受け取り、\texttt{Nat} を返す関数です。
 \texttt{(n : Nat)} は、「引数 \texttt{n} は \texttt{Nat} 型です」と読みます。
 \texttt{\#eval addOne 5} は、\texttt{addOne} を \texttt{5} に適用した結果 \texttt{6} を表示します。

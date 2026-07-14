@@ -143,7 +143,7 @@ def adapt {A : Type} (r : OldResponse A) : NewResponse A :=
 
 この \texttt{adapt} は、\texttt{A} の中身を見ていません。
 ユーザー ID が偶数かどうか、注文金額が高いかどうか、文字列が空かどうかといった payload 固有の判断はしません。
-これは自然性を期待する理由にはなりますが、正式な判定は、次の等式をすべての型、関数、レスポンスについて証明することです。
+\texttt{adapt} が payload の中身を見ないことは、自然性を期待する理由にはなります。ただし、正式な判定には、次の等式をすべての型、関数、レスポンスについて証明する必要があります。
 
 本章でいう「可換」とは、二つの処理の順序を入れ替えても最終結果が同じであるという意味です。
 ここでは、次の二つの経路が同じであることを示します。
@@ -278,7 +278,7 @@ def oldToNewAdapter : ResponseAdapter where
 
 たとえば、内部ユーザー型 \texttt{UserV1} を公開用の \texttt{UserView} へ変換する処理を考えます。
 この処理は payload の中身だけを見て、レスポンス metadata には触れません。
-そのような処理に対して、adapter は前後どちらに置いても同じ結果になります。
+payload の中身だけを変換する処理に対して、adapter は前後どちらに置いても同じ結果になります。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}

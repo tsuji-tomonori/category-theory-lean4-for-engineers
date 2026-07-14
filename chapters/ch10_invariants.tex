@@ -80,7 +80,7 @@ def sampleAccount : Account :=
 \texttt{Account} の \texttt{balance} は \texttt{Nat} なので、Lean の世界では負の残高を直接作れません。
 この時点で、型が一つの不正状態を排除しています。
 
-ただし、これだけで口座モデルとして十分とは限りません。
+ただし、残高を \texttt{Nat} にするだけで口座モデルとして十分とは限りません。
 たとえば、\texttt{ownerId := 0} を未割当IDとして扱う業務仕様では、\texttt{ownerId} が \texttt{Nat} であるだけでは不十分です。
 \texttt{0} も \texttt{Nat} の値だからです。
 
@@ -256,7 +256,7 @@ def depositValid (a : ValidAccount) (amount : Nat) : ValidAccount :=
 
 \texttt{a.val} は、\texttt{Subtype} の中に入っている元の値です。
 \texttt{a.property} は、その値が条件を満たす証明です。
-この二つを組み合わせることで、\texttt{depositValid} は「有効な口座を受け取り、有効な口座を返す」関数になります。
+\texttt{a.val} と \texttt{a.property} を組み合わせることで、\texttt{depositValid} は「有効な口座を受け取り、有効な口座を返す」関数になります。
 
 \subsection{どこまで型に入れるべきか}
 
@@ -313,7 +313,7 @@ def withdrawOpt (a : Account) (amount : Nat) : Option Account :=
 \subsection{成功時の仕様を証明する}
 
 成功時には、出金後の残高に出金額を足すと元の残高に戻る必要があります。
-これは、先ほど定義した \texttt{WithdrawPost} で表せます。
+この事後条件は、先ほど定義した \texttt{WithdrawPost} で表せます。
 証明しやすくするため、まずは事前条件を証明引数として受け取る \texttt{withdrawChecked} を定義します。
 
 \begin{listing}[htbp]
@@ -375,7 +375,7 @@ theorem withdrawOpt_failure
 こうした設計上の選択を、型と定理で表せるようになります。
 
 失敗理由まで区別する必要がある場合は、\texttt{Option} ではなく、エラー値を持つ \texttt{Except} を選びます。
-この選択は、戻り値の型に現れます。
+\texttt{Option} と \texttt{Except} のどちらを選ぶかは、戻り値の型に現れます。
 
 \section{ドメインモデルと仕様を分離する}
 
@@ -401,7 +401,7 @@ theorem withdrawOpt_failure
 \item 1日の出金額は上限以下です。
 \end{itemize}
 
-これらは、述語や事前条件として別に書く必要があります。
+列挙したルールは、述語や事前条件として別に書く必要があります。
 構造体はデータの容器であり、述語はその容器に入っている値の意味を表します。
 
 \subsection{型・述語・定理の役割分担}
@@ -448,7 +448,7 @@ APIレスポンス & 成功時だけ本文を持つ & wrapper変換 \\
 
 最初から完全な業務モデルを作る必要はありません。
 たとえば、注文モデルを最初から完全に形式化しようとすると、税、割引、配送、返品、在庫、キャンペーン、決済状態が関わります。
-初めて Lean で仕様を書くときは、その中から一つだけ選びます。
+初めて Lean で仕様を書くときは、列挙した要素から一つだけ選びます。
 「合計額が保存される」「IDが変わらない」「失敗時に状態が変わらない」のような、小さな性質に切り出します。
 
 \section{よくある誤解}
@@ -463,7 +463,7 @@ APIレスポンス & 成功時だけ本文を持つ & wrapper変換 \\
 
 コメントは人間にとって有用ですが、Lean はコメントを検査しません。
 \texttt{AccountValid : Account -> Prop} のように命題として書くと、その条件を定理の前提や結論として使えます。
-これにより、仕様は人間がレビューできるだけでなく、機械でも検査できる形になります。
+仕様を命題として書くと、人間がレビューできるだけでなく、機械でも検査できる形になります。
 
 \subsection{「\texttt{Subtype} を使えばすべて安全になる」}
 

@@ -21,16 +21,16 @@
 ここまで、\texttt{hasDiscount true = true} のような主張を何度も読んできました。
 同じ形の主張を毎回そのまま書くと冗長になり、設計文書とも対応させにくくなります。
 そこで、主張に名前を付けます。
-名前を付けると、その主張を「仕様」として扱い、後から参照できます。
+名前を付けると、その主張を「仕様」として扱えるようになり、後から名前で参照できます。
 
 \section{\texttt{Bool} と \texttt{Prop} の違い}
 
 \texttt{hasDiscount member} は \texttt{Bool} を返します。
-これは、実行時に \texttt{true} または \texttt{false} に\emph{計算される値}です。
-一方、\texttt{hasDiscount member = true} は計算する値ではなく、成り立つかどうかを問う\emph{主張}です。
+この返り値は、実行時に \texttt{true} または \texttt{false} に\emph{計算される値}です。
+一方、\texttt{hasDiscount member = true} は計算される値ではなく、成り立つかどうかを問う\emph{主張}です。
 Lean では、このような主張の型を \texttt{Prop} と書きます。
 
-図\ref{fig:ch05-bool-vs-prop}は、実行時に計算する判定と、その判定について証明する仕様を別の層として示します。
+図\ref{fig:ch05-bool-vs-prop}は、実行時に計算される判定と、その判定について証明する仕様を、別の層として示します。
 
 \FigurePlaceholder{fig-ch05-bool-vs-prop.png}{0.88}{\texttt{Bool} と \texttt{Prop}}{fig:ch05-bool-vs-prop}
 
@@ -49,13 +49,13 @@ Lean では、このような主張の型を \texttt{Prop} と書きます。
 \end{tabular}
 \end{table}
 
-表\ref{tab:ch05-bool-prop}のように、\texttt{Bool} は判定結果、\texttt{Prop} は保証したい主張として読み分けます。
+表\ref{tab:ch05-bool-prop}のように、\texttt{Bool} は判定結果として、\texttt{Prop} は保証したい主張として読み分けます。
 両者は競合するものではありません。
 実務では、実装の判定を \texttt{Bool} で書き、その判定が満たすべき性質を \texttt{Prop} で書きます。
 
 \section{仕様に名前を付ける}
 
-\texttt{member} の値ごとに「割引があると言えるか」という命題を作る定義を書きます。
+\texttt{member} の値ごとに「割引がある」という命題を作る定義を書きます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -71,7 +71,7 @@ def DiscountSpec (member : Bool) : Prop :=
 
 コード\ref{lst:ch05_discountspec}の \texttt{DiscountSpec} は、\texttt{Bool} を受け取って \texttt{Prop} を返す定義です。
 つまり、\texttt{member} の値ごとに「\texttt{hasDiscount member = true} が成り立つ」という命題を作ります。
-返り値の型が \texttt{Prop} であることは、これが値ではなく主張の定義であることを示します。
+返り値の型が \texttt{Prop} であることは、\texttt{DiscountSpec} が値ではなく主張の定義であることを示します。
 
 \section{名前に値を入れて展開する}
 

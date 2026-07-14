@@ -34,13 +34,13 @@
 \item バッチ移行後に件数、キー、集計値、join 結果が保存されるかを確認します。
 \end{itemize}
 
-この付録は、実装前の設計レビュー、移行 PR のレビュー、CI に入れる Lean 定理の選定、移行後の監査資料に使えます。
+本付録は、実装前の設計レビュー、移行 PR のレビュー、CI に入れる Lean 定理の選定、移行後の監査資料に使えます。
 すべての本番コードを Lean へ移す必要はありません。
 代わりに、移行仕様の核だけを小さな検証モデルとして切り出します。
 
 \FigurePlaceholder{fig-appD-migration-proof-flow.png}{0.86}{マイグレーション証明フロー}{fig:appD-migration-proof-flow}
 
-図\ref{fig:appD-migration-proof-flow}は、この付録の読み方を表しています。
+図\ref{fig:appD-migration-proof-flow}は、本付録の読み方を表しています。
 まず変更前後の型を決め、変換関数と逆変換の有無を確認します。
 次に、情報損失と well-formed 条件を評価し、最後にバッチ移行、業務ロジック、実装差分へ確認範囲を広げます。
 

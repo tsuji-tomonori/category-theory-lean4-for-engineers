@@ -7,8 +7,8 @@
 
 \begin{chapterabstract}
 本章では、\texttt{Bool}、\texttt{Option}、\texttt{Sum}、小さなバリデーション結果型を題材に、Lean 4 の \texttt{cases} による場合分けを学びます。
-目的は、成功ケースだけを証明することではありません。
-値が取りうるすべての形を分解し、失敗ケース、エラーケース、例外的な分岐を仕様から漏らさないことが目的です。
+成功ケースだけを証明するのではなく、失敗ケース、エラーケース、例外的な分岐も仕様に含めることが目的です。
+そのために、値が取りうるすべての形を分解します。
 通常のテストでは代表例を選びますが、Lean の場合分け証明では、型が持つ全コンストラクタを順に処理します。
 \end{chapterabstract}
 
@@ -26,7 +26,7 @@
 データが存在しないとき、古い形式の値が来たとき、想定外に見えても型としては許される値が来たときに、仕様がどう振る舞うべきかを決めなければなりません。
 
 テストでは、このような分岐に対して代表的な例をいくつか選びます。
-これは実務上重要ですが、選ばなかったケースは残ります。
+代表例のテストは実務上重要ですが、選ばなかったケースは残ります。
 Lean の \texttt{cases} は、この残りやすい部分を型から機械的に引き出します。
 
 図\ref{fig:ch19-cases-overview}は、帰納型の値をコンストラクタごとのゴールへ分ける流れを示します。
@@ -72,7 +72,7 @@ Lean では、値の形が型によって決まります。
 \item \texttt{Option A} は、\texttt{some a} または \texttt{none} の二通りを持つ型です。
 \item \texttt{Sum A B} は、\texttt{Sum.inl a} または \texttt{Sum.inr b} の二通りを持つ型です。
 \end{itemize}
-これらの各形を分けて証明する操作が、Lean における \texttt{cases} の基本的な使い方です。
+\texttt{Bool}、\texttt{Option A}、\texttt{Sum A B} の各形を分けて証明する操作が、Lean における \texttt{cases} の基本的な使い方です。
 
 ここでは、「値の個数」と「値の形」を区別します。
 \texttt{Option Nat} には、\texttt{some 0}、\texttt{some 1}、\texttt{some 2}、\ldots{} と無限に多くの値があります。
@@ -300,7 +300,7 @@ theorem postcondition_all (r : ValidationResult) :
 \subsection{入力側の全パターンも分解する}
 
 結果型についての証明だけでなく、入力からバリデーション結果を作る関数についても、全パターンを確認できます。
-\texttt{namePresent} は \texttt{false} または \texttt{true} であり、\texttt{age} は \texttt{0} または \texttt{Nat.succ n} です。
+\texttt{namePresent} は \texttt{false} と \texttt{true} のいずれかであり、\texttt{age} は \texttt{0} と \texttt{Nat.succ n} のいずれかです。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}

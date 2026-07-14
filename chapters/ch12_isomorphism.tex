@@ -9,7 +9,7 @@
 ソフトウェアでは、スキーマ移行、DTO変換、encoder / decoder、旧APIと新APIの対応など、形を変えても意味は変えたくない場面が多くあります。
 ただし、$A \to B$ と $B \to A$ という二つの関数があるだけでは十分ではありません。
 変換して戻すと元に戻ることと、逆向きに往復しても元に戻ること、すなわち二つの round-trip law が必要です。
-本章では、この法則を小さなLean構造として定義し、\texttt{UserV1} から \texttt{UserV2} への lossless migration を題材に確認します。
+本章では、二つの round-trip law を小さな Lean 構造として定義し、\texttt{UserV1} から \texttt{UserV2} への lossless migration を題材に確認します。
 \end{chapterabstract}
 
 \begin{learninggoals}

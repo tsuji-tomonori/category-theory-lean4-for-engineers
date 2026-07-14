@@ -31,7 +31,7 @@ Lean 4 では、まず自作の小さな \texttt{Option} 用 \texttt{pure} と \
 
 \FigurePlaceholder{fig-ch17-overview.png}{0.90}{モナドの全体像}{fig:ch17-overview}
 
-この章で扱うモナドは、Mathlib の高度な圏論 API としてのモナドではありません。
+本章で扱うモナドは、Mathlib の高度な圏論 API としてのモナドではありません。
 本章では、初学者がコードとして追えるように、\texttt{Option}、\texttt{Except}、状態付き計算の最小モデルだけを使います。
 圏論上、モナドは自己関手と、単位および乗法という二つの自然変換を持ち、対応する単位律と結合律を満たす構造として定義されます。
 本章では、それに対応する \texttt{pure} と \texttt{bind} の表示を使い、操作がすべての中身の型に一様に与えられることと、三つの法則に焦点を絞ります。

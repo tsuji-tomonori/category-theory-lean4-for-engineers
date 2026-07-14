@@ -5,7 +5,7 @@
 \BookIndex{example}{\texttt{example}}
 
 \begin{chapterabstract}
-本章では、証明に名前を付けるかどうかの違い、すなわち \texttt{example} と \texttt{theorem} を扱います。
+本章では、証明に名前を付けない \texttt{example} と、名前を付ける \texttt{theorem} の違いを扱います。
 前章で定義した \texttt{DiscountSpec} を使い、\texttt{theorem member\_hasDiscount : DiscountSpec true := by rfl} に到達します。
 ここまで進むと、定理を見ただけで、仕様名の展開から \texttt{rfl} で閉じるまでの流れを追えるようになります。
 \end{chapterabstract}
@@ -53,7 +53,7 @@ theorem member_hasDiscount : DiscountSpec true := by
 \end{listing}
 
 コード\ref{lst:ch06_theorem}の \texttt{member\_hasDiscount} は、\texttt{DiscountSpec true} が成り立つことを示す定理です。
-\texttt{rfl} で閉じる理由は、ゴールの展開を順に追うと分かります。
+\texttt{rfl} で閉じる理由は、表\ref{tab:ch06-goal}のようにゴールの展開を順に追うと分かります。
 一方、コメントアウトした \texttt{nonmember\_hasDiscount} は、\texttt{DiscountSpec false} が \texttt{false = true} に展開されるため証明できません。
 
 \begin{table}[htbp]

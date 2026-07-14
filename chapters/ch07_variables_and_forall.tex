@@ -24,7 +24,7 @@
 テストは、選んだ具体例についての確認です。
 一方、仕様で述べたい内容は、しばしば「すべての入力でこの性質が成り立つ」という主張です。
 本章では、値を固定しない主張の書き方と、証明の始め方を学びます。
-これは、後のマイグレーション証明や圏論の法則確認で何度も使う基本形になります。
+値を固定しない主張は、後のマイグレーション証明や圏論の法則確認で何度も使う基本形になります。
 
 \section{任意の値についての定理}
 
@@ -111,7 +111,7 @@ def compose {A B C : Type} (g : B -> C) (f : A -> B) : A -> C :=
 
 関数を合成するには、型がつながる必要があります。
 \texttt{A -> B} の出力 \texttt{B} が \texttt{B -> C} の入力と一致するため、この二つの関数をつなげられます。
-この見方は、関数を「合成できる変換」として捉える基礎になります。
+型をつないで関数を合成する考え方は、関数を「合成できる変換」として捉える基礎になります。
 
 \texttt{compose g f} の途中の値は \texttt{f} の出力なので、型は \texttt{B} です。
 \texttt{g} は \texttt{B} を入力に取るため、その値を受け取れます。
@@ -156,7 +156,7 @@ def decorateAll (xs : List String) : List (Option String) :=
 
 \texttt{decorateIfNonempty "lean"} では、\texttt{nonempty} の結果が \texttt{some "lean"} になり、\texttt{match} は \texttt{some} の枝を選びます。
 最終結果は \texttt{some "[lean]"} です。
-\texttt{List.map} は、この同じ処理を各要素へ一括適用します。
+\texttt{List.map} は、同じ処理を各要素へ一括適用します。
 
 \section{本章のまとめ}
 

@@ -21,7 +21,7 @@
 
 これまでの証明は、\texttt{rfl} だけで閉じてきました。
 しかし、分岐を整理する場面や、別の場所で証明した等式を使う場面では、\texttt{rfl} だけでは足りません。
-本章では、この二つの場面に対応する \texttt{simp} と \texttt{rw} を導入します。
+本章では、分岐の整理には \texttt{simp}、証明済みの等式による書き換えには \texttt{rw} を導入します。
 これらは、等式推論とリファクタリング証明で中心的に使います。
 
 \section{\texttt{simp} で明らかな整理を任せる}
@@ -48,7 +48,7 @@ theorem member_shipping_zero (shipping : Nat) :
 \label{lst:ch08_simp}
 \end{listing}
 
-コード\ref{lst:ch08_simp}では、\texttt{chargeShipping true shipping} は \texttt{if true then 0 else shipping} になり、\texttt{simp [chargeShipping]} がこれを \texttt{0} に整理します。
+コード\ref{lst:ch08_simp}では、\texttt{chargeShipping true shipping} は \texttt{if true then 0 else shipping} になり、\texttt{simp [chargeShipping]} がこの式を \texttt{0} に整理します。
 角括弧の \texttt{[chargeShipping]} は、「この定義も使って整理してよい」という指定です。
 コメントアウトした \texttt{nonmember\_shipping\_zero} は、非会員の場合に \texttt{shipping} がそのまま残るため、任意の \texttt{shipping} については証明できません。
 
@@ -112,7 +112,7 @@ theorem addTax_after_normalize (price tax : Nat) :
 \end{table}
 
 \texttt{rfl} は「定義を見れば同じ」、\texttt{simp} は「明らかな整理をまとめて行う」、\texttt{rw} は「既知の等式で置き換える」と読みます。
-この三つが、等式推論とリファクタリング証明の基本語彙になります。
+\texttt{rfl}、\texttt{simp}、\texttt{rw} が、等式推論とリファクタリング証明の基本語彙になります。
 
 \section{本章のまとめ}
 

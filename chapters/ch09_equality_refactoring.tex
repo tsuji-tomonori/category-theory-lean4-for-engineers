@@ -10,7 +10,7 @@
 これらの変更が安全であるとは、少なくとも観測したい範囲で、変更前と変更後が同じ結果を返すということです。
 Lean 4 では、この主張を等式として書き、\texttt{rfl}、\texttt{simp}、\texttt{rw}、\texttt{calc} で確認できます。
 
-この章では、Lean で大きなプログラム全体を検証することを目的にしません。
+本章では、Lean で大きなプログラム全体を検証することを目的にしません。
 変更で壊したくない性質を小さな式として切り出し、その式がすべての入力で成り立つことを確認する方法を学びます。
 \end{chapterabstract}
 
@@ -31,7 +31,7 @@ Lean 4 では、この主張を等式として書き、\texttt{rfl}、\texttt{si
 すべての入力について、変更前の処理と変更後の処理は同じ結果を返す。
 \end{quote}
 
-これは、自然言語のレビューコメントとしても書けます。
+変更前後で同じ結果を返すという主張は、自然言語のレビューコメントとしても書けます。
 Lean では、この主張をそのまま命題として書けます。
 たとえば、\texttt{old x = new x} という等式を、任意の \texttt{x} について証明します。
 
@@ -48,7 +48,7 @@ Lean では、この主張をそのまま命題として書けます。
 
 本章では、最初の一歩として「戻り値の等しさ」を扱います。
 つまり、同じ入力を与えたときに同じ値を返すという性質です。
-これは、純粋な関数を小さくモデル化するときに扱いやすい性質です。
+戻り値の等しさは、純粋な関数を小さくモデル化するときに扱いやすい性質です。
 
 本章でいう意味保存とは、変更前の関数 \texttt{old} と変更後の関数 \texttt{new} について、すべての入力 \texttt{x} で \texttt{old x = new x} が成り立つことです。
 
@@ -83,7 +83,7 @@ theorem rawCalc_eq_refactoredCalc (x : Nat) :
 \label{lst:ch09_raw_refactored}
 \end{listing}
 
-\texttt{namespace Chapter09} は、この章の名前を他章と衝突させないための囲いです。
+\texttt{namespace Chapter09} は、本章の名前を他章と衝突させないための囲いです。
 定理は、\texttt{rawCalc} と \texttt{refactoredCalc} が任意の自然数 \texttt{x} で同じ結果を返すと述べます。
 \texttt{unfold} で二つの定義を展開し、\texttt{simp} で \texttt{x + 0} と \texttt{x * 1} を \texttt{x} へ整理しています。
 
@@ -168,7 +168,7 @@ theorem total_extracted_preserves
 
 \texttt{calc} の各行は、直前の式から次の式へ進む根拠を示します。
 この証明では、足し算の結合律 \texttt{(a + b) + c = a + (b + c)} を使います。
-これにより、\texttt{shipping} と \texttt{handling} を先にまとめても合計が変わらないことを確認しています。
+結合律により、\texttt{shipping} と \texttt{handling} を先にまとめても合計が変わらないことを確認しています。
 
 \subsection{小さな法則を、リファクタリング規則として読む}
 
@@ -226,7 +226,7 @@ theorem addFee_refactor_preserves (price fee : Nat) :
 補題とは、後で使うための小さな定理です。
 たとえば、「手数料Aと手数料Bの加算順序は入れ替えてよい」という補題を作っておけば、より大きな料金計算の証明でその補題を使えます。
 
-この章では、大きな補題の設計には立ち入りません。
+本章では、大きな補題の設計には立ち入りません。
 リファクタリングの根拠を、名前付きの小さな証明として切り出せることを確認します。
 
 図\ref{fig:ch09-refactoring-rewrite}は、変更前の式から変更後の式までを、根拠のある小さな等式の列としてつなぎます。

@@ -6,7 +6,7 @@
 
 \begin{chapterabstract}
 本章では、最初の証明道具 \texttt{rfl} だけを扱います。
-\texttt{rfl} は、左辺と右辺が定義を展開すると同じ形になる等式を閉じる道具です。
+\texttt{rfl} は、定義を展開すると左辺と右辺が同じ形になる等式を閉じる道具です。
 前章で読んだ \texttt{hasDiscount true = true} を実際に \texttt{rfl} で証明し、\texttt{hasDiscount false = true} が閉じられない理由も確認します。
 \texttt{simp} や \texttt{rw} は、まだ扱いません。
 \end{chapterabstract}
@@ -20,7 +20,7 @@
 \section{主張を証明として確定する}
 
 前章では、\texttt{hasDiscount true = true} を「成り立つ主張」と読みました。
-しかし、「成り立ちそう」と判断することと、Lean が成り立つと認めることは異なります。
+しかし、読み手が「成り立ちそう」と判断することと、Lean が成り立つと認めることは異なります。
 本章では、その主張を Lean に確かめさせます。
 最初に使う証明道具は、\texttt{rfl} 一つだけです。
 \texttt{rfl} を使える条件を明確にすることが、後の証明の土台になります。
@@ -64,8 +64,8 @@ example : hasDiscount true = true := by
 
 \texttt{rfl} は、どのような主張でも証明する道具ではありません。
 左右が異なる形に展開される等式には使えません。
-次のコードは、意図的に成り立たない主張を書いた例です。
-証明できないため、該当箇所をコメントにしています。
+次のコードは、成り立たない主張を意図的に書いた例です。
+証明できないため、\texttt{example} の部分をコメントにしています。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -100,7 +100,7 @@ def hasDiscount (member : Bool) : Bool :=
 
 \section{数値の計算でも \texttt{rfl} は使える}
 
-\texttt{rfl} は \texttt{Bool} だけでなく、定義どおりに計算が進む等式であれば数値にも使えます。
+\texttt{rfl} は、\texttt{Bool} の等式だけでなく、定義どおりに計算が進む数値の等式にも使えます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -123,5 +123,5 @@ example : addTax 100 0 = 100 := by
 \begin{itemize}
 \item \texttt{example : P := by ...}：名前のない証明
 \item \texttt{by}：証明モードへの入口
-\item \texttt{rfl}：定義展開で左右が同じになる等式を閉じるタクティク
+\item \texttt{rfl}：定義を展開すると左右が同じになる等式を閉じる証明道具
 \end{itemize}

@@ -13,7 +13,7 @@
 圏論では、積や余積を単なるデータ構造としてではなく、「その構造を作る関数や使う関数がどのように一意に決まるか」によって特徴付けます。
 この見方を\textbf{普遍性}と呼びます。
 本章では、Lean 4 の \texttt{Prod}、構造体、\texttt{Sum}、\texttt{Option} を使い、積と余積の性質を小さく証明します。
-最後に、APIレスポンスやエラーハンドリングの設計を題材に、積で表すべき情報と余積で表すべき分岐を区別します。
+最後に、APIレスポンスの設計とエラーハンドリングの設計を題材に、積で表すべき情報と余積で表すべき分岐を区別します。
 \end{chapterabstract}
 
 \begin{learninggoals}
@@ -75,7 +75,7 @@ structure UserSummary where
 \end{itemize}
 
 この場合、成功値とエラー値が同時にあるとは限りません。
-通常は「成功または失敗」のどちらか一方です。
+通常は、成功か失敗のどちらか一方です。
 ここで使うべき形は、積ではなく余積です。
 
 \texttt{(Error, Value)} は両方を持つ積ですが、\texttt{Either Error Value} や \texttt{Result Value Error} はどちらか一方を持つ余積です。
