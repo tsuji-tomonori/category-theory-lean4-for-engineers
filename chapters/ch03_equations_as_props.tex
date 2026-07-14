@@ -17,7 +17,7 @@
 \item \texttt{=} が代入ではなく、成り立つかどうかを問える主張であると説明できます。
 \end{learninggoals}
 
-\section{問題設定}
+\section{関数の結果を等式で主張する}
 
 仕様で確認したい内容は、しばしば「ある入力でこの関数はこの値になる」という形の主張です。
 たとえば、「会員なら割引対象になる」は、\texttt{hasDiscount true} が \texttt{true} になると言い換えられます。
@@ -49,11 +49,9 @@ def hasDiscount (member : Bool) : Bool :=
 したがって、\texttt{hasDiscount true} は \texttt{true} に、\texttt{hasDiscount false} は \texttt{false} に計算されます。
 ここでの \texttt{member} は、呼び出し時に \texttt{true} または \texttt{false} を受け取る引数です。
 
-\begin{intuitionbox}
 \texttt{\#eval hasDiscount true} は、関数を実際に\emph{計算}して値を確認します。
 これは、テストで特定の入力の結果を確かめる感覚に近い操作です。
 この計算結果を「主張」として書き直します。
-\end{intuitionbox}
 
 \section{等式を主張として読む}
 
@@ -116,11 +114,9 @@ def hasDiscount (member : Bool) : Bool :=
 
 \section{本章のまとめ}
 
-\begin{summarybox}
 要点と記法
 \begin{itemize}
 \item \texttt{=}：代入ではなく、左右が等しいという主張
 \item \texttt{\#check (式 = 式)}：等式が命題として扱われることの確認
 \item 定義を展開した左右の確認：書いた命題が成り立つかを判断する方法
 \end{itemize}
-\end{summarybox}

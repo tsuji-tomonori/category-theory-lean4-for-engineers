@@ -1,25 +1,3 @@
-\tcbset{
-  chapterboxstyle/.style={
-    breakable,
-    enhanced,
-    colback=white,
-    colframe=black,
-    coltitle=black,
-    colbacktitle=white,
-    fonttitle=\bfseries,
-    boxrule=0.4pt,
-    arc=0pt,
-    before skip=1.2em,
-    after skip=0.8em,
-    boxed title style={
-      colback=white,
-      colframe=black,
-      boxrule=0.4pt,
-      arc=0pt
-    }
-  }
-}
-
 % Chapter abstract
 \newenvironment{chapterabstract}{%
   \par\vspace{1.2em}{\Large\bfseries はじめに}\par\vspace{0.8em}
@@ -41,47 +19,6 @@
 % Chapter reference that follows the target chapter's current number.
 % Usage: \ChapterRef{chap:chapter-label}
 \newcommand{\ChapterRef}[1]{第\ref{#1}章}
-
-% Common boxes
-\newtcolorbox{intuitionbox}{
-  chapterboxstyle,
-  title=直感
-}
-
-\newtcolorbox{softwarebox}{
-  chapterboxstyle,
-  title=ソフトウェアでの読み替え
-}
-
-\newtcolorbox{definitionbox}{
-  chapterboxstyle,
-  title=定義
-}
-
-\newtcolorbox{leanbox}{
-  chapterboxstyle,
-  title=Lean では
-}
-
-\newtcolorbox{syntaxbox}{
-  chapterboxstyle,
-  title=構文解説
-}
-
-\newtcolorbox{keywordbox}{
-  chapterboxstyle,
-  title=キーワード
-}
-
-\newtcolorbox{warningbox}{
-  chapterboxstyle,
-  title=注意
-}
-
-\newtcolorbox{summarybox}{
-  chapterboxstyle,
-  title=本章のまとめ
-}
 
 % Figure placeholder.
 % Usage: \FigurePlaceholder{filename.png}{0.90}{caption}{fig:label}

@@ -26,7 +26,7 @@
 \item lossy migration の保証範囲を設計文書に明示できます。
 \end{learninggoals}
 
-\section{問題設定}
+\section{「互換性」の保証範囲を明確にする}
 
 マイグレーションのレビューでは、「互換性があります」という言葉がよく使われます。
 しかし、その意味は曖昧です。
@@ -59,20 +59,16 @@
 これは、旧形式と新形式が同型であることを表していました。
 一方、lossy migration では少なくとも片方の等式が壊れます。
 
-\begin{definitionbox}
 本章では、\textbf{lossy migration} を「旧形式から新形式へ移すとき、旧形式の情報の一部が新形式に保存されない移行」と呼びます。
 lossy migration は、完全な同型ではありません。
 したがって、完全な round-trip law を無条件に要求してはいけません。
-\end{definitionbox}
 
 たとえば、旧形式がミドルネームを含み、新形式が \texttt{firstName} と \texttt{lastName} しか持たない場合、\texttt{middle} は保存先を持ちません。
 新形式から旧形式へ戻すとき、\texttt{middle = none} と埋めることはできます。
 しかし、もともと \texttt{some "Byron"} だったか、\texttt{some "Augusta"} だったか、\texttt{none} だったかは復元できません。
 
-\begin{warningbox}
 \texttt{migrate} と \texttt{rollback} の二つの関数を書けたとしても、それだけでは安全な相互変換ではありません。
 安全な相互変換だと述べるには、戻した結果が本当に元と等しいことを証明する必要があります。
-\end{warningbox}
 
 \section{例：\texttt{fullName} を \texttt{firstName} / \texttt{lastName} に分ける}
 
@@ -184,10 +180,8 @@ theorem strong_spec_fails : ¬ StrongRoundTrip := by
 検索や通知では、\texttt{firstName} と \texttt{lastName} だけが使われるかもしれません。
 その場合、保存すべき性質は「旧データ全体が復元できること」ではなく、「公開表示が一致すること」です。
 
-\begin{definitionbox}
 \textbf{仕様弱化}とは、証明できない強い仕様を、業務で必要かつ証明可能な弱い仕様へ置き換えることです。
 本章の例では、\texttt{rollback (migrate u) = u} を諦め、\texttt{displayV2 (migrate u) = canonicalDisplayV1 u} を証明します。
-\end{definitionbox}
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -242,10 +236,8 @@ theorem weak_display_spec_holds : WeakDisplaySpec := by
 もう一つは、入力範囲を狭めることです。
 旧データのうち、ミドルネームを持たないものだけを対象にすれば、完全復元は成立します。
 
-\begin{definitionbox}
 \textbf{well-formed 条件}とは、証明したい性質が成立する入力の範囲を明示する述語です。
 本章のモデルでは、\texttt{NoMiddle u} を「旧データ \texttt{u} はミドルネームを持たない」という条件として使います。
-\end{definitionbox}
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}

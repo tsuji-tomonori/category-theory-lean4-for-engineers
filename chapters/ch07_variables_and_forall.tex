@@ -19,7 +19,7 @@
 \item \texttt{Option} と \texttt{match} を使った小さなパイプラインを読めます。
 \end{learninggoals}
 
-\section{問題設定}
+\section{具体例から任意の入力へ}
 
 テストは、選んだ具体例についての確認です。
 一方、仕様で述べたい内容は、しばしば「すべての入力でこの性質が成り立つ」という主張です。
@@ -109,11 +109,9 @@ def compose {A B C : Type} (g : B -> C) (f : A -> B) : A -> C :=
 \texttt{compose} は \texttt{\{A B C : Type\}} という型パラメータを取り、\texttt{compose g f} を「先に \texttt{f}、後で \texttt{g}」と読みます。
 波括弧で囲まれた型パラメータは、呼び出し側の型から Lean が推論します。
 
-\begin{leanbox}
 関数を合成するには、型がつながる必要があります。
 \texttt{A -> B} の出力 \texttt{B} が \texttt{B -> C} の入力と一致するため、この二つの関数をつなげられます。
 この見方は、関数を「合成できる変換」として捉える基礎になります。
-\end{leanbox}
 
 \texttt{compose g f} の途中の値は \texttt{f} の出力なので、型は \texttt{B} です。
 \texttt{g} は \texttt{B} を入力に取るため、その値を受け取れます。
@@ -162,7 +160,6 @@ def decorateAll (xs : List String) : List (Option String) :=
 
 \section{本章のまとめ}
 
-\begin{summarybox}
 要点と記法
 \begin{itemize}
 \item \texttt{forall x, P x} / \texttt{intro x}：全称量化とその導入
@@ -170,4 +167,3 @@ def decorateAll (xs : List String) : List (Option String) :=
 \item \texttt{\{A : Type\}}：推論される型パラメータ
 \item \texttt{some} / \texttt{none} / \texttt{match} / \texttt{xs.map}：\texttt{Option} と一括適用
 \end{itemize}
-\end{summarybox}

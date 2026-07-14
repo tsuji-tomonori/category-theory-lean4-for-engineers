@@ -19,7 +19,7 @@
 \item 正規化を、レビューと自動証明の両方に有効な設計方針として使えます。
 \end{learninggoals}
 
-\section{問題設定}
+\section{意味を変えない書き換え}
 
 実務で頻繁に起きる変更の多くには、外から見た意味を変えないことが求められます。
 たとえば、関数の分割、補助関数の導入、処理の共通化、括弧の位置の変更、不要な初期値処理の削除です。
@@ -104,21 +104,17 @@ theorem legacy_eq_refactored
 直感的には、「両辺を定義に従って展開すると同じ形になる」と Lean が確認できる場合に使います。
 上の例では、\texttt{legacyPrice} と \texttt{refactoredPrice} は見た目が異なりますが、定義を展開すると同じ式になります。
 
-\begin{warningbox}
 \texttt{rfl} で証明できるからといって、その仕様が実務上十分だとは限りません。
 このモデルでは、丸め、税率、負の金額、通貨単位、上限と下限を扱っていません。
 本章で証明しているのは、「この小さなモデルの範囲では変更前後が同じ」という主張です。
-\end{warningbox}
 
 \section{\texttt{rw}：仕様に基づく置換}
 
 \texttt{rw} は rewrite の略です。
 すでに持っている等式を使って、証明ゴールの中にある式を置き換えます。
 
-\begin{definitionbox}
 等式 \texttt{h : a = b} があるとき、\texttt{rw [h]} はゴール中の \texttt{a} を \texttt{b} に置き換えます。
 逆向きに使う場合は、\texttt{rw [← h]} と書きます。
-\end{definitionbox}
 
 この見方は、仕様レビューにそのまま対応します。
 補題 \texttt{addTax\_zero} は、「税額が 0 なら、税を足しても金額は変わらない」という小さな仕様です。
@@ -181,11 +177,9 @@ theorem subtotal_eq_normalizedPrice
 一方、\texttt{simp} は Lean が知っている単純化規則をまとめて使います。
 \texttt{x + 0 = x}、\texttt{0 + x = x}、\texttt{if true then a else b = a} のような明らかな整理を毎回手で書くと、証明が読みづらくなります。
 
-\begin{intuitionbox}
 \texttt{simp} は、「式を読みやすい標準形へ寄せる道具」と考えられます。
 つまり、正規化のための自動整理です。
 実務のリファクタリングでも、不要な wrapper、空の追加、恒等処理を消して、比較しやすい形へ寄せることがあります。
-\end{intuitionbox}
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -218,21 +212,17 @@ theorem loadCode_normalized (n : Nat) :
 \texttt{@[simp]} は、証明済みの補題を \texttt{simp} の単純化規則として登録する属性であり、それ自体が証明を作るわけではありません。
 上の例では、\texttt{normalizeCode} が恒等処理であることを一度証明し、二重の呼び出しも同じ規則で取り除きます。
 
-\begin{warningbox}
 \texttt{simp} に何でも登録すればよいわけではありません。
 向きの悪い規則や、式を大きくする規則を登録すると、証明が読みにくくなったり、単純化が期待どおりに進まなくなったりします。
 本章では、「明らかに小さくなる」「正規形に近づく」規則だけを登録します。
-\end{warningbox}
 
 \section{\texttt{calc}：レビュー可能な証明ログ}
 
 \texttt{simp} は短く強力ですが、何が起きたかが見えにくいことがあります。
 仕様レビューで重要な証明では、\texttt{calc} で途中式を残すほうが適しています。
 
-\begin{definitionbox}
 \texttt{calc} は、等式や不等式を段階的につなぐための構文です。
 各行に「なぜその変形が正しいか」を書けるため、人間が読む証明ログとして使いやすくなります。
-\end{definitionbox}
 
 次の例では、二つの手数料を順に足す既存実装と、先に手数料をまとめてから足す新実装が同じであることを示します。
 根拠は、足し算の結合律です。
@@ -274,7 +264,6 @@ theorem twoFees_eq_calc
 Lean の \texttt{simp} は、この作業を支援します。
 実務でも、比較しやすい形にしてから差分を見ると、レビューしやすくなります。
 
-\begin{definitionbox}
 本章でいう正規形とは、次のような形です。
 \begin{itemize}
 \item 不要な \texttt{+ 0} や恒等処理が消えています。
@@ -282,7 +271,6 @@ Lean の \texttt{simp} は、この作業を支援します。
 \item 括弧の付き方が一貫しています。
 \item 変更前と変更後を同じ構造で比較できます。
 \end{itemize}
-\end{definitionbox}
 
 図\ref{fig:ch18-price-normalization}は、変更前後の式から不要な \texttt{+ 0} を除き、加算の括弧をそろえて共通の式へ到達する流れを示します。
 
@@ -386,11 +374,9 @@ Lean が型検査した等式だけを使います。
 \item 証明した範囲と、実装側に残る前提を文書に書きます。
 \end{enumerate}
 
-\begin{warningbox}
 Lean の証明モデルと本番実装は同じではありません。
 特に、丸め、小数、タイムゾーン、外部設定、DB の NULL、例外処理は、単純な \texttt{Nat} モデルでは表せないことが多くあります。
 証明済みと言えるのは、Lean に書いたモデルと前提の範囲に限られます。
-\end{warningbox}
 
 \section{本章のまとめ}
 

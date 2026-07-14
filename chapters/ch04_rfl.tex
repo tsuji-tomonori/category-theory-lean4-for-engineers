@@ -17,7 +17,7 @@
 \item 成り立たない等式では \texttt{rfl} を使えないことを、展開の過程から説明できます。
 \end{learninggoals}
 
-\section{問題設定}
+\section{主張を証明として確定する}
 
 前章では、\texttt{hasDiscount true = true} を「成り立つ主張」と読みました。
 しかし、「成り立ちそう」と判断することと、Lean が成り立つと認めることは異なります。
@@ -119,11 +119,9 @@ example : addTax 100 0 = 100 := by
 
 \section{本章のまとめ}
 
-\begin{summarybox}
 要点と記法
 \begin{itemize}
 \item \texttt{example : P := by ...}：名前のない証明
 \item \texttt{by}：証明モードへの入口
 \item \texttt{rfl}：定義展開で左右が同じになる等式を閉じるタクティク
 \end{itemize}
-\end{summarybox}

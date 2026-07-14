@@ -20,7 +20,7 @@ Lean 4 では、まず自作の小さな \texttt{Option} 用 \texttt{pure} と \
 \item 失敗しうるマイグレーションを \texttt{bind} で安全に合成する最小モデルを書けます。
 \end{learninggoals}
 
-\section{問題設定}
+\section{文脈を保った処理の合成}
 
 実務コードでは、通常の関数だけでは表しにくい処理が頻繁に現れます。
 たとえば、入力が欠けていれば失敗するバリデーション、失敗理由を返すマイグレーション、内部状態を更新する処理、外部 API の応答を待つ非同期処理です。
@@ -65,14 +65,12 @@ Lean 4 では、まず自作の小さな \texttt{Option} 用 \texttt{pure} と \
 \texttt{pure} は、通常の値を文脈の中に入れます。
 \texttt{bind} は、文脈付きの値を取り出せた場合だけ、次の文脈付き処理へ渡します。
 
-\begin{definitionbox}
 本章では、モナドを次の二つの操作を持つものとして扱います。
 \begin{itemize}
 \item \texttt{pure : A -> M A}：通常の値を文脈 \texttt{M} に入れます。
 \item \texttt{bind : M A -> (A -> M B) -> M B}：文脈付きの値を、次の文脈付き処理へつなぎます。
 \end{itemize}
 これらをすべての型 \texttt{A}、\texttt{B} に一様に与え、後で述べる三つのモナド則を要求します。
-\end{definitionbox}
 
 \texttt{Option} の場合、\texttt{pure} は \texttt{some} で値を包みます。
 \texttt{bind} は、入力が \texttt{none} なら次の処理を実行せず、\texttt{none} を返します。
@@ -287,10 +285,8 @@ theorem migrateUser_refactor (u : UserDraft) :
 欠損メール、欠損年齢、フォーマット不正などを区別したい場合です。
 その場合は \texttt{Except E A} を使います。
 
-\begin{definitionbox}
 \texttt{Except E A} は、成功時に \texttt{A} の値を返し、失敗時に \texttt{E} 型のエラーを返す型です。
 \texttt{Option A} が「失敗するかもしれない \texttt{A}」なら、\texttt{Except E A} は「理由 \texttt{E} 付きで失敗するかもしれない \texttt{A}」です。
-\end{definitionbox}
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -356,10 +352,8 @@ theorem except_assoc {ε α β γ : Type}
 状態 \texttt{S} を受け取り、値 \texttt{A} と新しい状態 \texttt{S} を返す関数を考えます。
 これは \texttt{S -> (A, S)} という形になります。
 
-\begin{definitionbox}
 本章では、状態付き計算を \texttt{SimpleState S A = S -> (A, S)} として表します。
 これは「状態 \texttt{S} を受け取り、値 \texttt{A} と更新後の状態 \texttt{S} を返す処理」です。
-\end{definitionbox}
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
@@ -412,11 +406,9 @@ def tick : SimpleState Nat Nat :=
 \texttt{pure} は、すでに手元にある値を完了済みの非同期結果として包みます。
 \texttt{bind} は、前の非同期結果が完了してから、その値を使う次の非同期処理を開始します。
 
-\begin{warningbox}
 本章では、実際のスケジューリング、キャンセル、タイムアウト、並行実行、外部 I/O の意味論までは形式化しません。
 非同期を扱う現実のシステムでは、順序、失敗、再試行、リソース解放などが別途重要になります。
 ここでは、非同期処理も「文脈を持つ値を次の処理へ渡す」という形で読める、という範囲にとどめます。
-\end{warningbox}
 
 \section{実務上の読み替え：合成則をレビューの言葉にする}
 

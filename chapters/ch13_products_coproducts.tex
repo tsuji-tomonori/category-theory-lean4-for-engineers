@@ -24,7 +24,7 @@
 \item エラーを値と同時に持つべきか、成功または失敗の分岐として持つべきかを判断できます。
 \end{learninggoals}
 
-\section{問題設定}
+\section{積と余積で API の形を選ぶ}
 
 APIのレスポンス型を設計するとき、次のような迷いが生じます。
 
@@ -87,10 +87,8 @@ structure UserSummary where
 積は、二つの型 \(A\) と \(B\) から、両方を同時に持つ型 \(A \times B\) を作る構成です。
 Leanでは \texttt{Prod A B}、または記法として \texttt{A × B} を使います。
 
-\begin{definitionbox}
 型 \(A\) と型 \(B\) の積は、\(A\) の値と \(B\) の値を一つずつ持つ型です。
 積には、第一成分を取り出す射影 \(\pi_1 : A \times B \to A\) と、第二成分を取り出す射影 \(\pi_2 : A \times B \to B\) があります。
-\end{definitionbox}
 
 Leanでは、ペア \texttt{(a, b)} を作り、\texttt{p.1} と \texttt{p.2} で各成分を取り出します。
 
@@ -147,11 +145,9 @@ theorem pair_login_roundtrip (p : Nat × String) :
 レコードは少し冗長ですが、フィールド名によって意図が明確になります。
 圏論の積としては同じ構造を持つ一方で、実務上の可読性や保守性は異なります。
 
-\begin{warningbox}
 積として読めるからといって、常にペアを使えばよいわけではありません。
 業務上の意味がある値には、名前付きフィールドを持つ構造体を使うほうが安全です。
 圏論は「構造の形」を示しますが、命名やドメイン表現の責任まで自動化するわけではありません。
-\end{warningbox}
 
 \section{余積：どちらか一方の構造}
 \label{sec:ch13-coproduct}
@@ -160,10 +156,8 @@ theorem pair_login_roundtrip (p : Nat × String) :
 Leanでは \texttt{Sum A B} を使います。
 これは、多くの言語で \texttt{Either A B} と呼ばれる型に対応します。
 
-\begin{definitionbox}
 型 \(A\) と型 \(B\) の余積は、\(A\) 側の値または \(B\) 側の値を持つ型です。
 余積には、\(A\) の値を余積へ入れる注入 \(\iota_1 : A \to A + B\) と、\(B\) の値を余積へ入れる注入 \(\iota_2 : B \to A + B\) があります。
-\end{definitionbox}
 
 Leanの \texttt{Sum A B} では、左側の値を \texttt{Sum.inl a}、右側の値を \texttt{Sum.inr b} として作ります。
 
@@ -426,11 +420,9 @@ theorem handleResponse_ok (onError : ApiError → String)
 ペアは射影によって特徴付けられ、分岐は各ケースのハンドラによって特徴付けられます。
 この見方は、API設計やDTO設計のレビューで役立ちます。
 
-\begin{warningbox}
 積と余積の区別を曖昧にすると、型が業務仕様を正しく表さなくなります。
 成功値とエラー値を同時に持つ構造にすると、実装側で「どちらを信じるべきか」を毎回判断する必要が生じます。
 排他的な状態は、可能な限り余積として表します。
-\end{warningbox}
 
 \section{本章のまとめ}
 

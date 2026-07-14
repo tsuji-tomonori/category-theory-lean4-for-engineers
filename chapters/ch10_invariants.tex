@@ -23,7 +23,7 @@
 \item 口座残高を題材に、失敗しうる \texttt{withdraw} の仕様を Lean で表せます。
 \end{learninggoals}
 
-\section{問題設定}
+\section{不正な状態を防ぐ}
 
 ソフトウェアのバグは、計算式の間違いだけから生じるわけではありません。
 データが想定していない形になったときにも発生します。
@@ -272,11 +272,9 @@ def depositValid (a : ValidAccount) (amount : Nat) : ValidAccount :=
 \item 実システムとの境界で初めて確認する条件は、検証関数で \texttt{Option} や \texttt{Except} を返す候補です。
 \end{itemize}
 
-\begin{warningbox}
 \texttt{Subtype} を使うと、「不正な値を作れない設計」に近づきます。
 一方で、証明が必要になる場所も増えます。
 最初からすべての業務ルールを \texttt{Subtype} に入れず、壊れると困る核となる条件から始めます。
-\end{warningbox}
 
 図\ref{fig:ch10-subtype-gate}は、通常の \texttt{Account} を検査し、\texttt{AccountValid} の証明が得られた値だけを \texttt{ValidAccount} として後段へ渡す流れを示します。
 
@@ -476,7 +474,6 @@ APIレスポンス & 成功時だけ本文を持つ & wrapper変換 \\
 
 \section{本章のまとめ}
 
-\begin{summarybox}
 要点と記法
 \begin{itemize}
 \item \texttt{structure 名前 where ...} は、レコード型であるドメインモデルを定義します。
@@ -485,7 +482,6 @@ APIレスポンス & 成功時だけ本文を持つ & wrapper変換 \\
 \item 事前条件は操作前の要求、事後条件は操作後の保証、不変条件は有効な状態で守る性質です。
 \item 失敗しうる処理は、\texttt{Option} や \texttt{Except} で失敗を戻り値の型に表します。
 \end{itemize}
-\end{summarybox}
 
 本章で、型、関数、命題に加えて、述語、不変条件、事前条件、事後条件がそろいました。
 次の部では、これらを圏論の言葉で見直します。

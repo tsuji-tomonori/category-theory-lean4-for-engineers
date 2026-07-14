@@ -24,7 +24,7 @@
 \item 木構造の変換でノード数が保存されることを構造帰納法として理解できます。
 \end{learninggoals}
 
-\section{問題設定}
+\section{任意の長さや形へ保証を広げる}
 
 実務では、「1件なら正しい」だけでは不十分なことがよくあります。
 たとえば、ユーザー1件を新しいスキーマへ移す関数 \texttt{migrateUser} があるとします。
@@ -43,11 +43,9 @@ Lean のリストは、大きく2つの形に分かれます。
 空リスト \texttt{[]} と、先頭要素 \texttt{x} に残りのリスト \texttt{xs} を付けた \texttt{x :: xs} です。
 この2つの形は、実装上のパターンマッチにもそのまま現れます。
 
-\begin{definitionbox}
 リストに対する帰納法では、\texttt{[]} の場合を基底ケース、\texttt{x :: xs} の場合を帰納ステップと呼びます。
 帰納ステップでは、残りのリスト \texttt{xs} について性質が成り立つ、という仮定を使えます。
 この仮定を、帰納法の仮定または帰納仮定と呼びます。
-\end{definitionbox}
 
 \FigurePlaceholder{fig-ch20-list-induction.png}{0.90}{リストの構造帰納法}{fig:ch20-list-induction}
 
@@ -71,14 +69,12 @@ Lean では、単なる便利関数ではなく、仕様を書いて証明する
 \texttt{List.length xs} は、リストの長さ、すなわち件数を返します。
 実務のマイグレーションでは、件数保存は最初に確認したい性質の1つです。
 
-\begin{definitionbox}
 件数保存とは、変換前後でデータの個数が変わらないという性質です。
 リスト \texttt{xs} と変換関数 \texttt{f} について、
 \[
   \texttt{(xs.map f).length = xs.length}
 \]
 が成り立つ、という形で表せます。
-\end{definitionbox}
 
 この式は、変換結果の中身が正しいことまでは主張していません。
 しかし、移行処理が要素を落としたり、重複して増やしたりしないことを確認するための重要な第一歩です。
@@ -164,11 +160,9 @@ theorem map_preserves_length {α β : Type} (f : α → β) :
 \texttt{nil} ケースは、空リストです。
 \texttt{cons x xs ih} ケースでは、\texttt{x} が先頭要素、\texttt{xs} が残りのリスト、\texttt{ih} が「残りのリストでは定理が成り立つ」という帰納仮定です。
 
-\begin{warningbox}
 帰納法の仮定 \texttt{ih} は、「任意のリストで成り立つ」という仮定ではありません。
 \texttt{cons} ケースの中で、残りのリスト \texttt{xs} について成り立つ、という限定された仮定です。
 この範囲を取り違えると、証明の意味を誤解しやすくなります。
-\end{warningbox}
 
 \section{サンプル：リスト移行で件数が保存されること}
 
@@ -249,11 +243,9 @@ theorem append_length {α : Type} :
 \texttt{ys} について帰納法を使わない点に注意してください。
 \texttt{xs ++ ys} の再帰的な定義は、左側の \texttt{xs} の形に沿って進むためです。
 
-\begin{warningbox}
 帰納法では、どの変数について帰納法を使うかが重要です。
 \texttt{xs ++ ys} のように、定義が \texttt{xs} 側を再帰的に見る場合は、まず \texttt{xs} について帰納法を使うと証明しやすくなります。
 証明が進まないときは、対象の関数がどの引数を分解しているかを確認してください。
-\end{warningbox}
 
 \section{サンプル：木構造変換でノード数が保存されること}
 

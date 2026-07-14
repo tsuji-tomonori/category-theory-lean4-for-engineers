@@ -18,7 +18,7 @@
 \item 関数の型 \texttt{A -> B} を「\texttt{A} を受け取り \texttt{B} を返す」と読めます。
 \end{learninggoals}
 
-\section{問題設定}
+\section{型で値の種類を区別する}
 
 ソフトウェアでは、値の種類を取り違えると、プログラムが動いていても意味が崩れます。
 数値、真偽値、文字列は、それぞれ別の型として扱われます。
@@ -76,10 +76,8 @@ def add (m : Nat) (n : Nat) : Nat :=
 コード\ref{lst:ch02_def}では、\texttt{answer} は \texttt{Nat} 型の値、\texttt{addOne} は引数を一つ取る関数、\texttt{add} は引数を二つ取る関数です。
 複数の引数は \texttt{(m : Nat) (n : Nat)} のように並べて書き、呼び出すときも \texttt{add 2 3} と空白で並べます。
 
-\begin{warningbox}
 \texttt{def} は、可変変数への代入ではありません。
 \texttt{def answer : Nat := 42} は「\texttt{answer} という名前を \texttt{42} に結びつける」という意味であり、後から別の値に更新するとは読みません。
-\end{warningbox}
 
 \section{関数の型}
 
@@ -108,15 +106,12 @@ def add (m : Nat) (n : Nat) : Nat :=
 コード\ref{lst:ch02_function_type}では、\texttt{\#check addOne} が \texttt{addOne} の型を、\texttt{\#check add} が \texttt{add} の型を表示します。
 \texttt{addOne} は \texttt{Nat -> Nat}、\texttt{add} は二つの \texttt{Nat} を受け取る関数として読めます。
 
-\begin{leanbox}
 \texttt{A -> B -> C} という型は、右に結合して \texttt{A -> (B -> C)} と読みます。
 つまり、\texttt{add} は「\texttt{Nat} を受け取り、\texttt{Nat -> Nat} を返す関数」とも読めます。
 本章では、「複数の引数を順に受け取る」と読めれば十分です。
-\end{leanbox}
 
 \section{本章のまとめ}
 
-\begin{summarybox}
 要点と記法
 \begin{itemize}
 \item \texttt{Nat} / \texttt{Bool} / \texttt{String}：自然数、真偽値、文字列の型
@@ -124,4 +119,3 @@ def add (m : Nat) (n : Nat) : Nat :=
 \item \texttt{def 名前 (引数 : 型) : 返り値の型 := 本体}：関数定義の基本形
 \item \texttt{A -> B}：「\texttt{A} を受け取り \texttt{B} を返す」関数の型
 \end{itemize}
-\end{summarybox}

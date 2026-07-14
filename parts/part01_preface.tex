@@ -14,7 +14,6 @@ Lean では、「この関数は常に同じ結果を返す」「この処理の
 最初に使う証明道具は、\texttt{rfl}、\texttt{simp}、\texttt{rw}、\texttt{calc} などの小さなものに絞ります。
 ここでの目的は、証明の専門家になることではなく、「仕様を Lean 上で検査可能な形にする」感覚を身につけることです。
 
-\begin{keywordbox}
 \texttt{rfl}、\texttt{simp}、\texttt{rw}、\texttt{calc} は、以後の証明コードで頻繁に現れる小さな証明用キーワードです。
 \begin{itemize}
 \item \texttt{rfl} は、定義を展開して両辺が同じ形になる等式を閉じます。
@@ -24,7 +23,6 @@ Lean では、「この関数は常に同じ結果を返す」「この処理の
 \end{itemize}
 厳密には、\texttt{rfl}、\texttt{simp}、\texttt{rw} はタクティクであり、\texttt{calc} は構文として説明されることが多いです。
 本書では、コードを読むときの目印としてこれらをキーワード扱いにし、Lean のコード表示でも同じ色で強調します。
-\end{keywordbox}
 
 自然言語の仕様から、小さく独立した性質を切り出して Lean へ移す練習をします。
 税込金額の計算、文字列正規化、残高が負にならない操作などの身近な例を使って、関数、命題、証明の関係を確認します。

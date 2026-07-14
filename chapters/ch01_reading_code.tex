@@ -20,7 +20,7 @@ Lean のコードには、\texttt{:}、\texttt{:=}、引数、関数適用とい
 \item \texttt{\#check} で式の型を、\texttt{\#eval} で式の評価結果を確認できます。
 \end{learninggoals}
 
-\section{問題設定}
+\section{Lean コードを読むための入口}
 
 プログラミング言語を新しく学ぶとき、最初の障害は構文そのものです。
 とくに Lean では、見慣れた記号が、ふだんと少し違う意味を持つことがあります。
@@ -69,11 +69,9 @@ Lean では、すべての式に型があります。
 \texttt{++} は文字列の連結です。
 \texttt{\#eval} は計算結果を表示するだけであり、何かを証明するものではありません。
 
-\begin{leanbox}
 \texttt{\#check} と \texttt{\#eval} は、どちらも \texttt{\#} で始まる確認用コマンドです。
 \texttt{\#check} は型を、\texttt{\#eval} は値を表示します。
 本書ではコードの意味を確かめるために、この二つを繰り返し使います。
-\end{leanbox}
 
 \section{\texttt{:=} と関数適用}
 
@@ -107,7 +105,6 @@ def addOne (n : Nat) : Nat :=
 
 \section{本章のまとめ}
 
-\begin{summarybox}
 要点と記法
 \begin{itemize}
 \item \texttt{(式 : 型)}：左の式を右の型として読む型注釈
@@ -116,4 +113,3 @@ def addOne (n : Nat) : Nat :=
 \item \texttt{\#check}：式の型を表示するコマンド
 \item \texttt{\#eval}：式の評価結果を表示するコマンド
 \end{itemize}
-\end{summarybox}

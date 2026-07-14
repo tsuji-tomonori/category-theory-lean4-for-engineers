@@ -16,7 +16,7 @@
 \item \texttt{DiscountSpec true} と \texttt{DiscountSpec false} が、それぞれどのような命題になるかを展開できます。
 \end{learninggoals}
 
-\section{問題設定}
+\section{命題に仕様名を付ける}
 
 ここまで、\texttt{hasDiscount true = true} のような主張を何度も読んできました。
 同じ形の主張を毎回そのまま書くと冗長になり、設計文書とも対応させにくくなります。
@@ -115,11 +115,9 @@ def DiscountSpec (member : Bool) : Prop :=
 
 \section{本章のまとめ}
 
-\begin{summarybox}
 要点と記法
 \begin{itemize}
 \item \texttt{Bool}：計算される真偽値
 \item \texttt{Prop}：証明の対象となる命題の型
 \item \texttt{def 名前 (引数) : Prop := 主張}：仕様への命名
 \end{itemize}
-\end{summarybox}

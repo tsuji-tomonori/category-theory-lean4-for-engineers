@@ -20,7 +20,7 @@
 \item 一件のマイグレーションをリスト全体へ持ち上げる意味を説明できます。
 \end{learninggoals}
 
-\section{問題設定}
+\section{単体の変換を構造全体へ広げる}
 
 実務では、単体の値を変換する関数を書くだけでなく、その変換を「まとまった構造」へ広げることがよくあります。
 ユーザーを一件だけ移行する関数を書いたら、次にはユーザー一覧を移行します。
@@ -69,14 +69,12 @@ def isEven (n : Nat) : Bool :=
 型と関数の世界では、対象を型、射を関数として読めます。
 そのため、\texttt{List} の例は次のように説明できます。
 
-\begin{definitionbox}
 型と関数の世界における \texttt{List} 関手は、次の対応として読めます。
 \begin{itemize}
 \item 型 \texttt{A} を、型 \texttt{List A} へ対応させます。
 \item 関数 \texttt{f : A -> B} を、関数 \texttt{List.map f : List A -> List B} へ対応させます。
 \end{itemize}
 この対応が恒等関数と関数合成を保存するとき、関手として振る舞っていると言えます。
-\end{definitionbox}
 
 \begin{center}
 \begin{tabular}{lll}
@@ -114,13 +112,11 @@ def isEven (n : Nat) : Bool :=
 \texttt{map} に恒等関数を渡したとき、構造全体にも何も起きません。
 リストの全要素に「そのまま返す」を適用しても、リスト全体は変わりません。
 
-\begin{definitionbox}
 第一の関手則は、恒等関数の保存です。
 \[
   \mathrm{map}(\mathrm{id}) = \mathrm{id}
 \]
 つまり、中身に何もしない変換を構造全体へ持ち上げても、全体として何もしない変換になります。
-\end{definitionbox}
 
 Lean では、\texttt{List.map} についてこの性質を帰納法で証明できます。
 空リストの場合は自明です。
@@ -151,13 +147,11 @@ theorem list_map_id {A : Type} (xs : List A) :
 \texttt{f : A -> B} と \texttt{g : B -> C} があるとします。
 単体の値に対して先に \texttt{f}、次に \texttt{g} を適用する処理は、\texttt{fun x => g (f x)} と書けます。
 
-\begin{definitionbox}
 第二の関手則は、合成の保存です。
 \[
   \mathrm{map}(g) \circ \mathrm{map}(f) = \mathrm{map}(g \circ f)
 \]
 つまり、中身で二段階に変換してから構造へ持ち上げても、各段階を構造へ持ち上げてから合成しても、結果は同じになります。
-\end{definitionbox}
 
 図\ref{fig:ch14-functor-laws}では、恒等関数を持ち上げる経路と、二段階の関数を合成の前後で持ち上げる二つの経路を分けて示します。
 
@@ -389,26 +383,20 @@ theorem migrateUsers_preserves_ids (users : List UserV1) :
 
 \section{よくある誤解}
 
-\begin{warningbox}
 \textbf{誤解1：map があれば必ず関手である。}
 
 名前が \texttt{map} であっても、恒等関数と合成を保存しなければ関手として扱えません。
 たとえば、\texttt{map} のたびに要素を勝手に並べ替える、ログ以外の状態を変更する、失敗ケースを成功に変える、といった操作には注意が必要です。
-\end{warningbox}
 
-\begin{warningbox}
 \textbf{誤解2：関手はリスト専用の話である。}
 
 リストは最も分かりやすい例ですが、関手の考え方は \texttt{Option}、\texttt{Result}、木、レスポンス wrapper、非同期計算などにも現れます。
 これらに共通するのは、外側の構造を保ったまま中身の関数を持ち上げるという点です。
-\end{warningbox}
 
-\begin{warningbox}
 \textbf{誤解3：関手則は数学的なおまけである。}
 
 関手則は、実務上のリファクタリング規則です。
 \texttt{map id} が何もしないことと、\texttt{map g} と \texttt{map f} の合成が \texttt{map (g after f)} と一致することにより、処理を分割または統合しても意味が保たれます。
-\end{warningbox}
 
 \section{本章のまとめ}
 

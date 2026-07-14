@@ -25,7 +25,7 @@ adapter を業務ロジックの前に置いても後に置いても結果が同
 \item API response wrapper の変更に対して、adapter と \texttt{map} が可換であることを仕様として書けます。
 \end{learninggoals}
 
-\section{問題設定}
+\section{adapter と変換順序の一貫性}
 
 API のレスポンス形式を変える場面を考えます。
 旧 API では、1件あるかもしれない値を \texttt{Option A} のように返していました。
@@ -109,7 +109,6 @@ adapter が中身を見て条件分岐すると、業務ロジックとの順序
 添字 \(A\) は「型 \texttt{A} に対する成分」を表します。
 成分とは、実務上は「各 payload 型に対して用意される adapter 関数」と読めます。
 
-\begin{definitionbox}
 本書の範囲では、自然変換を次のように読みます。
 二つの「中身を \texttt{map} できる構造」\(F\) と \(G\) があるとします。
 自然変換 \(\eta : F \Rightarrow G\) は、各型 \(A\) について変換
@@ -123,7 +122,6 @@ adapter が中身を見て条件分岐すると、業務ロジックとの順序
   \mathrm{map}_G(f)(\eta_A(x))
 \]
 左辺は「中身を変えてから adapter」、右辺は「adapter してから中身を変える」という経路です。
-\end{definitionbox}
 
 \subsection{自然性の四角形}
 
@@ -234,11 +232,9 @@ def optionToListNT : NatTransOptionList where
 名前は application、すなわち「適用」を短くしたものです。
 \texttt{naturality} は、その adapter が \texttt{map} と可換であることの証明です。
 
-\begin{warningbox}
 ここで定義した \texttt{NatTransOptionList} は、学習用の最小モデルです。
 Mathlib の \texttt{CategoryTheory.NatTrans} を直接使っているわけではありません。
 本書のこの段階では、抽象的な category theory API を覚えることより、自然性がどの等式を意味するかを理解することを優先します。
-\end{warningbox}
 
 \subsection{自然変換は型ごとの関数の寄せ集めではない}
 

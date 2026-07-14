@@ -20,7 +20,7 @@
 \item スキーマ移行を完全同型、片方向互換、情報損失ありに分けて考えられます。
 \end{learninggoals}
 
-\section{問題設定}
+\section{変換前後で情報を保つ}
 \label{sec:ch12-why}
 
 ソフトウェア開発では、形を変えても意味は変えたくない場面が多くあります。
@@ -48,7 +48,6 @@
 そこでは、関数は一方向の変換でした。
 本章では、二つの型の間に、互いに戻し合う二つの関数がある場合を考えます。
 
-\begin{definitionbox}
 型 $A$ と型 $B$ が同型であるとは、次の構成要素があるということです。
 
 \begin{itemize}
@@ -59,7 +58,6 @@
 \end{itemize}
 
 最後の二つは「実装上の期待」ではなく、法則として要求されます。
-\end{definitionbox}
 
 同型は、「同じ型である」という意味ではありません。
 \texttt{UserV1} と \texttt{UserV2} は別の型で構いません。
@@ -106,11 +104,9 @@
 
 \FigurePlaceholder{fig-ch12-round-trip.png}{0.90}{二方向の round-trip}{fig:ch12-round-trip}
 
-\begin{warningbox}
 JSONやCSVのような外部表現では、表現側に「余分な形」が存在することがあります。
 たとえば、空白やキー順序が異なる複数のJSON文字列で同じ値を表せる場合、文字列として完全に同じものへ戻るとは限りません。
 この場合は完全同型とせず、正規化後の一致を仕様にするか、well-formed な表現に限定した同型として扱います。
-\end{warningbox}
 
 \section{\texorpdfstring{$A \to B$ と $B \to A$}{A to B と B to A} だけでは同型ではない}
 \label{sec:ch12-bidirectional-is-not-enough}
@@ -162,7 +158,6 @@ example : defaultUser (eraseToUnit sampleUser) ≠ sampleUser := by
 同型には二つの法則が必要です。
 型 $A$ から型 $B$ への変換を $\mathit{to}$、型 $B$ から型 $A$ への変換を $\mathit{from}$ とします。
 
-\begin{definitionbox}
 同型の二つの法則は次のとおりです。
 
 \[
@@ -175,7 +170,6 @@ example : defaultUser (eraseToUnit sampleUser) ≠ sampleUser := by
 
 一つ目は、$A$ の値を $B$ へ変換してから $A$ へ戻すと、元の $A$ の値になるという意味です。
 二つ目は、$B$ の値を $A$ へ変換してから $B$ へ戻すと、元の $B$ の値になるという意味です。
-\end{definitionbox}
 
 ここで、\texttt{id} は恒等関数です。
 何もしない関数だと考えてください。
@@ -382,10 +376,8 @@ def userIso : Iso UserV1 UserV2 where
 \label{tab:ch12-migration-classification}
 \end{table}
 
-\begin{warningbox}
 情報を落とす変更を、無理に同型として扱ってはいけません。
 証明できない性質を「たぶん戻せる」と書くのではなく、「この向きだけ保証します」「この条件の下で保証します」「正規化後の一致だけ保証します」と明示するほうが安全です。
-\end{warningbox}
 
 \section{設計レビューでの使い方}
 \label{sec:ch12-review}

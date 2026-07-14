@@ -17,7 +17,7 @@
 \item \texttt{rfl}、\texttt{simp}、\texttt{rw} の役割を読み分けられます。
 \end{learninggoals}
 
-\section{問題設定}
+\section{定義展開だけでは閉じない証明}
 
 これまでの証明は、\texttt{rfl} だけで閉じてきました。
 しかし、分岐を整理する場面や、別の場所で証明した等式を使う場面では、\texttt{rfl} だけでは足りません。
@@ -111,18 +111,14 @@ theorem addTax_after_normalize (price tax : Nat) :
 \end{tabular}
 \end{table}
 
-\begin{leanbox}
 \texttt{rfl} は「定義を見れば同じ」、\texttt{simp} は「明らかな整理をまとめて行う」、\texttt{rw} は「既知の等式で置き換える」と読みます。
 この三つが、等式推論とリファクタリング証明の基本語彙になります。
-\end{leanbox}
 
 \section{本章のまとめ}
 
-\begin{summarybox}
 要点と記法
 \begin{itemize}
 \item \texttt{simp}：既知の単純化規則による整理
 \item \texttt{simp [name]}：指定した定義や補題も使う整理
 \item \texttt{rw [h]}：等式 \texttt{h} によるゴールの書き換え
 \end{itemize}
-\end{summarybox}
