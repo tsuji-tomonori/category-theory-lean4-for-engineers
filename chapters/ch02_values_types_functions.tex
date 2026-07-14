@@ -85,6 +85,8 @@ def add (m : Nat) (n : Nat) : Nat :=
 
 関数にも型があります。
 \texttt{A -> B} は、「\texttt{A} 型の値を受け取り、\texttt{B} 型の値を返す関数」の型です。
+Lean では ASCII の \texttt{->} と Unicode の \texttt{→} は同じ関数型の矢印です。
+本書の前半では入力しやすい \texttt{->} を中心に使い、数式に近いコードでは \texttt{→} も使います。
 前節の \texttt{addOne} は \texttt{Nat} を受け取り \texttt{Nat} を返すため、その型は \texttt{Nat -> Nat} です。
 \texttt{\#check} で関数の型を確認できます。
 

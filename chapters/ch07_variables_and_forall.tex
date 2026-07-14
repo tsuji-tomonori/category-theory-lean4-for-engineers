@@ -50,6 +50,8 @@ theorem addTax_zero (price : Nat) :
 \section{\texttt{forall} と \texttt{intro}}
 
 「すべての \texttt{x} について \texttt{P x}」という主張は、\texttt{forall x, P x} と書けます。
+Lean では ASCII の \texttt{forall} と Unicode の \texttt{∀} は同じ全称量化を表します。
+同様に、\texttt{->} と \texttt{→} は同じ関数型または含意の矢印です。
 これを証明するには、任意の値を一つ \texttt{intro} で受け取り、その値について示します。
 次の例では、ID を取り出す処理が値を変えないという仕様を扱います。
 
@@ -113,10 +115,9 @@ def compose {A B C : Type} (g : B -> C) (f : A -> B) : A -> C :=
 この見方は、関数を「合成できる変換」として捉える基礎になります。
 \end{leanbox}
 
-\begin{exercisebox}
-\texttt{compose g f} の途中の型を書き、\texttt{g} を先に適用できない理由を説明してください。
-答えでは、\texttt{f : A -> B} と \texttt{g : B -> C} の接続点 \texttt{B} を明示してください。
-\end{exercisebox}
+\texttt{compose g f} の途中の値は \texttt{f} の出力なので、型は \texttt{B} です。
+\texttt{g} は \texttt{B} を入力に取るため、その値を受け取れます。
+一方、最初の入力は \texttt{A} 型なので、一般には \texttt{g} を先に適用できません。
 
 図\ref{fig:ch07-pipeline}は、\texttt{f : A -> B} の出力型 \texttt{B} を \texttt{g : B -> C} の入力型へつなぎ、二つの関数を一つの処理として読む流れを示します。
 
@@ -155,10 +156,9 @@ def decorateAll (xs : List String) : List (Option String) :=
 \texttt{decorateIfNonempty} は \texttt{match} で \texttt{Option} を場合分けし、値があるときだけ装飾します。
 \texttt{decorateAll} は、\texttt{xs.map} で各要素に同じ処理を適用します。
 
-\begin{exercisebox}
-\texttt{decorateIfNonempty "lean"} を、\texttt{nonempty} の結果、\texttt{match} で選ばれる枝、最終的な \texttt{Option String} の順に追跡してください。
-\texttt{List.map} は、各要素へ同じ関数を一括適用します。
-\end{exercisebox}
+\texttt{decorateIfNonempty "lean"} では、\texttt{nonempty} の結果が \texttt{some "lean"} になり、\texttt{match} は \texttt{some} の枝を選びます。
+最終結果は \texttt{some "[lean]"} です。
+\texttt{List.map} は、この同じ処理を各要素へ一括適用します。
 
 \section{本章のまとめ}
 

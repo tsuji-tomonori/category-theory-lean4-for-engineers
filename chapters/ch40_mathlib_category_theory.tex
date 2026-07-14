@@ -131,7 +131,7 @@ end Chapter40
 
 \begin{definitionbox}
 Mathlib の \texttt{Category C} は、対象型 \texttt{C} に対して、射 \texttt{X ⟶ Y}、恒等射 \texttt{𝟙 X}、合成 \texttt{f ≫ g}、恒等律、結合律を与える型クラスです。
-第11章では型と関数の圏を具体例として読みましたが、Mathlib では同じインターフェースで一般の圏を扱います。
+\ChapterRef{chap:ch11_category}では型と関数の圏を具体例として読みましたが、Mathlib では同じインターフェースで一般の圏を扱います。
 \end{definitionbox}
 
 圏の法則も、Mathlib ではすでに \texttt{simp} で扱いやすい形になっています。
@@ -231,7 +231,7 @@ end FunctorLaws
 
 \begin{softwarebox}
 実務で \texttt{F.map} を読むときは、「ある変換を、別の文脈へ壊さずに持ち上げる」と考えるとよいでしょう。
-第30章のバッチマイグレーションでは、1件の \texttt{migrate} を \texttt{List.map migrate} によってリスト全体へ持ち上げました。
+\ChapterRef{chap:ch30-list-migration-functor-laws}のバッチマイグレーションでは、1件の \texttt{migrate} を \texttt{List.map migrate} によってリスト全体へ持ち上げました。
 Mathlib の関手では、その考え方を任意の圏の間へ一般化しています。
 \end{softwarebox}
 
@@ -290,7 +290,7 @@ end NatTransNaturality
 \label{lst:ch40_nattrans_naturality}
 \end{listing}
 
-この式は、第15章と第31章で見た可換図式そのものです。
+この式は、\ChapterRef{chap:natural-transformation}と\ChapterRef{chap:ch31-api-adapter-naturality}で見た可換図式そのものです。
 左辺は「先に \texttt{F} 側で処理してから adapter を通す」経路であり、右辺は「先に adapter を通してから \texttt{G} 側で処理する」経路です。
 両者が等しいとき、このモデルで射として表した処理について、adapter の前後で結果が一貫します。
 外部副作用を含む任意の業務処理まで、自動的に対象となるわけではありません。
@@ -303,7 +303,7 @@ end NatTransNaturality
 
 \section{\texttt{Iso}：round-trip をライブラリの語彙で読む}
 
-第12章では、同型を「情報を失わない相互変換」として導入しました。
+\ChapterRef{chap:ch12-isomorphism}では、同型を「情報を失わない相互変換」として導入しました。
 \texttt{to} と \texttt{from} があり、両方向の round-trip law を証明するという形です。
 
 Mathlib では、圏 \texttt{C} の対象 \texttt{X} と \texttt{Y} の同型を \texttt{X ≅ Y} と書きます。
@@ -414,11 +414,11 @@ Mathlib の記法を見て混乱したときは、記法を本書の言葉へ戻
 \toprule
 移行前に探すもの & Mathlib で探すもの & 確認すること \\
 \midrule
-\texttt{A : Type}（第11章） & \texttt{X : C} & 型そのものを対象とした具体例から、圏 \texttt{C} の任意の対象へ一般化します。 \\
-\texttt{A -> B}（第11章） & \texttt{X ⟶ Y} & 関数に限らない一般の射になるため、向きが一致しているかを確認します。 \\
+\texttt{A : Type}（\ChapterRef{chap:ch11_category}） & \texttt{X : C} & 型そのものを対象とした具体例から、圏 \texttt{C} の任意の対象へ一般化します。 \\
+\texttt{A -> B}（\ChapterRef{chap:ch11_category}） & \texttt{X ⟶ Y} & 関数に限らない一般の射になるため、向きが一致しているかを確認します。 \\
 \texttt{id} & \texttt{𝟙 X} & 恒等射の対象が合っているかを確認します。 \\
 \texttt{comp f g} & \texttt{f ≫ g} & 合成順序が逆になっていないかを確認します。 \\
-\texttt{List.map} とその法則（第14章） & \texttt{F.obj}・\texttt{F.map} と関手則 & 型構成子と map の具体例から、対象と射への一般の作用へ移ります。 \\
+\texttt{List.map} とその法則（\ChapterRef{chap:ch14_functor}） & \texttt{F.obj}・\texttt{F.map} と関手則 & 型構成子と map の具体例から、対象と射への一般の作用へ移ります。 \\
 \texttt{NatTransOptionList}\newline\texttt{app}・\texttt{naturality} & \texttt{α.app}・\texttt{α.naturality} & 特定の \texttt{Option}/\texttt{List} 間のモデルから、任意の二関手間へ一般化します。 \\
 \texttt{Iso}\newline\texttt{toFun}・\texttt{invFun} & \texttt{e.hom}・\texttt{e.inv} & 関数同型から一般の圏の同型へ移り、round-trip の向きが一致しているかを確認します。 \\
 \bottomrule
@@ -449,7 +449,7 @@ Mathlib に移すときは、「自分で証明する」作業よりも「どの
 
 Mathlib の \texttt{CategoryTheory} で抽象定理を読めるようになったら、もう一度、実務のモデルへ戻します。
 たとえば、API adapter の自然性を、一般の \texttt{NatTrans} として完全に表す必要があるかを判断します。
-多くの実務モデルでは、第31章のような小さな \texttt{map} と adapter の等式で十分です。
+多くの実務モデルでは、\ChapterRef{chap:ch31-api-adapter-naturality}のような小さな \texttt{map} と adapter の等式で十分です。
 
 本格的な Mathlib 圏論を使うべき場面は、既存の圏論的な定理を再利用したいときです。
 単に業務ロジックの round-trip を証明したいだけなら、自作の小さなモデルのほうが読みやすい場合も多くあります。

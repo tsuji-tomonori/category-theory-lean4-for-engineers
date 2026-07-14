@@ -38,6 +38,10 @@
 % Usage: \BookIndex{reading-or-ASCII-key}{display label}
 \newcommand{\BookIndex}[2]{\index{#1@#2}}
 
+% Chapter reference that follows the target chapter's current number.
+% Usage: \ChapterRef{chap:chapter-label}
+\newcommand{\ChapterRef}[1]{第\ref{#1}章}
+
 % Common boxes
 \newtcolorbox{intuitionbox}{
   chapterboxstyle,
@@ -72,11 +76,6 @@
 \newtcolorbox{warningbox}{
   chapterboxstyle,
   title=注意
-}
-
-\newtcolorbox{exercisebox}{
-  chapterboxstyle,
-  title=演習
 }
 
 \newtcolorbox{summarybox}{

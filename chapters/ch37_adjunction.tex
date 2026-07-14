@@ -370,7 +370,7 @@ DSL では、トークンや命令の集合から構文木を作ります。
 \section{Galois 接続との関係}
 \label{sec:ch37-galois}
 
-第22章では、Galois 接続を抽象化と具体化の対応として捉えました。
+\ChapterRef{chap:relations-preorders-galois}では、Galois 接続を抽象化と具体化の対応として捉えました。
 随伴を学ぶと、Galois 接続を特別な随伴として理解できます。
 
 前順序は、圏として見ることができます。
@@ -393,17 +393,19 @@ structure PreorderMini (A : Type) where
   refl : forall a, le a a
   trans : forall a b c, le a b -> le b c -> le a c
 
-structure GaloisConnection {A B : Type}
+structure GaloisConnectionMini {A B : Type}
     (ordA : PreorderMini A) (ordB : PreorderMini B)
     (lower : A -> B) (upper : B -> A) : Prop where
   condition : forall a b,
     ordB.le (lower a) b <-> ordA.le a (upper b)
 \end{minted}
-\caption{\texttt{PreorderMini}・\texttt{GaloisConnection}}
+\caption{\texttt{PreorderMini}・\texttt{GaloisConnectionMini}}
 \label{lst:ch37_galois}
 \end{listing}
 
-この定義では、第22章と同様に、反射律と推移律を持つ \texttt{PreorderMini} を明示的に渡します。
+\texttt{GaloisConnectionMini} は、本書の説明用に定義した最小構造です。
+Mathlib にある同名概念の API と自作構造を混同しないように、\texttt{Mini} を付けています。
+この定義では、\ChapterRef{chap:relations-preorders-galois}と同様に、反射律と推移律を持つ \texttt{PreorderMini} を明示的に渡します。
 表示した同値条件から \texttt{lower} と \texttt{upper} の単調性も導けるため、フィールドとして重ねて要求していません。
 
 \begin{intuitionbox}

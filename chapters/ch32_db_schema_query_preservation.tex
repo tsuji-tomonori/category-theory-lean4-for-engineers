@@ -255,7 +255,7 @@ def queryNewRow (s : ConsistentSplitRow) : OrderView :=
 \end{listing}
 
 \texttt{ConsistentSplitRow} は、値 \texttt{s : SplitRow} と、その値が \texttt{Consistent s} を満たす証明をまとめた型です。
-これは、第10章で扱った「条件を満たす値」を使う考え方の応用です。
+これは、\ChapterRef{chap:ch10_invariants}で扱った「条件を満たす値」を使う考え方の応用です。
 DB の言葉への類比では、単なる二つの行の組ではなく、key が一致している証拠を一緒に持つ行です。
 ただし、この部分型そのものは実 DB の外部キー制約ではありません。
 
@@ -313,7 +313,7 @@ theorem query_preserved (db : DBV1) :
 証明では、\texttt{induction db} を使っています。
 空リストの場合は自明です。
 先頭行 \texttt{x} と残り \texttt{xs} の場合は、一行の保存性 \texttt{checked\_row\_preserves\_query} と、帰納法の仮定 \texttt{ih} を使って整理します。
-これは、第30章で扱った「一件の移行をリスト全体へ持ち上げる」考え方と同じです。
+これは、\ChapterRef{chap:ch30-list-migration-functor-laws}で扱った「一件の移行をリスト全体へ持ち上げる」考え方と同じです。
 
 \section{サンプルを実行して結果を見る}
 

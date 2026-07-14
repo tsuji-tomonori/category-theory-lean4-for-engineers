@@ -27,7 +27,7 @@
 
 \section{問題設定}
 
-第28章では、\texttt{UserV1} と \texttt{UserV2} の間の lossless migration を、1 件のデータに対して扱いました。
+\ChapterRef{chap:ch28_user_schema_lossless_migration}では、\texttt{UserV1} と \texttt{UserV2} の間の lossless migration を、1 件のデータに対して扱いました。
 そこでは、\texttt{migrate : UserV1 -> UserV2} と \texttt{rollback : UserV2 -> UserV1} を定義し、変換して戻すと元に戻ることを示しました。
 しかし、実務の移行対象は、たいてい 1 件ではありません。
 DB のテーブル、CSV、イベントログ、API レスポンスの配列など、移行はほとんどの場合、コレクション全体に対して行われます。
@@ -302,7 +302,7 @@ theorem migrateAll_composition (xs : List UserV1) :
 
 \section{round-trip をリスト全体へ持ち上げる}
 
-第28章で扱った lossless migration では、1 件について次の二つを証明しました。
+\ChapterRef{chap:ch28_user_schema_lossless_migration}で扱った lossless migration では、1 件について次の二つを証明しました。
 
 \[
   \texttt{rollback (migrate u) = u}

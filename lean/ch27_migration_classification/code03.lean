@@ -3,7 +3,7 @@
 
 namespace Chapter27
 
-structure EquivLike (A B : Type) where
+structure EquivMini (A B : Type) where
   toFun : A -> B
   invFun : B -> A
   left_inv : (a : A) -> invFun (toFun a) = a
@@ -35,7 +35,7 @@ theorem user_right_roundtrip (v : UserV2) :
   cases v
   rfl
 
-def userIso : EquivLike UserV1 UserV2 :=
+def userIso : EquivMini UserV1 UserV2 :=
   { toFun := migrateUser
     invFun := rollbackUser
     left_inv := user_left_roundtrip

@@ -83,7 +83,7 @@ Lean では、値の形が型によって決まります。
 
 \subsection{圏論側の読み替え：余積から出る処理}
 
-\texttt{Sum A B} は、第13章で扱った余積のプログラミング上の姿です。
+\texttt{Sum A B} は、\ChapterRef{chap:products-coproducts}で扱った余積のプログラミング上の姿です。
 余積から別の型 \(C\) へ処理を作るには、\texttt{A} 側と \texttt{B} 側をどう処理するか、両方を決める必要があります。
 
 この見方をソフトウェアに戻すと、\texttt{Either Error Value} や \texttt{Result Error Value} を扱う関数は、エラー側と成功側の両方を処理して初めて全体の処理になります。

@@ -123,15 +123,20 @@ Lean では、完全同型の形を小さな構造体として表せます。
 
 \begin{listing}[htbp]
 \begin{minted}{lean4}
-structure EquivLike (A B : Type) where
+structure EquivMini (A B : Type) where
   toFun : A -> B
   invFun : B -> A
   left_inv : (a : A) -> invFun (toFun a) = a
   right_inv : (b : B) -> toFun (invFun b) = b
 \end{minted}
-\caption{\texttt{EquivLike}}
+\caption{\texttt{EquivMini}}
 \label{lst:ch27-equivlike}
 \end{listing}
+
+\texttt{EquivMini} は、本書の説明用に定義した最小構造です。
+Mathlib の既存名と混同しないように \texttt{Mini} を付けています。
+本書では、圏論の文脈では \texttt{Iso}、スキーマ移行の文脈では \texttt{SchemaIso} という名前も使いますが、いずれも二方向の変換と両側の round-trip を核に持ちます。
+名前の違いは用途を示すためであり、片方向の変換だけを同型と呼ぶものではありません。
 
 次の例では、ユーザー名のフィールド名を変えるだけの移行を考えます。
 これは情報を落としていないので、両方向の round-trip が成り立ちます。

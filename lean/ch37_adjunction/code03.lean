@@ -129,7 +129,7 @@ structure PreorderMini (A : Type) where
   refl : forall a, le a a
   trans : forall a b c, le a b -> le b c -> le a c
 
-structure GaloisConnection {A B : Type}
+structure GaloisConnectionMini {A B : Type}
     (ordA : PreorderMini A) (ordB : PreorderMini B)
     (lower : A -> B) (upper : B -> A) : Prop where
   condition : forall a b,

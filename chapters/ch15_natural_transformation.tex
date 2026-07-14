@@ -188,6 +188,8 @@ theorem optionToList_naturality {A B : Type}
 
 証明には \texttt{cases x} を使います。
 \texttt{x} は \texttt{none} か \texttt{some a} のどちらかです。
+\texttt{<;>} は、直前のタクティクで生じたすべてのゴールに、その後ろのタクティクを適用します。
+したがって \texttt{cases x <;> rfl} は、二つの場合へ分けた後、両方を \texttt{rfl} で閉じるという意味です。
 \texttt{none} の場合は、左辺も右辺も空リストになります。
 \texttt{some a} の場合は、左辺も右辺も \texttt{[f a]} になります。
 したがって、どちらのケースでも、定義を展開すると同じ形になるため \texttt{rfl} で証明できます。
@@ -398,6 +400,9 @@ end Chapter15
 \caption{\texttt{adapt\_naturality}}
 \label{lst:ch15_api_naturality}
 \end{listing}
+
+\texttt{funext r} は、二つの関数そのものの等式を、任意の入力 \texttt{r} における出力の等式へ変えます。
+ここでは、得られた点ごとの等式が \texttt{adapt\_naturality f r} と一致するため、\texttt{exact} で証明を閉じています。
 
 最初の定理 \texttt{adapt\_naturality} は、任意のレスポンス \texttt{r} について二つの経路が同じであることを述べています。
 証明では、まず \texttt{r} を \texttt{trace} と \texttt{payload} に分解します。

@@ -3,7 +3,9 @@
 | 日本語 | 英語 | 記号・Lean | 規約・注意 | 初出 |
 |---|---|---|---|---|
 | 型 | type | `Type u` | 集合と無条件に同一視しない。universeを持つ | ch02 |
+| 関数型・含意 | function type / implication | ASCII `->` / Unicode `→` | Lean では同じ矢印。初出時に同一性を説明する | ch02 |
 | 命題 | proposition | `Prop` | `Bool`による実行時判定と区別 | ch05 |
+| 全称量化 | universal quantification | ASCII `forall` / Unicode `∀` | Lean では同じ構文。初出時に同一性を説明する | ch07 |
 | 射 | morphism | `X ⟶ Y` | 型と関数の圏では関数。一般圏では関数とは限らない | ch11 |
 | 合成 | composition | 数学 `g \circ f` / Mathlib `f ≫ g` | どちらも「先にf、次にg」 | ch11/ch40 |
 | 同型 | isomorphism | `X ≅ Y` | 双方向関数だけでなく両逆を要求 | ch12 |
@@ -20,3 +22,6 @@
 
 外来語は、初出時に日本語と英語を併記します。
 `adapter`、`join`、`lossless` などはコードまたは業界用語として原語を維持して構いませんが、数学用語との対応条件を別記します。
+
+説明用の自作構造は、Mathlib の既存 API と衝突する場合に `Mini` を付けます。
+同型の核は共通ですが、`Iso` は圏論の導入、`EquivMini` は移行分類、`SchemaIso` はスキーマ移行という用途を名前で区別します。

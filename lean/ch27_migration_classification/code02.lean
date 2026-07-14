@@ -3,7 +3,7 @@
 
 namespace Chapter27
 
-structure EquivLike (A B : Type) where
+structure EquivMini (A B : Type) where
   toFun : A -> B
   invFun : B -> A
   left_inv : (a : A) -> invFun (toFun a) = a
