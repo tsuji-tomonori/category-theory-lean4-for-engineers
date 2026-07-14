@@ -148,7 +148,7 @@ end Chapter36
 実際のプロジェクトでは、仕様書の項番、定理名、前提、モデル外の事項をレビュー表で対応づけます。
 
 Lean で重要なのは、定理名を人間が読めるレビュー単位にすることです。
-\texttt{theorem userV1\_rollback\_migrate} のような名前なら、「UserV1 の rollback と migrate の round-trip についての証明だ」と推測できます。
+定理名を \path{userV1_rollback_migrate} のようにすれば、「UserV1 の rollback と migrate の round-trip についての証明だ」と推測できます。
 逆に、\texttt{thm1} や \texttt{aux2} ばかりでは、CI が通ってもチームの知識にはなりません。
 
 仕様レビューでは、次の三つを確認します。
