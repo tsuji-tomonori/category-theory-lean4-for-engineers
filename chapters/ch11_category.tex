@@ -315,7 +315,7 @@ def pipelineLeft : String -> String :=
 def pipelineRight : String -> String :=
   comp renderGreeting (comp fetchUserName parseUserId)
 
-#eval pipelineLeft "abc"  -- => "hello, user-3"
+#eval pipelineLeft "abc"
 -- 出力: "hello, user-3"
 
 end Chapter11
