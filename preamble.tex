@@ -43,7 +43,8 @@
 
 % Code
 \usepackage{accsupp}
-\usepackage[cachedir=_minted-main-lean-keywords]{minted}
+% Bump the cache directory when the custom Lean keyword set changes.
+\usepackage[cachedir=_minted-main-lean-keywords-v2]{minted}
 \ifcsname MintedPygmentize\endcsname
   \renewcommand{\MintedPygmentize}{./tools/pygmentize_lean_keywords.py}
 \fi

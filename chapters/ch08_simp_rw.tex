@@ -1,27 +1,30 @@
 % !TEX root = ../main.tex
-\chapter{\texttt{simp} と \texttt{rw}}
+\chapter{\texttt{simp}・\texttt{unfold}・\texttt{rw}}
 \label{chap:ch08_simp_rw}
 \BookIndex{simp}{\texttt{simp}}
+\BookIndex{unfold}{\texttt{unfold}}
 \BookIndex{rw}{\texttt{rw}}
 
 \begin{chapterabstract}
-本章では、\texttt{rfl} の次の証明道具として \texttt{simp} と \texttt{rw} を導入します。
+本章では、\texttt{rfl} の次の証明道具として \texttt{simp}、\texttt{unfold}、\texttt{rw} を導入します。
 \texttt{simp} は、Lean が知っている単純化規則で式を整理します。
+\texttt{unfold} は、指定した定義を現在のゴールで明示的に展開します。
 \texttt{rw} は、すでに証明済みの等式を使って式を書き換えます。
-どちらも \texttt{rfl} だけでは届かない場面で使う、等式推論の基本道具です。
+これらは、定義の中身を見せたり、式を整理・書き換えたりするための、等式推論の基本道具です。
 \end{chapterabstract}
 
 \begin{learninggoals}
 \item \texttt{simp} を使って、分岐や明らかな整理を含む等式を証明できます。
+\item \texttt{unfold} を、指定した定義をゴール内で展開するタクティクとして読めます。
 \item \texttt{rw} を使って、既知の等式でゴールを書き換えられます。
-\item \texttt{rfl}、\texttt{simp}、\texttt{rw} の役割を読み分けられます。
+\item \texttt{rfl}、\texttt{simp}、\texttt{unfold}、\texttt{rw} の役割を読み分けられます。
 \end{learninggoals}
 
 \section{定義展開だけでは閉じない証明}
 
 これまでの証明は、\texttt{rfl} だけで閉じてきました。
 しかし、分岐を整理する場面や、別の場所で証明した等式を使う場面では、\texttt{rfl} だけでは足りません。
-本章では、分岐の整理には \texttt{simp}、証明済みの等式による書き換えには \texttt{rw} を導入します。
+本章では、分岐の整理には \texttt{simp}、定義を明示的に展開するには \texttt{unfold}、証明済みの等式による書き換えには \texttt{rw} を導入します。
 これらは、等式推論とリファクタリング証明で中心的に使います。
 
 \section{\texttt{simp} で明らかな整理を任せる}
@@ -68,6 +71,34 @@ theorem member_shipping_zero (shipping : Nat) :
 \end{tabular}
 \end{table}
 
+\section{\texttt{unfold} で定義を明示的に展開する}
+
+\texttt{unfold} は、\texttt{def} や \texttt{theorem} のように新しい宣言を作る語ではなく、\texttt{by} 以下で現在の証明ゴールを変形する\emph{タクティク}です。
+\texttt{unfold chargeShipping} と書くと、ゴール内に現れる \texttt{chargeShipping} を、その定義本体へ一段展開します。
+定義の中身を先に見える形へしてから、別のタクティクで残りを処理したいときに使います。
+
+前節の \texttt{simp [chargeShipping]} は、\texttt{chargeShipping} の展開と、その後の単純化をまとめて行います。
+同じ流れを分けて書く場合は、まず \texttt{unfold chargeShipping} で定義を展開し、続けて \texttt{simp} で \texttt{if true then 0 else shipping} を整理します。
+前者は短く書きたい場合、後者は「定義展開」と「単純化」を証明手順として明示したい場合に適しています。
+
+\begin{table}[htbp]
+\centering
+\caption{\texttt{unfold} と \texttt{simp} の役割}
+\label{tab:ch08-unfold-simp}
+\begin{tabular}{p{0.34\linewidth}p{0.56\linewidth}}
+\toprule
+操作 & 役割 \\
+\midrule
+\texttt{unfold chargeShipping} & 指定した定義の本体を現在のゴールに現します。 \\
+\texttt{simp} & 展開後の分岐や既知の単純化規則を整理します。 \\
+\texttt{simp [chargeShipping]} & 指定した定義の展開と単純化をまとめて行います。 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+複数の定義を続けて展開する場合は、名前を空白で並べます。
+次章に現れる \texttt{unfold rawCalc refactoredCalc} は、現在のゴールにある \texttt{rawCalc} と \texttt{refactoredCalc} の二つを展開する指定です。
+
 \section{\texttt{rw} で既知の等式を使う}
 
 \texttt{rw} は rewrite の略であり、すでに証明済みの等式を使って式の一部を書き換えます。
@@ -111,8 +142,8 @@ theorem addTax_after_normalize (price tax : Nat) :
 \end{tabular}
 \end{table}
 
-\texttt{rfl} は「定義を見れば同じ」、\texttt{simp} は「明らかな整理をまとめて行う」、\texttt{rw} は「既知の等式で置き換える」と読みます。
-\texttt{rfl}、\texttt{simp}、\texttt{rw} が、等式推論とリファクタリング証明の基本語彙になります。
+\texttt{rfl} は「定義を見れば同じ」、\texttt{simp} は「明らかな整理をまとめて行う」、\texttt{unfold} は「指定した定義の本体をゴールに現す」、\texttt{rw} は「既知の等式で置き換える」と読みます。
+これらが、等式推論とリファクタリング証明の基本語彙になります。
 
 \section{本章のまとめ}
 
@@ -120,5 +151,7 @@ theorem addTax_after_normalize (price tax : Nat) :
 \begin{itemize}
 \item \texttt{simp}：既知の単純化規則による整理
 \item \texttt{simp [name]}：指定した定義や補題も使う整理
+\item \texttt{unfold name}：指定した定義の本体を現在のゴールに現す
+\item \texttt{unfold f g}：複数の定義を現在のゴールで順に展開する
 \item \texttt{rw [h]}：等式 \texttt{h} によるゴールの書き換え
 \end{itemize}
