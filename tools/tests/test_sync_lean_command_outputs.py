@@ -101,6 +101,24 @@ class AnnotationTests(unittest.TestCase):
         self.assertEqual(rerendered_count, 2)
         self.assertEqual(rerendered, rendered)
 
+    def test_removes_legacy_expected_output_hints(self) -> None:
+        self.assertEqual(
+            remove_generated_output_lines(
+                [
+                    '#eval 2 + 3  -- => 5',
+                    '#eval migrate sample',
+                    '-- =>',
+                    '-- { id := 1, name := "Ada" }',
+                    'def untouched := "-- => inside a string"',
+                ]
+            ),
+            [
+                '#eval 2 + 3',
+                '#eval migrate sample',
+                'def untouched := "-- => inside a string"',
+            ],
+        )
+
     def test_removes_multiline_generated_comment(self) -> None:
         self.assertEqual(
             remove_generated_output_lines(
