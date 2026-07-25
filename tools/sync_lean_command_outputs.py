@@ -37,6 +37,8 @@ HASH_COMMAND_RE = re.compile(
 )
 GENERATED_START_RE = re.compile(r"^[ \t]*-- 出力:(?:\s.*)?$")
 GENERATED_CONTINUATION_RE = re.compile(r"^[ \t]*--(?:   .*|\s*)$")
+LEGACY_OUTPUT_RE = re.compile(r"^[ \t]*--[ \t]*=>(?P<value>.*)$")
+COMMENT_ONLY_RE = re.compile(r"^[ \t]*--")
 CONTINUATION_SUFFIXES = (
     "(",
     "[",
@@ -236,18 +238,62 @@ def extract_minted_blocks(lines: list[str]) -> list[MintedBlock]:
     return blocks
 
 
+def line_comment_index(line: str) -> int | None:
+    """Return the start of a Lean line comment, ignoring quoted ``--`` text."""
+    in_string = False
+    escaped = False
+    index = 0
+    while index + 1 < len(line):
+        char = line[index]
+        if escaped:
+            escaped = False
+            index += 1
+            continue
+        if in_string:
+            if char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            index += 1
+            continue
+        if char == '"':
+            in_string = True
+            index += 1
+            continue
+        if char == "-" and line[index + 1] == "-":
+            return index
+        index += 1
+    return None
+
+
 def remove_generated_output_lines(lines: list[str]) -> list[str]:
+    """Remove generated comments and legacy hand-written ``-- =>`` hints."""
     cleaned: list[str] = []
     index = 0
     while index < len(lines):
-        if not GENERATED_START_RE.match(lines[index]):
-            cleaned.append(lines[index])
+        line = lines[index]
+        if GENERATED_START_RE.match(line):
             index += 1
+            while index < len(lines) and GENERATED_CONTINUATION_RE.match(lines[index]):
+                index += 1
             continue
 
-        index += 1
-        while index < len(lines) and GENERATED_CONTINUATION_RE.match(lines[index]):
+        legacy = LEGACY_OUTPUT_RE.match(line)
+        if legacy is not None:
             index += 1
+            if not legacy.group("value").strip():
+                while index < len(lines) and COMMENT_ONLY_RE.match(lines[index]):
+                    index += 1
+            continue
+
+        comment_index = line_comment_index(line)
+        if comment_index is not None:
+            comment = line[comment_index:]
+            if LEGACY_OUTPUT_RE.match(comment):
+                line = line[:comment_index].rstrip()
+
+        cleaned.append(line)
+        index += 1
     return cleaned
 
 
