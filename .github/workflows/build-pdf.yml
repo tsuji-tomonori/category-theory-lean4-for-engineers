@@ -24,6 +24,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Test Lean output sync tooling
+        run: python3 -m unittest discover -s tools/tests -p 'test_*.py'
+
       - name: Check TeX and Lean snippet sync
         run: python3 tools/check_tex_lean_sync.py
 
@@ -54,6 +57,9 @@ jobs:
 
       - name: Compile Mathlib Lean snippet files
         run: python3 tools/check_lean_snippets.py lean/ch40_mathlib_category_theory
+
+      - name: Check generated Lean command outputs
+        run: python3 tools/sync_lean_command_outputs.py --check
 
   build-pdf:
     runs-on: ubuntu-latest
