@@ -122,7 +122,9 @@ def natAddMonoid : TinyMonoid Nat where
     exact Nat.add_assoc x y z
 
 #eval foldMap natAddMonoid (fun n : Nat => n) [1, 2, 3]
+-- 出力: 6
 #eval foldMap natAddMonoid (fun _ : String => 1) ["a", "b", "c"]
+-- 出力: 3
 
 structure PreorderMini (A : Type) where
   le : A -> A -> Prop

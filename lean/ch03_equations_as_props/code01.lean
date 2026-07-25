@@ -5,4 +5,6 @@ def hasDiscount (member : Bool) : Bool :=
   member
 
 #eval hasDiscount true
+-- 出力: true
 #eval hasDiscount false
+-- 出力: false

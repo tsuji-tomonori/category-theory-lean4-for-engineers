@@ -110,6 +110,8 @@ def sampleOld : DBV1 :=
       userName := "Grace", amount := 250 } ]
 
 #eval queryOld sampleOld
+-- 出力: [{ orderId := 1001, userName := "Ada", amount := 120 }, { orderId := 1002, userName := "Grace", amount := 250 }]
 #eval queryNew (migrateDB sampleOld)
+-- 出力: [{ orderId := 1001, userName := "Ada", amount := 120 }, { orderId := 1002, userName := "Grace", amount := 250 }]
 
 end Chapter32

@@ -73,6 +73,8 @@ def discount100 (n : Nat) : Nat :=
   n - 100
 
 #eval discount100 (addShipping 50)
+-- 出力: 450
 #eval addShipping (discount100 50)
+-- 出力: 500
 
 end Chapter09

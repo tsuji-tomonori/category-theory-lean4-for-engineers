@@ -46,7 +46,9 @@ def oldWithMiddle : UserV1 :=
         last := "Lovelace" } }
 
 #eval migrate oldWithMiddle
+-- 出力: { id := 42, firstName := "Ada", lastName := "Lovelace" }
 #eval rollback (migrate oldWithMiddle)
+-- 出力: { id := 42, fullName := { first := "Ada", middle := none, last := "Lovelace" } }
 
 theorem oldWithMiddle_not_restored :
     rollback (migrate oldWithMiddle) ≠ oldWithMiddle := by

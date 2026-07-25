@@ -16,7 +16,9 @@ def refactoredPrice (base discount tax : Nat) : Nat :=
   (base - discount) + tax
 
 #eval legacyPrice 1000 100 80
+-- 出力: 980
 #eval refactoredPrice 1000 100 80
+-- 出力: 980
 
 theorem legacy_eq_refactored
     (base discount tax : Nat) :

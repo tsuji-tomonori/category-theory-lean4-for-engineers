@@ -20,6 +20,7 @@ theorem charge_impl_matches_spec (i : PriceInput) :
   rfl
 
 #eval chargeImpl { base := 100, discount := 10, shipping := 5 }
+-- 出力: 95
 
 example :
     chargeImpl { base := 100, discount := 10, shipping := 5 } = 95 := by

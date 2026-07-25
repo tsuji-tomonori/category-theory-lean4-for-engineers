@@ -108,8 +108,12 @@ def alice : Account := { id := 1, balance := 100 }
 def bob : Account := { id := 2, balance := 40 }
 
 #eval deposit alice 20
+-- 出力: { id := 1, balance := 120 }
 #eval withdraw? alice 30
+-- 出力: some { id := 1, balance := 70 }
 #eval withdraw? alice 130
+-- 出力: none
 #eval transfer? alice bob 30
+-- 出力: some ({ id := 1, balance := 70 }, { id := 2, balance := 70 })
 
 end Chapter25

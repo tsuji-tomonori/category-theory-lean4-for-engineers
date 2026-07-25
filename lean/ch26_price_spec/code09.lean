@@ -81,7 +81,9 @@ def taxOnSum2 (a b : Money) : Money :=
   taxOnly 1 10 (a + b)
 
 #eval taxPerLine2 9 9
+-- 出力: 0
 #eval taxOnSum2 9 9
+-- 出力: 1
 
 theorem rounding_position_counterexample :
     taxPerLine2 9 9 ≠ taxOnSum2 9 9 := by

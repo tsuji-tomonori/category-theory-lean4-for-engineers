@@ -39,5 +39,6 @@ def userMigrationLink : ModelLink :=
     assumption := "Lean model ignores database IO and timestamps" }
 
 #eval userMigrationLink.theoremName
+-- 出力: "userV1_rollback_migrate"
 
 end Chapter36

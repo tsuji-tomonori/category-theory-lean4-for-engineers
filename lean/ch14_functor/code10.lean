@@ -93,6 +93,7 @@ def migrateUsers (users : List UserV1) : List UserV2 :=
   { id := 1, name := "Ada" },
   { id := 2, name := "Grace" }
 ]
+-- 出力: [{ userId := 1, displayName := "Ada" }, { userId := 2, displayName := "Grace" }]
 
 theorem list_map_length {A B : Type}
     (f : A -> B) (xs : List A) :

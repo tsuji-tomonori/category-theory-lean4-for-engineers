@@ -8,4 +8,6 @@ def DiscountSpec (member : Bool) : Prop :=
   hasDiscount member = true
 
 #check DiscountSpec true
+-- 出力: DiscountSpec true : Prop
 #check DiscountSpec false
+-- 出力: DiscountSpec false : Prop

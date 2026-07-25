@@ -11,6 +11,7 @@ def combineLog (a b : Log) : Log :=
   a ++ b
 
 #eval combineLog ["start"] ["end"]
+-- 出力: ["start", "end"]
 
 theorem combineLog_empty_left (xs : Log) :
     combineLog emptyLog xs = xs := by
@@ -69,6 +70,7 @@ def mergeConfig (a b : Config) : Config :=
 
 #eval mergeConfig { retry := 1, tags := ["api"] }
                   { retry := 2, tags := ["db"] }
+-- 出力: { retry := 3, tags := ["api", "db"] }
 
 theorem mergeConfig_empty_left (c : Config) :
     mergeConfig emptyConfig c = c := by

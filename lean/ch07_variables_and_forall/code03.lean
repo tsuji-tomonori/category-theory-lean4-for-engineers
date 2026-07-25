@@ -11,4 +11,6 @@ def compose {A B C : Type} (g : B -> C) (f : A -> B) : A -> C :=
   fun x => g (f x)
 
 #eval applyTwice inc 10
+-- 出力: 12
 #eval compose inc inc 10
+-- 出力: 12

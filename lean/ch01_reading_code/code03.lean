@@ -8,5 +8,8 @@ def addOne (n : Nat) : Nat :=
   n + 1
 
 #check addOne
+-- 出力: addOne (n : Nat) : Nat
 #eval greeting
+-- 出力: "hello"
 #eval addOne 5
+-- 出力: 6

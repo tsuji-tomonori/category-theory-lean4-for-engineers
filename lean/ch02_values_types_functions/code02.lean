@@ -11,5 +11,8 @@ def add (m : Nat) (n : Nat) : Nat :=
   m + n
 
 #eval answer
+-- 出力: 42
 #eval addOne 5
+-- 出力: 6
 #eval add 2 3
+-- 出力: 5

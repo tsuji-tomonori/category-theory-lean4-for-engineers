@@ -62,6 +62,7 @@ def clientV2 (r : Request) : Response :=
   { status := 200, value := calculated }
 
 #eval clientV1 { userId := 1, amount := 100 }
+-- 出力: { status := 200, value := 101 }
 
 theorem clientV1_eq_clientV2 :
     clientV1 = clientV2 := by

@@ -11,6 +11,7 @@ def combineLog (a b : Log) : Log :=
   a ++ b
 
 #eval combineLog ["start"] ["end"]
+-- 出力: ["start", "end"]
 
 theorem combineLog_empty_left (xs : Log) :
     combineLog emptyLog xs = xs := by

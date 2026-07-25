@@ -6,6 +6,7 @@
 - [ ] TeX–Lean strict sync
 - [ ] listing説明構造
 - [ ] Lean全スニペット、未許可warning 0
+- [ ] `#check`・`#eval` 等の `-- 出力:` コメントに欠落・陳腐化0
 - [ ] `sorry`/`admit`/`axiom` allowlist外0
 - [ ] citation、reference、label、bibliography
 - [ ] 図版欠落・未参照・重複

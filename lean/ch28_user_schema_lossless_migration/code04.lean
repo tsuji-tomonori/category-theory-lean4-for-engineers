@@ -45,6 +45,11 @@ def migrate (u : UserV1) : UserV2 :=
     email := "ada@example.com"
     emailVerified := true
     createdAt := 1000 }
+-- 出力:
+--   { userId := 1,
+--     profile := { displayName := "Ada" },
+--     contact := { emailAddress := "ada@example.com", verified := true },
+--     audit := { createdAt := 1000 } }
 
 def rollback (v : UserV2) : UserV1 :=
   { id := v.userId

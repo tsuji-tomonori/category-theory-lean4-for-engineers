@@ -12,7 +12,9 @@ def optionToList {A : Type} : Option A -> List A
   | some a => [a]
 
 #eval optionToList (some 10)
+-- 出力: [10]
 #eval optionToList (none : Option Nat)
+-- 出力: []
 
 theorem optionToList_naturality {A B : Type}
     (f : A -> B) (x : Option A) :
@@ -69,6 +71,7 @@ def adapt {A : Type} (r : OldResponse A) : NewResponse A :=
     items := optionToList r.payload }
 
 #eval adapt ({ traceId := 7, payload := some 42 } : OldResponse Nat)
+-- 出力: { traceId := 7, status := Chapter15.Status.ok, items := [42] }
 
 theorem adapt_naturality {A B : Type}
     (f : A -> B) (r : OldResponse A) :

@@ -17,6 +17,7 @@ def sampleAccount : Account :=
   { ownerId := 1, balance := 100 }
 
 #eval sampleAccount.balance
+-- 出力: 100
 
 def AccountValid (a : Account) : Prop :=
   0 < a.ownerId
