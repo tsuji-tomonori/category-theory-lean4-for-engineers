@@ -90,6 +90,9 @@ jobs:
       - name: Verify Lean 4 lexer
         run: pygmentize -L lexers | grep -i 'lean4'
 
+      - name: Check Lean proof keyword highlighting
+        run: python3 tools/check_lean_keyword_highlighting.py
+
       - name: Build PDF
         run: make
 
