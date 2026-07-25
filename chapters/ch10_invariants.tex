@@ -5,6 +5,7 @@
 \BookIndex{じぜんじょうけん}{事前条件}
 \BookIndex{じごじょうけん}{事後条件}
 \BookIndex{Subtype}{\texttt{Subtype}}
+\BookIndex{with structure update}{\texttt{with}（構造体更新）}
 \BookIndex{simpa}{\texttt{simpa}}
 \BookIndex{using}{\texttt{using}}
 \BookIndex{かてい}{仮定}
@@ -20,6 +21,7 @@
 
 \begin{learninggoals}
 \item \texttt{structure} を使って、Lean 4 上に小さなドメインモデルを定義できます。
+\item \texttt{\{ source with field := value \}} を、既存の構造体をもとに一部のフィールドを差し替える記法として読めます。
 \item データが守るべきルールを、\texttt{Prop} を返す述語として表現できます。
 \item 定理の引数として置かれた仮定 \texttt{h} と、\texttt{simpa ... using h} の意味を説明できます。
 \item 事前条件、事後条件、不変条件を区別し、関数仕様として書けます。
@@ -150,7 +152,11 @@ theorem deposit_preserves_valid
 \texttt{AccountValid} は、口座の所有者IDが正であることを表します。
 この例では、残高の非負性を \texttt{balance : Nat} という型で表しています。
 一方、所有者IDが \texttt{0} でないことは述語で表しています。
-\texttt{\{ a with balance := ... \}} は、\texttt{balance} だけを更新した新しい値を作ります。
+
+コード\ref{lst:ch10_invariant_predicate}で使う \texttt{with} は、「元にする構造体」と「差し替えるフィールド」を区切る、構造体更新記法のキーワードです。
+基本形は \texttt{\{ source with field := value \}} です。
+\texttt{\{ a with balance := a.balance + amount \}} では、\texttt{with} の左側にある \texttt{a} を元にし、指定していない \texttt{ownerId} などのフィールドを引き継いだまま、\texttt{balance} だけを差し替えた新しい \texttt{Account} を作ります。
+これは \texttt{a} 自体を書き換える可変更新ではありません。
 
 \subsection{\texttt{simpa ... using h} を分解して読む}
 
@@ -549,6 +555,7 @@ APIレスポンス & 成功時だけ本文を持つ & wrapper変換 \\
 要点と記法
 \begin{itemize}
 \item \texttt{structure 名前 where ...} は、レコード型であるドメインモデルを定義します。
+\item \texttt{\{ source with field := value \}} は、元の構造体を変更せず、指定したフィールドだけを差し替えた新しい値を作ります。
 \item \texttt{A -> Prop} は、値が条件を満たすかを表す述語です。
 \item 定理の明示引数は任意の値を受け取り、\texttt{h : P} のような証明引数は「\texttt{P} が成り立つなら」という前提を表します。
 \item \texttt{simpa [定義名] using h} は、ゴールと \texttt{h} の型を単純化し、同じ命題になれば \texttt{h} で証明を完了します。
