@@ -25,8 +25,13 @@ def AccountValid (a : Account) : Prop :=
 def deposit (a : Account) (amount : Nat) : Account :=
   { a with balance := a.balance + amount }
 
+-- h は「入力口座 a が AccountValid を満たす」という証明。
+-- 入金しても AccountValid は保たれる。
 theorem deposit_preserves_valid
     (a : Account) (amount : Nat)
     (h : AccountValid a) :
     AccountValid (deposit a amount) := by
+  -- h     : AccountValid a
+  -- ゴール: AccountValid (deposit a amount)
+  -- 両方を定義展開して同じ命題にし、h を再利用する。
   simpa [deposit, AccountValid] using h
