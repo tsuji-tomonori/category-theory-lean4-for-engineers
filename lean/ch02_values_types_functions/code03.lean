@@ -8,4 +8,6 @@ def add (m : Nat) (n : Nat) : Nat :=
   m + n
 
 #check addOne
+-- 出力: addOne (n : Nat) : Nat
 #check add
+-- 出力: add (m n : Nat) : Nat

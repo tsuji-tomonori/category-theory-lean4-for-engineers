@@ -17,6 +17,7 @@ def sampleAccount : Account :=
   { ownerId := 1, balance := 100 }
 
 #eval sampleAccount.balance
+-- 出力: 100
 
 def AccountValid (a : Account) : Prop :=
   0 < a.ownerId
@@ -56,4 +57,6 @@ def withdrawOpt (a : Account) (amount : Nat) : Option Account :=
     none
 
 #eval withdrawOpt sampleAccount 40
+-- 出力: some { ownerId := 1, balance := 60 }
 #eval withdrawOpt sampleAccount 150
+-- 出力: none

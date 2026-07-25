@@ -261,6 +261,7 @@ def clientV2 (r : Request) : Response :=
   { status := 200, value := calculated }
 
 #eval clientV1 { userId := 1, amount := 100 }  -- => { status := 200, value := 101 }
+-- 出力: { status := 200, value := 101 }
 
 end Chapter21
 \end{minted}

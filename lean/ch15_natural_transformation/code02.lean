@@ -12,7 +12,9 @@ def optionToList {A : Type} : Option A -> List A
   | some a => [a]
 
 #eval optionToList (some 10)
+-- 出力: [10]
 #eval optionToList (none : Option Nat)
+-- 出力: []
 
 theorem optionToList_naturality {A B : Type}
     (f : A -> B) (x : Option A) :

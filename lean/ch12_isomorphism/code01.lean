@@ -94,6 +94,8 @@ example : defaultUser (eraseToUnit sampleUser) ≠ sampleUser := by
   decide
 
 #eval migrate sampleUser
+-- 出力: { userId := 1, contact := { email := "alice@example.com" }, profile := { displayName := "Alice" } }
 #eval rollback (migrate sampleUser)
+-- 出力: { id := 1, email := "alice@example.com", displayName := "Alice" }
 
 end Chapter12

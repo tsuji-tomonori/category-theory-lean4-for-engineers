@@ -99,7 +99,9 @@ def compose {A B C : Type} (g : B -> C) (f : A -> B) : A -> C :=
   fun x => g (f x)
 
 #eval applyTwice inc 10
+-- 出力: 12
 #eval compose inc inc 10
+-- 出力: 12
 \end{minted}
 \caption{\texttt{inc}・\texttt{applyTwice}・\texttt{compose}}
 \label{lst:ch07_compose}
@@ -143,8 +145,11 @@ def decorateAll (xs : List String) : List (Option String) :=
   xs.map decorateIfNonempty
 
 #eval decorateIfNonempty ""
+-- 出力: none
 #eval decorateIfNonempty "lean"
+-- 出力: some "[lean]"
 #eval decorateAll ["a", "", "b"]
+-- 出力: [some "[a]", none, some "[b]"]
 \end{minted}
 \caption{\texttt{decorateIfNonempty} と \texttt{decorateAll}}
 \label{lst:ch07_pipeline}

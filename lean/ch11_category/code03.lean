@@ -38,3 +38,4 @@ def pipelineRight : String -> String :=
   comp renderGreeting (comp fetchUserName parseUserId)
 
 #eval pipelineLeft "abc"
+-- 出力: "hello, user-3"

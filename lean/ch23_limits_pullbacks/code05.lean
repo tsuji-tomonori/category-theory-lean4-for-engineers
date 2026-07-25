@@ -134,6 +134,8 @@ def exampleJoined : ProfileOrder :=
   joinProfileOrder exampleProfile exampleOrder rfl
 
 #eval exampleJoined.profile.displayName
+-- 出力: "Ada"
 #eval exampleJoined.order.total
+-- 出力: 1200
 
 end Chapter23

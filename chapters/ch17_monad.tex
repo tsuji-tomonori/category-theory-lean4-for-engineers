@@ -89,7 +89,9 @@ def optBind {α β : Type} (x : Option α) (f : α → Option β) : Option β :=
   | some a => f a
 
 #eval optBind (some 10) (fun n => some (n + 1))  -- => some 11
+-- 出力: some 11
 #eval optBind (none : Option Nat) (fun n => some (n + 1))  -- => none
+-- 出力: none
 \end{minted}
 \caption{\texttt{optPure} と \texttt{optBind}}
 \label{lst:ch17_option_bind}
@@ -235,8 +237,11 @@ def missingAgeDraft : UserDraft :=
   { id := 9, emailOpt := some "b@example.com", ageOpt := none }
 
 #eval migrateUser goodDraft  -- => some { id := 7, email := "a@example.com", age := 20 }
+-- 出力: some { id := 7, email := "a@example.com", age := 20 }
 #eval migrateUser missingEmailDraft  -- => none
+-- 出力: none
 #eval migrateUser missingAgeDraft  -- => none
+-- 出力: none
 \end{minted}
 \caption{\texttt{migrateUser} の実行例}
 \label{lst:ch17_user_examples}
@@ -390,6 +395,7 @@ def tick : SimpleState Nat Nat :=
       statePure n))
 
 #eval tick 10  -- => (10, 11)
+-- 出力: (10, 11)
 \end{minted}
 \caption{\texttt{tick}}
 \label{lst:ch17_state_example}

@@ -38,8 +38,11 @@ Lean では、この区別が型として明示され、関数にも入力と出
 \begin{listing}[htbp]
 \begin{minted}{lean4}
 #eval (3 : Nat) + 4
+-- 出力: 7
 #eval true && false
+-- 出力: false
 #eval "lean" ++ "4"
+-- 出力: "lean4"
 \end{minted}
 \caption{\texttt{Nat}・\texttt{Bool}・\texttt{String}}
 \label{lst:ch02_values}
@@ -66,8 +69,11 @@ def add (m : Nat) (n : Nat) : Nat :=
   m + n
 
 #eval answer
+-- 出力: 42
 #eval addOne 5
+-- 出力: 6
 #eval add 2 3
+-- 出力: 5
 \end{minted}
 \caption{\texttt{answer}・\texttt{addOne}・\texttt{add}}
 \label{lst:ch02_def}
@@ -97,7 +103,9 @@ def add (m : Nat) (n : Nat) : Nat :=
   m + n
 
 #check addOne
+-- 出力: addOne (n : Nat) : Nat
 #check add
+-- 出力: add (m n : Nat) : Nat
 \end{minted}
 \caption{\texttt{addOne} と \texttt{add} の型}
 \label{lst:ch02_function_type}

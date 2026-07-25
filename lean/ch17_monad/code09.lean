@@ -12,7 +12,9 @@ def optBind {α β : Type} (x : Option α) (f : α → Option β) : Option β :=
   | some a => f a
 
 #eval optBind (some 10) (fun n => some (n + 1))
+-- 出力: some 11
 #eval optBind (none : Option Nat) (fun n => some (n + 1))
+-- 出力: none
 
 theorem option_left_identity {α β : Type} (a : α) (f : α → Option β) :
     optBind (optPure a) f = f a := by
@@ -73,8 +75,11 @@ def missingAgeDraft : UserDraft :=
   { id := 9, emailOpt := some "b@example.com", ageOpt := none }
 
 #eval migrateUser goodDraft
+-- 出力: some { id := 7, email := "a@example.com", age := 20 }
 #eval migrateUser missingEmailDraft
+-- 出力: none
 #eval migrateUser missingAgeDraft
+-- 出力: none
 
 example : migrateUser goodDraft =
     some ({ id := 7, email := "a@example.com", age := 20 } : UserV2) := by
@@ -125,8 +130,11 @@ def migrateUserExcept (u : UserDraft) : Except MigrationError UserV2 :=
   exceptBind (requireEmailE u) requireAgeE
 
 #eval migrateUserExcept goodDraft
+-- 出力: Except.ok { id := 7, email := "a@example.com", age := 20 }
 #eval migrateUserExcept missingEmailDraft
+-- 出力: Except.error (Chapter17.MigrationError.missingEmail)
 #eval migrateUserExcept missingAgeDraft
+-- 出力: Except.error (Chapter17.MigrationError.missingAge)
 
 theorem except_left_identity {ε α β : Type} (a : α) (f : α → Except ε β) :
     exceptBind (exceptPure a) f = f a := by

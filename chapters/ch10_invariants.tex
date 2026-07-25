@@ -71,6 +71,7 @@ def sampleAccount : Account :=
   { ownerId := 1, balance := 100 }
 
 #eval sampleAccount.balance  -- => 100
+-- 出力: 100
 \end{minted}
 \caption{\texttt{User} と \texttt{Account}}
 \label{lst:ch10_structure_model}
@@ -299,7 +300,9 @@ def withdrawOpt (a : Account) (amount : Nat) : Option Account :=
     none
 
 #eval withdrawOpt sampleAccount 40  -- => some { ownerId := 1, balance := 60 }
+-- 出力: some { ownerId := 1, balance := 60 }
 #eval withdrawOpt sampleAccount 150  -- => none
+-- 出力: none
 \end{minted}
 \caption{\texttt{withdrawOpt}}
 \label{lst:ch10_withdraw_option}

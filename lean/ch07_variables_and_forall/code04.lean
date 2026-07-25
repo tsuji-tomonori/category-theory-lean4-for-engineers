@@ -16,5 +16,8 @@ def decorateAll (xs : List String) : List (Option String) :=
   xs.map decorateIfNonempty
 
 #eval decorateIfNonempty ""
+-- 出力: none
 #eval decorateIfNonempty "lean"
+-- 出力: some "[lean]"
 #eval decorateAll ["a", "", "b"]
+-- 出力: [some "[a]", none, some "[b]"]

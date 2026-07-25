@@ -12,4 +12,6 @@ def optBind {α β : Type} (x : Option α) (f : α → Option β) : Option β :=
   | some a => f a
 
 #eval optBind (some 10) (fun n => some (n + 1))
+-- 出力: some 11
 #eval optBind (none : Option Nat) (fun n => some (n + 1))
+-- 出力: none

@@ -5,3 +5,4 @@ def hasDiscount (member : Bool) : Bool :=
   member
 
 #check (hasDiscount true = true)
+-- 出力: hasDiscount true = true : Prop

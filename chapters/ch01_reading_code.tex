@@ -40,8 +40,11 @@ Lean では、すべての式に型があります。
 \begin{listing}[htbp]
 \begin{minted}{lean4}
 #check (3 : Nat)
+-- 出力: 3 : Nat
 #check (true : Bool)
+-- 出力: true : Bool
 #check ("lean" : String)
+-- 出力: "lean" : String
 \end{minted}
 \caption{\texttt{:} と \texttt{\#check}}
 \label{lst:ch01_check}
@@ -59,8 +62,11 @@ Lean では、すべての式に型があります。
 \begin{listing}[htbp]
 \begin{minted}{lean4}
 #eval (3 : Nat)
+-- 出力: 3
 #eval 2 + 3
+-- 出力: 5
 #eval "lean" ++ "4"
+-- 出力: "lean4"
 \end{minted}
 \caption{\texttt{\#eval}}
 \label{lst:ch01_eval}
@@ -92,8 +98,11 @@ def addOne (n : Nat) : Nat :=
   n + 1
 
 #check addOne
+-- 出力: addOne (n : Nat) : Nat
 #eval greeting
+-- 出力: "hello"
 #eval addOne 5
+-- 出力: 6
 \end{minted}
 \caption{\texttt{greeting} と \texttt{addOne}}
 \label{lst:ch01_def}

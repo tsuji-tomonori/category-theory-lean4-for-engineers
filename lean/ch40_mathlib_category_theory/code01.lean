@@ -19,5 +19,8 @@ variable {C : Type u} [Category.{v} C]
 variable {W X Y Z : C}
 
 #check (X ⟶ Y)
+-- 出力: X ⟶ Y : Type v
 #check (𝟙 X)
+-- 出力: 𝟙 X : X ⟶ X
 #check fun (f : X ⟶ Y) (g : Y ⟶ Z) => f ≫ g
+-- 出力: fun f g => f ≫ g : (X ⟶ Y) → (Y ⟶ Z) → (X ⟶ Z)

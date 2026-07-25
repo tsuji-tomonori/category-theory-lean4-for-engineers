@@ -16,4 +16,6 @@ def pipeline (n : Nat) : Nat :=
   double (inc n)
 
 #eval addFee 1000
+-- 出力: 1300
 #eval pipeline 10
+-- 出力: 22
