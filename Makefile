@@ -14,6 +14,7 @@ lean-output-check:
 
 quality:
 	python3 -m unittest discover -s tools/tests -p 'test_*.py'
+	python3 tools/check_lean_keyword_highlighting.py
 	python3 tools/check_book_structure.py
 	python3 tools/check_tex_lean_sync.py
 	python3 tools/check_listing_explanations.py
