@@ -315,8 +315,6 @@ def withdrawOpt (a : Account) (amount : Nat) : Option Account :=
 \label{lst:ch10_withdraw_option}
 \end{listing}
 
-\texttt{some \{ a with balance := a.balance - amount \}} の \texttt{with} も、コード\ref{lst:ch10_invariant_predicate}と同じ構造体更新記法です。
-元の \texttt{ownerId} を引き継ぎ、残高だけを減らした新しい口座を \texttt{some} に包んで返します。
 この定義では、\texttt{amount <= a.balance} が成り立つときだけ出金に成功します。
 失敗した場合は \texttt{none} を返します。
 \texttt{balance} は \texttt{Nat} なので、成功時に \texttt{a.balance - amount} を計算しても、Lean の値としては自然数に収まります。
