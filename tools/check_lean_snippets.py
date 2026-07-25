@@ -4,44 +4,14 @@
 from __future__ import annotations
 
 import argparse
-import os
-import subprocess
 import sys
 from pathlib import Path
 
-
-ROOT = Path(__file__).resolve().parents[1]
-LEAN_DIR = ROOT / "lean"
-MATHLIB_CHAPTER = "ch40_mathlib_category_theory"
-
-
-def snippet_files(paths: list[str]) -> list[Path]:
-    if paths:
-        selected: list[Path] = []
-        for raw_path in paths:
-            path = Path(raw_path).resolve()
-            if path.is_dir():
-                selected.extend(sorted(path.glob("code*.lean")))
-            else:
-                selected.append(path)
-        return selected
-    return sorted(LEAN_DIR.glob("*/code*.lean"))
+from lean_snippet_support import ROOT, run_lean_file, snippet_files
 
 
 def check_file(lean_path: Path, lean: str, lake: str) -> bool:
-    if lean_path.parent.name == MATHLIB_CHAPTER:
-        argv = [lake, "env", "lean", str(lean_path)]
-    else:
-        argv = [lean, str(lean_path)]
-
-    completed = subprocess.run(
-        argv,
-        cwd=ROOT,
-        check=False,
-        text=True,
-        capture_output=True,
-        env={**os.environ, "PATH": f"{Path(lean).parent}:{os.environ.get('PATH', '')}"},
-    )
+    completed = run_lean_file(lean_path, lean, lake)
 
     if completed.returncode == 0:
         print(f"ok: {lean_path.relative_to(ROOT)}")
