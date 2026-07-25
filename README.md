@@ -46,9 +46,24 @@ lake exe cache get
 python3 tools/check_lean_snippets.py lean/ch40_mathlib_category_theory
 ```
 
+### Lean コマンドの出力コメント
+
+`#check`、`#eval`、`#reduce`、`#print`、`#synth` などの実際の出力は、固定された Lean 4 で取得し、`-- 出力:` コメントとして `lean/` の正本と本文のコードブロックへ自動反映します。Lean コードを変更した後は、`mathlib` のキャッシュを取得したうえで次を実行します。
+
+```sh
+python3 tools/sync_lean_command_outputs.py
+```
+
+生成済みコメントに欠落や古い結果がないことだけを確認する場合は、書き換えを行わない `--check` を使います。CI と `make quality` もこの検査を実行します。
+
+```sh
+python3 tools/sync_lean_command_outputs.py --check
+```
+
 ## 補助チェック
 
 ```sh
+python3 -m unittest discover -s tools/tests -p 'test_*.py'
 python3 tools/check_book_structure.py
 python3 tools/check_tex_lean_sync.py
 python3 tools/check_listing_explanations.py
