@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run Pygments with the book's Lean proof keywords highlighted consistently."""
+"""Run Pygments with the book's Lean proof syntax highlighted consistently."""
 
 from __future__ import annotations
 
@@ -10,11 +10,11 @@ from pygments.lexers.lean import Lean4Lexer
 from pygments.lexer import words
 
 
-LEAN_PROOF_KEYWORDS = ("rfl", "simp", "rw", "unfold")
+LEAN_PROOF_KEYWORDS = ("rfl", "simp", "simpa", "rw", "unfold", "using")
 
 
 def patch_lean4_keywords() -> None:
-    """Treat common proof tactics as keywords in rendered Lean snippets."""
+    """Treat common proof tactics and modifiers as keywords in Lean snippets."""
     for keyword in LEAN_PROOF_KEYWORDS:
         if keyword not in Lean4Lexer.keywords2:
             Lean4Lexer.keywords2 = Lean4Lexer.keywords2 + (keyword,)

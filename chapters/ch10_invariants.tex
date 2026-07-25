@@ -6,6 +6,9 @@
 \BookIndex{じごじょうけん}{事後条件}
 \BookIndex{Subtype}{\texttt{Subtype}}
 \BookIndex{with structure update}{\texttt{with}（構造体更新）}
+\BookIndex{simpa}{\texttt{simpa}}
+\BookIndex{using}{\texttt{using}}
+\BookIndex{かてい}{仮定}
 
 \begin{chapterabstract}
 本章では、Lean 4 でドメインモデルを作り、そのモデルが守るべきルールを不変条件として表す方法を学びます。
@@ -20,6 +23,7 @@
 \item \texttt{structure} を使って、Lean 4 上に小さなドメインモデルを定義できます。
 \item \texttt{\{ source with field := value \}} を、既存の構造体をもとに一部のフィールドを差し替える記法として読めます。
 \item データが守るべきルールを、\texttt{Prop} を返す述語として表現できます。
+\item 定理の引数として置かれた仮定 \texttt{h} と、\texttt{simpa ... using h} の意味を説明できます。
 \item 事前条件、事後条件、不変条件を区別し、関数仕様として書けます。
 \item \texttt{Subtype} を使って、「条件を満たす値」を型として扱えます。
 \item 口座残高を題材に、失敗しうる \texttt{withdraw} の仕様を Lean で表せます。
@@ -130,11 +134,15 @@ def AccountValid (a : Account) : Prop :=
 def deposit (a : Account) (amount : Nat) : Account :=
   { a with balance := a.balance + amount }
 
+-- h は「入力口座 a が AccountValid を満たす」という証明。
 -- 入金しても AccountValid は保たれる。
 theorem deposit_preserves_valid
     (a : Account) (amount : Nat)
     (h : AccountValid a) :
     AccountValid (deposit a amount) := by
+  -- h     : AccountValid a
+  -- ゴール: AccountValid (deposit a amount)
+  -- 両方を定義展開して同じ命題にし、h を再利用する。
   simpa [deposit, AccountValid] using h
 \end{minted}
 \caption{\texttt{AccountValid} と \texttt{deposit}}
@@ -150,7 +158,67 @@ theorem deposit_preserves_valid
 \texttt{\{ a with balance := a.balance + amount \}} では、\texttt{with} の左側にある \texttt{a} を元にし、指定していない \texttt{ownerId} などのフィールドを引き継いだまま、\texttt{balance} だけを差し替えた新しい \texttt{Account} を作ります。
 これは \texttt{a} 自体を書き換える可変更新ではありません。
 
-\texttt{simpa [deposit, AccountValid] using h} は二つの定義を展開し、ゴールを既存の証明 \texttt{h} と同じ形にして閉じます。
+\subsection{\texttt{simpa ... using h} を分解して読む}
+
+コード\ref{lst:ch10_invariant_predicate}の末尾にある \texttt{simpa} は、\texttt{simp} から派生した証明タクティクで、読み方は「シンパ」です。
+現在のゴールと、\texttt{using} の後ろに渡した証明の型を両方とも単純化し、同じ命題になれば、その証明を使ってゴールを閉じます。
+
+\begin{center}
+\begin{tabular}{p{0.29\textwidth}p{0.61\textwidth}}
+\toprule
+記述 & このコードでの意味 \\
+\midrule
+\texttt{simpa} & ゴールと使用する証明の型を単純化し、一致すれば証明を完了します。 \\
+\texttt{[deposit, AccountValid]} & 単純化に追加する定義名の指定です。Lean のリスト値や辞書ではなく、\texttt{simp} 系タクティクへ渡す書き換え規則の指定です。定義名を指定した場合は、その定義が展開されます。 \\
+\texttt{using h} & 局所仮定 \texttt{h} を、今回使う証明として渡します。\texttt{using} は \texttt{simpa} に付く構文であり、単独のタクティクでも全称量化子でもありません。 \\
+\texttt{h : AccountValid a} & 入力口座 \texttt{a} が有効であることを、すでに示した証明です。 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+定理の引数 \texttt{(a : Account)} と \texttt{(amount : Nat)} は、特定の値を固定していません。
+この定理は、任意の口座 \texttt{a} と任意の入金額 \texttt{amount} を受け取る関数として読めます。
+ただし、\texttt{(h : AccountValid a)} も引数であるため、主張は無条件ではありません。
+意味を自然言語に直すと、次のようになります。
+
+\begin{quote}
+任意の口座 \texttt{a} と任意の入金額 \texttt{amount} について、入力口座が \texttt{AccountValid} を満たすという証明 \texttt{h} があるなら、入金後の口座も \texttt{AccountValid} を満たします。
+\end{quote}
+
+したがって、この定理は「すべての口座が有効である」とは述べていません。
+「有効な入力口座に入金した場合、有効性が保存される」という条件付きの全称的な主張です。
+定理の型全体を矢印で書き直すと、次の形に相当します。
+
+\begin{quote}
+\texttt{(a : Account) -> (amount : Nat) ->}\\
+\texttt{AccountValid a -> AccountValid (deposit a amount)}
+\end{quote}
+
+最初の二つの引数は全称量化に相当し、任意の値を受け取ります。
+三つ目の引数 \texttt{h} は、前提 \texttt{AccountValid a} の証明を受け取ります。
+このため、全称性はありますが、前提なしの主張ではありません。
+
+\texttt{simpa} が実際に比較する二つの命題は、次のように同じ形へ変わります。
+
+\begin{center}
+\begin{tabular}{p{0.43\textwidth}p{0.47\textwidth}}
+\toprule
+単純化する対象 & 定義展開後 \\
+\midrule
+\texttt{h} の型 \texttt{AccountValid a} & \texttt{0 < a.ownerId} \\
+ゴール \texttt{AccountValid (deposit a amount)} & \texttt{0 < a.ownerId} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+ゴール側では、まず \texttt{AccountValid} を展開すると、入金後の口座の \texttt{ownerId} が正であることを求める形になります。
+次に \texttt{deposit} を展開すると、変更しているフィールドは \texttt{balance} だけなので、入金後の \texttt{ownerId} は元の \texttt{a.ownerId} のままです。
+その結果、ゴールは \texttt{h} がすでに証明している \texttt{0 < a.ownerId} と一致します。
+\texttt{using h} によって、その証明を再利用して完了できます。
+
+入金額 \texttt{amount} がいくつでもよいのは、ここで定義した \texttt{AccountValid} が \texttt{ownerId} だけを検査し、\texttt{deposit} が \texttt{ownerId} を変更しないためです。
+この証明が保証するのは、この \texttt{AccountValid} という述語だけです。
+残高上限、凍結状態、通貨など別の条件まで自動的に保証するわけではありません。
 
 \subsection{保存される条件として読む}
 
@@ -489,6 +557,8 @@ APIレスポンス & 成功時だけ本文を持つ & wrapper変換 \\
 \item \texttt{structure 名前 where ...} は、レコード型であるドメインモデルを定義します。
 \item \texttt{\{ source with field := value \}} は、元の構造体を変更せず、指定したフィールドだけを差し替えた新しい値を作ります。
 \item \texttt{A -> Prop} は、値が条件を満たすかを表す述語です。
+\item 定理の明示引数は任意の値を受け取り、\texttt{h : P} のような証明引数は「\texttt{P} が成り立つなら」という前提を表します。
+\item \texttt{simpa [定義名] using h} は、ゴールと \texttt{h} の型を単純化し、同じ命題になれば \texttt{h} で証明を完了します。
 \item \texttt{Subtype} / \texttt{\{x // P x\}} は、値と「条件を満たす証明」を一緒に持つ型です。
 \item 事前条件は操作前の要求、事後条件は操作後の保証、不変条件は有効な状態で守る性質です。
 \item 失敗しうる処理は、\texttt{Option} や \texttt{Except} で失敗を戻り値の型に表します。
