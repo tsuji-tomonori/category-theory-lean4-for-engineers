@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify that the book's Lean proof tactics receive keyword highlighting."""
+"""Verify that the book's Lean proof syntax receives keyword highlighting."""
 
 from __future__ import annotations
 
@@ -13,9 +13,14 @@ from pygmentize_lean_keywords import LEAN_PROOF_KEYWORDS, patch_lean4_keywords
 def main() -> int:
     patch_lean4_keywords()
 
-    source = "example : True := by\n" + "".join(
-        f"  {keyword}\n" for keyword in LEAN_PROOF_KEYWORDS
-    )
+    source = """\
+example : True := by
+  rfl
+  simp
+  rw [h]
+  unfold f
+  simpa [deposit, AccountValid] using h
+"""
     highlighted = {
         value
         for token_type, value in lex(source, Lean4Lexer())
@@ -24,13 +29,13 @@ def main() -> int:
     missing = sorted(set(LEAN_PROOF_KEYWORDS) - highlighted)
     if missing:
         print(
-            "Lean proof tactics are not highlighted as keywords: "
+            "Lean proof syntax is not highlighted as keywords: "
             + ", ".join(missing)
         )
         return 1
 
     print(
-        "Lean proof tactic highlighting is configured: "
+        "Lean proof syntax highlighting is configured: "
         + ", ".join(LEAN_PROOF_KEYWORDS)
     )
     return 0
