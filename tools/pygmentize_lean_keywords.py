@@ -10,7 +10,7 @@ from pygments.lexers.lean import Lean4Lexer
 from pygments.lexer import words
 
 
-LEAN_PROOF_KEYWORDS = ("rfl", "simp", "rw")
+LEAN_PROOF_KEYWORDS = ("rfl", "simp", "rw", "unfold")
 
 
 def patch_lean4_keywords() -> None:
