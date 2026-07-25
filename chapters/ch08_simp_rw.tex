@@ -1,16 +1,16 @@
 % !TEX root = ../main.tex
-\chapter{\texttt{simp} と \texttt{rw}}
+\chapter{\texttt{simp}・\texttt{unfold}・\texttt{rw}}
 \label{chap:ch08_simp_rw}
 \BookIndex{simp}{\texttt{simp}}
-\BookIndex{rw}{\texttt{rw}}
 \BookIndex{unfold}{\texttt{unfold}}
+\BookIndex{rw}{\texttt{rw}}
 
 \begin{chapterabstract}
 本章では、\texttt{rfl} の次の証明道具として \texttt{simp}、\texttt{unfold}、\texttt{rw} を導入します。
 \texttt{simp} は、Lean が知っている単純化規則で式を整理します。
 \texttt{unfold} は、指定した定義を現在のゴールで明示的に展開します。
 \texttt{rw} は、すでに証明済みの等式を使って式を書き換えます。
-いずれも \texttt{rfl} だけでは届かない場面で使う、等式推論の基本道具です。
+これらは、定義の中身を見せたり、式を整理・書き換えたりするための、等式推論の基本道具です。
 \end{chapterabstract}
 
 \begin{learninggoals}
@@ -24,7 +24,7 @@
 
 これまでの証明は、\texttt{rfl} だけで閉じてきました。
 しかし、分岐を整理する場面や、別の場所で証明した等式を使う場面では、\texttt{rfl} だけでは足りません。
-本章では、分岐の整理には \texttt{simp}、定義を明示的に開くには \texttt{unfold}、証明済みの等式による書き換えには \texttt{rw} を導入します。
+本章では、分岐の整理には \texttt{simp}、定義を明示的に展開するには \texttt{unfold}、証明済みの等式による書き換えには \texttt{rw} を導入します。
 これらは、等式推論とリファクタリング証明で中心的に使います。
 
 \section{\texttt{simp} で明らかな整理を任せる}
